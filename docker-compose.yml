@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: careerpilot-postgres
+    environment:
+      POSTGRES_DB: careerpilot
+      POSTGRES_USER: careerpilot
+      POSTGRES_PASSWORD: careerpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: careerpilot-redis
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    container_name: careerpilot-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  neo4j:
+    image: neo4j:5.20
+    container_name: careerpilot-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/careerpilot123
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+  backend:
+    image: python:3.11-slim
+    container_name: careerpilot-backend
+    working_dir: /app/backend
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      python -m app.main"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - neo4j
+
+  frontend:
+    image: node:20-alpine
+    container_name: careerpilot-frontend
+    working_dir: /app/frontend
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
+  neo4j_data:
+

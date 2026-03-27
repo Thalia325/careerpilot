@@ -1,0 +1,8 @@
+姓名：陈同学
+专业：软件工程
+技能：JavaScript TypeScript React Next.js Python FastAPI SQL
+项目：CareerPilot 职业规划系统、校园助手小程序
+实习：某教育科技公司前端开发实习生
+证书：英语四级 计算机二级
+GPA：3.7
+
