@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.common import DimensionWeight
 
 
 class MatchingRequest(BaseModel):
-    student_id: int
-    job_code: str
+    student_id: int = Field(..., gt=0)
+    job_code: str = Field(..., min_length=1, max_length=100)
 
 
 class DimensionScore(BaseModel):

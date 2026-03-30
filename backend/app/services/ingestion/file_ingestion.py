@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.integrations.ocr.providers import BaseOCRProvider
 from app.integrations.storage.providers import BaseStorageProvider
 from app.models import Certificate, Resume, Student, Transcript, UploadedFile
+
+logger = logging.getLogger(__name__)
 
 
 class FileIngestionService:
@@ -49,23 +53,30 @@ class FileIngestionService:
         uploaded = db.get(UploadedFile, uploaded_file_id)
         if not uploaded:
             raise ValueError("上传文件不存在")
-        content = await self.storage_provider.read_file(uploaded.storage_key)
-        result = await self.ocr_provider.parse_document(uploaded.file_name, content, document_type=document_type)
-        uploaded.meta_json = {"ocr": result}
-        if document_type == "resume":
-            resume = db.scalar(select(Resume).where(Resume.file_id == uploaded.id))
-            if resume:
-                resume.parsed_json = result["structured_json"]
-        elif document_type == "transcript":
-            transcript = db.scalar(select(Transcript).where(Transcript.file_id == uploaded.id))
-            if transcript:
-                transcript.parsed_json = result["structured_json"]
-                transcript.gpa = result["structured_json"].get("gpa")
-        elif document_type == "certificate":
-            certificate = db.scalar(select(Certificate).where(Certificate.file_id == uploaded.id))
-            if certificate:
-                certificate.parsed_json = result["structured_json"]
-                certificate.name = result["structured_json"].get("certificates", [uploaded.file_name])[0]
-        db.commit()
-        return result
+        try:
+            content = await self.storage_provider.read_file(uploaded.storage_key)
+            result = await self.ocr_provider.parse_document(uploaded.file_name, content, document_type=document_type)
+            uploaded.meta_json = {"ocr": result}
+            if document_type == "resume":
+                resume = db.scalar(select(Resume).where(Resume.file_id == uploaded.id))
+                if resume:
+                    resume.parsed_json = result["structured_json"]
+            elif document_type == "transcript":
+                transcript = db.scalar(select(Transcript).where(Transcript.file_id == uploaded.id))
+                if transcript:
+                    transcript.parsed_json = result["structured_json"]
+                    transcript.gpa = result["structured_json"].get("gpa")
+            elif document_type == "certificate":
+                certificate = db.scalar(select(Certificate).where(Certificate.file_id == uploaded.id))
+                if certificate:
+                    certificate.parsed_json = result["structured_json"]
+                    certificate.name = result["structured_json"].get("certificates", [uploaded.file_name])[0]
+            db.commit()
+            return result
+        except ValueError as e:
+            logger.error(f"ValueError while parsing file {uploaded_file_id}: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to parse uploaded file {uploaded_file_id} with type {document_type}: {str(e)}")
+            raise ValueError(f"Failed to parse document: {str(e)}") from e
 

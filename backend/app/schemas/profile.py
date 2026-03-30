@@ -6,8 +6,8 @@ from app.schemas.common import EvidenceItem
 
 
 class ManualStudentInput(BaseModel):
-    target_job: Optional[str] = None
-    self_introduction: str = ""
+    target_job: Optional[str] = Field(None, max_length=200)
+    self_introduction: str = Field("", max_length=2000)
     skills: list[str] = Field(default_factory=list)
     certificates: list[str] = Field(default_factory=list)
     projects: list[str] = Field(default_factory=list)
@@ -18,9 +18,9 @@ class ManualStudentInput(BaseModel):
 
 
 class OCRParseRequest(BaseModel):
-    uploaded_file_id: Optional[int] = None
-    raw_text: Optional[str] = None
-    document_type: str = "resume"
+    uploaded_file_id: Optional[int] = Field(None, gt=0)
+    raw_text: Optional[str] = Field(None, max_length=50000)
+    document_type: str = Field("resume", min_length=1, max_length=50)
 
 
 class OCRParseResponse(BaseModel):
@@ -30,7 +30,7 @@ class OCRParseResponse(BaseModel):
 
 
 class StudentProfileGenerateRequest(BaseModel):
-    student_id: int
+    student_id: int = Field(..., gt=0)
     uploaded_file_ids: list[int] = Field(default_factory=list)
     manual_input: Optional[ManualStudentInput] = None
 

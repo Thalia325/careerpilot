@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: careerpilot
       POSTGRES_USER: careerpilot
-      POSTGRES_PASSWORD: careerpilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-careerpilot}
     ports:
       - "5432:5432"
     volumes:
@@ -24,8 +24,8 @@ services:
     container_name: careerpilot-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -36,7 +36,7 @@ services:
     image: neo4j:5.20
     container_name: careerpilot-neo4j
     environment:
-      NEO4J_AUTH: neo4j/careerpilot123
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-careerpilot123}
     ports:
       - "7474:7474"
       - "7687:7687"

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
 import { SectionCard } from "@/components/SectionCard";
 import { getMatching, getStudentProfile } from "@/lib/api";
+
+export const metadata: Metadata = {
+  title: "教师工作台 - CareerPilot",
+  description: "查看学生画像和匹配分析结果，提供指导建议"
+};
 
 export default async function TeacherPage() {
   const profile = await getStudentProfile();
@@ -11,12 +17,13 @@ export default async function TeacherPage() {
       <SectionCard title="学生概览">
         <ul className="plain-list">
           <li>目标岗位：前端开发工程师</li>
-          <li>画像完整度：{profile.completeness_score}</li>
-          <li>竞争力评分：{profile.competitiveness_score}</li>
-          <li>当前匹配度：{matching.total_score}</li>
+          <li>画像完整度：{profile?.completeness_score ?? 0}</li>
+          <li>竞争力评分：{profile?.competitiveness_score ?? 0}</li>
+          <li>当前匹配度：{matching?.total_score ?? 0}</li>
         </ul>
       </SectionCard>
-      <SectionCard title="教师点评建议">
+      <SectionCard title="教师点评建议（示例数据）">
+        <p style={{ marginBottom: "12px", fontSize: "0.85rem", color: "var(--subtle)" }}>这是基于演示数据的示例建议</p>
         <ul className="plain-list">
           <li>建议学生在 2 周内补齐 HTML/CSS 基础表达与作品展示。</li>
           <li>建议增加一段带业务指标的项目描述，提升简历说服力。</li>

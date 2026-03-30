@@ -6,16 +6,16 @@ from app.schemas.common import DimensionWeight
 
 
 class JobPostingIn(BaseModel):
-    title: str
-    location: str
-    salary_range: str
-    company_name: str
-    industry: str
-    company_size: str
-    ownership_type: str
-    job_code: str
-    description: str
-    company_intro: str
+    title: str = Field(..., min_length=1, max_length=200)
+    location: str = Field(..., min_length=1, max_length=100)
+    salary_range: str = Field(..., min_length=1, max_length=50)
+    company_name: str = Field(..., min_length=1, max_length=200)
+    industry: str = Field(..., min_length=1, max_length=100)
+    company_size: str = Field(..., min_length=1, max_length=50)
+    ownership_type: str = Field(..., min_length=1, max_length=50)
+    job_code: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=1, max_length=5000)
+    company_intro: str = Field(..., min_length=1, max_length=5000)
 
 
 class JobImportRequest(BaseModel):

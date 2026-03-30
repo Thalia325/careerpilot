@@ -8,7 +8,7 @@ export function StatCard({
   note: string;
 }) {
   return (
-    <article className="stat-card">
+    <article className="stat-card" aria-label={`${label}：${value}，${note}`}>
       <span>{label}</span>
       <strong>{value}</strong>
       <p>{note}</p>

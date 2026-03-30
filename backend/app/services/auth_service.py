@@ -3,14 +3,37 @@ from __future__ import annotations
 import hashlib
 from typing import Optional
 
+from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Student, Teacher, User
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    """Hash password using bcrypt."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against bcrypt hash. Also supports legacy SHA256 hashes."""
+    # Try bcrypt first
+    if hashed_password.startswith("$2"):
+        return pwd_context.verify(plain_password, hashed_password)
+    # Fallback to legacy SHA256 for existing users
+    sha256_hash = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+    if sha256_hash == hashed_password:
+        return True
+    return False
+
+
+def migrate_password_hash(db: Session, user: User, plain_password: str) -> None:
+    """Migrate legacy SHA256 password to bcrypt."""
+    if not user.password_hash.startswith("$2"):
+        user.password_hash = hash_password(plain_password)
+        db.commit()
 
 
 def ensure_demo_users(db: Session) -> None:
@@ -56,4 +79,9 @@ def authenticate(db: Session, username: str, password: str) -> Optional[User]:
     user = db.scalar(select(User).where(User.username == username))
     if not user:
         return None
-    return user if user.password_hash == hash_password(password) else None
+    if verify_password(password, user.password_hash):
+        # Migrate legacy password to bcrypt if needed
+        if not user.password_hash.startswith("$2"):
+            migrate_password_hash(db, user, password)
+        return user
+    return None

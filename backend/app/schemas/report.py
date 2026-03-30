@@ -1,13 +1,13 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.common import ExportedFile
 
 
 class ReportGenerateRequest(BaseModel):
-    student_id: int
-    job_code: str
+    student_id: int = Field(..., gt=0)
+    job_code: str = Field(..., min_length=1, max_length=100)
 
 
 class ReportContent(BaseModel):
@@ -28,12 +28,12 @@ class ReportResponse(BaseModel):
 
 
 class ReportPolishRequest(BaseModel):
-    report_id: int
-    markdown_content: str
+    report_id: int = Field(..., gt=0)
+    markdown_content: str = Field(..., min_length=1, max_length=50000)
 
 
 class ReportCheckRequest(BaseModel):
-    report_id: int
+    report_id: int = Field(..., gt=0)
 
 
 class ReportCheckResponse(BaseModel):
@@ -44,7 +44,7 @@ class ReportCheckResponse(BaseModel):
 
 
 class ReportExportRequest(BaseModel):
-    report_id: int
+    report_id: int = Field(..., gt=0)
     format: Literal["pdf", "docx"] = "pdf"
 
 
