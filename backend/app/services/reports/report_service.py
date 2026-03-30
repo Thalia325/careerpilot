@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from sqlalchemy import select
@@ -11,6 +12,8 @@ from app.models import CareerReport, GrowthTask, JobProfile, ReportVersion, Stud
 from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
 from app.services.reports.exporters import export_markdown_to_docx, export_markdown_to_pdf
+
+logger = logging.getLogger(__name__)
 
 
 class ReportService:
@@ -144,32 +147,46 @@ class ReportService:
         }
 
     def check_completeness(self, db: Session, report_id: int) -> dict:
-        report = self.get_report(db, report_id)
-        missing = [section for section in self.REQUIRED_SECTIONS if section not in report.content_json]
-        suggestions = []
-        if "matching_analysis" in missing:
-            suggestions.append("补充职业探索与岗位匹配分析。")
-        if "goals" in missing:
-            suggestions.append("补充职业目标和路径规划。")
-        if "action_plan" in missing:
-            suggestions.append("补充短期、中期行动计划与评估指标。")
-        if "evidence" in missing:
-            suggestions.append("补充岗位画像、学生画像、路径推荐依据。")
-        return {
-            "report_id": report_id,
-            "is_complete": len(missing) == 0,
-            "missing_sections": missing,
-            "suggestions": suggestions or ["报告结构完整，可直接导出。"],
-        }
+        try:
+            report = self.get_report(db, report_id)
+            missing = [section for section in self.REQUIRED_SECTIONS if section not in report.content_json]
+            suggestions = []
+            if "matching_analysis" in missing:
+                suggestions.append("补充职业探索与岗位匹配分析。")
+            if "goals" in missing:
+                suggestions.append("补充职业目标和路径规划。")
+            if "action_plan" in missing:
+                suggestions.append("补充短期、中期行动计划与评估指标。")
+            if "evidence" in missing:
+                suggestions.append("补充岗位画像、学生画像、路径推荐依据。")
+            return {
+                "report_id": report_id,
+                "is_complete": len(missing) == 0,
+                "missing_sections": missing,
+                "suggestions": suggestions or ["报告结构完整，可直接导出。"],
+            }
+        except ValueError as e:
+            logger.error(f"ValueError while checking report completeness for {report_id}: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to check completeness for report {report_id}: {str(e)}")
+            raise ValueError(f"Failed to check report completeness: {str(e)}") from e
 
     def export_report(self, db: Session, report_id: int, export_format: str) -> dict:
-        report = self.get_report(db, report_id)
-        suffix = "pdf" if export_format == "pdf" else "docx"
-        file_name = f"career_report_{report_id}.{suffix}"
-        output_path = self.settings.export_path / file_name
-        if export_format == "pdf":
-            export_markdown_to_pdf(report.markdown_content, output_path)
-        else:
-            export_markdown_to_docx(report.markdown_content, output_path)
-        return {"format": export_format, "path": str(output_path), "file_name": file_name}
+        try:
+            report = self.get_report(db, report_id)
+            suffix = "pdf" if export_format == "pdf" else "docx"
+            file_name = f"career_report_{report_id}.{suffix}"
+            output_path = self.settings.export_path / file_name
+            if export_format == "pdf":
+                export_markdown_to_pdf(report.markdown_content, output_path)
+            else:
+                export_markdown_to_docx(report.markdown_content, output_path)
+            return {"format": export_format, "path": str(output_path), "file_name": file_name}
+        except ValueError as e:
+            logger.error(f"ValueError while exporting report {report_id}: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to export report {report_id} as {export_format}: {str(e)}")
+            raise ValueError(f"Failed to export report: {str(e)}") from e
 

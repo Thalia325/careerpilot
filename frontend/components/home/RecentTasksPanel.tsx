@@ -30,6 +30,7 @@ export function RecentTasksPanel({ items }: RecentTasksPanelProps) {
             <div className="recent-task-item__meta">
               <span className={`status-pill status-pill--${item.status === "已完成" ? "done" : "pending"}`}>{item.status}</span>
               <small>{item.time}</small>
+              <span className="recent-task-item__cta">点击继续 <span aria-hidden="true">→</span></span>
             </div>
           </Link>
         ))}

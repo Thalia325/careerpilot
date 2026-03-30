@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from sqlalchemy import delete, select
@@ -9,6 +10,8 @@ from app.integrations.llm.providers import BaseLLMProvider
 from app.models import Student, StudentProfile, StudentProfileEvidence, UploadedFile
 from app.schemas.profile import ManualStudentInput
 from app.services.ingestion.file_ingestion import FileIngestionService
+
+logger = logging.getLogger(__name__)
 
 
 class StudentProfileService:
@@ -37,21 +40,26 @@ class StudentProfileService:
         }
         evidence_items: list[dict] = []
         for uploaded_file_id in uploaded_file_ids:
-            uploaded = db.get(UploadedFile, uploaded_file_id)
-            if not uploaded:
+            try:
+                uploaded = db.get(UploadedFile, uploaded_file_id)
+                if not uploaded:
+                    logger.warning(f"Uploaded file {uploaded_file_id} not found, skipping")
+                    continue
+                ocr = uploaded.meta_json.get("ocr") if uploaded.meta_json else None
+                if not ocr:
+                    document_type = "resume" if uploaded.file_type == "resume" else uploaded.file_type
+                    ocr = await self.file_service.parse_uploaded_file(db, uploaded_file_id, document_type)
+                structured = ocr["structured_json"]
+                merged["skills"].extend(structured.get("skills", []))
+                merged["certificates"].extend(structured.get("certificates", []))
+                merged["projects"].extend(structured.get("projects", []))
+                merged["internships"].extend(structured.get("internships", []))
+                merged["source_summary"] += f"{uploaded.file_name}；"
+                for skill in structured.get("skills", []):
+                    evidence_items.append({"source": uploaded.file_name, "excerpt": f"OCR 提取技能：{skill}", "confidence": 0.9})
+            except Exception as e:
+                logger.error(f"Failed to process uploaded file {uploaded_file_id}: {str(e)}")
                 continue
-            ocr = uploaded.meta_json.get("ocr") if uploaded.meta_json else None
-            if not ocr:
-                document_type = "resume" if uploaded.file_type == "resume" else uploaded.file_type
-                ocr = await self.file_service.parse_uploaded_file(db, uploaded_file_id, document_type)
-            structured = ocr["structured_json"]
-            merged["skills"].extend(structured.get("skills", []))
-            merged["certificates"].extend(structured.get("certificates", []))
-            merged["projects"].extend(structured.get("projects", []))
-            merged["internships"].extend(structured.get("internships", []))
-            merged["source_summary"] += f"{uploaded.file_name}；"
-            for skill in structured.get("skills", []):
-                evidence_items.append({"source": uploaded.file_name, "excerpt": f"OCR 提取技能：{skill}", "confidence": 0.9})
         if manual_input:
             merged["skills"].extend(manual_input.skills)
             merged["certificates"].extend(manual_input.certificates)

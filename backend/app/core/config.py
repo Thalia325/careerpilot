@@ -22,8 +22,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_prefix: str = "/api/v1"
+    cors_origins: str = "http://localhost:3000,http://localhost:8000"
+    jwt_secret_key: str = "your_secret_key_here_change_in_production"
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_hours: int = 24
 
-    database_url: str = "sqlite+pysqlite:///./careerpilot.db"
+    database_url: str = "sqlite+pysqlite:////tmp/careerpilot.db"
     test_database_url: str = "sqlite+pysqlite:///:memory:"
     redis_url: str = "redis://localhost:6379/0"
     scheduler_timezone: str = "Asia/Shanghai"

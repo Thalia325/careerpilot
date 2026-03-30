@@ -24,6 +24,7 @@ from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
 from app.services.paths.graph_query_service import GraphQueryService
 from app.services.reference import load_job_graph_seed
+from app.services.profiles.student_profile_service import StudentProfileService
 from app.services.reports.report_service import ReportService
 from app.services.scheduler.scheduler_service import SchedulerService
 
@@ -32,7 +33,7 @@ from app.services.scheduler.scheduler_service import SchedulerService
 class ServiceContainer:
     file_service: FileIngestionService
     job_import_service: JobImportService
-    student_profile_service: object
+    student_profile_service: StudentProfileService
     matching_service: MatchingService
     graph_query_service: GraphQueryService
     career_path_service: CareerPathService
@@ -90,7 +91,6 @@ def create_service_container() -> ServiceContainer:
 
     file_service = FileIngestionService(storage_provider, ocr_provider)
     job_import_service = JobImportService(llm_provider, rag_provider, graph_provider)
-    from app.services.profiles.student_profile_service import StudentProfileService
 
     student_profile_service = StudentProfileService(llm_provider, file_service)
     matching_service = MatchingService()

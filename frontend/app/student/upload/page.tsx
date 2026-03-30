@@ -5,10 +5,10 @@ import { UploadLab } from "@/components/UploadLab";
 export default function StudentUploadPage() {
   return (
     <AppShell
-      title="材料上传与 OCR 解析"
-      subtitle="支持简历、证书、成绩单、招聘简章等材料。当前页面提供文本模拟解析，后端已保留真实文件上传接口。"
+      title="材料上传与智能识别"
+      subtitle="支持简历、证书、成绩单、招聘简章等材料。当前页面提供文本识别演示，后端已保留真实文件上传接口。"
     >
-      <SectionCard title="解析实验台">
+      <SectionCard title="文档识别工具">
         <UploadLab />
       </SectionCard>
       <SectionCard title="推荐上传清单">

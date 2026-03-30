@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -9,6 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import FollowupRecord, SchedulerJob
+
+logger = logging.getLogger(__name__)
 
 
 class SchedulerService:
@@ -20,7 +23,8 @@ class SchedulerService:
         try:
             trigger = CronTrigger.from_crontab(cron_expr, timezone=self.timezone)
             return trigger.get_next_fire_time(None, from_time)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to parse cron expression '{cron_expr}': {str(e)}, returning current time")
             return from_time
 
     def create_job(self, db: Session, job_name: str, cron_expr: str, job_type: str, payload: dict) -> dict:

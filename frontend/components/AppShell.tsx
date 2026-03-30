@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 const navGroups = [
   {
@@ -32,18 +35,29 @@ export function AppShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    return pathname === href || pathname.startsWith(href + "/");
+  };
+
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <aside className="sidebar" role="navigation" aria-label="主导航">
         <Link className="brand" href="/">
           <span>CareerPilot</span>
           <small>AI 职业规划智能体</small>
         </Link>
         {navGroups.map((group) => (
           <div key={group.label} className="nav-group">
-            <p>{group.label}</p>
+            <p role="heading" aria-level={2}>{group.label}</p>
             {group.links.map((link) => (
-              <Link key={link.href} href={link.href}>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={isActive(link.href) ? "nav-link active" : "nav-link"}
+                aria-current={isActive(link.href) ? "page" : undefined}
+              >
                 {link.label}
               </Link>
             ))}
