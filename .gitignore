@@ -1,0 +1,16 @@
+.DS_Store
+.env
+.venv
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+node_modules/
+.next/
+dist/
+build/
+coverage/
+backend/uploads/*
+!backend/uploads/.gitkeep
+exports/*
+!exports/.gitkeep
+backend/careerpilot.db

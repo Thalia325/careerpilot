@@ -1,0 +1,351 @@
+[
+  {
+    "job_code": "J-FE-001",
+    "title": "前端开发工程师",
+    "summary": "负责 Web 前端界面开发、交互实现与性能优化，强调工程质量、跨团队协作与用户体验意识。",
+    "skills": ["JavaScript", "TypeScript", "React", "Next.js", "HTML", "CSS", "接口联调"],
+    "certificates": ["前端开发专项证书"],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 82,
+      "resilience": 72,
+      "communication": 80,
+      "internship": 75
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.15,
+      "professional_skills": 0.45,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "前端岗位需要快速完成交互实现、组件复用与工程化协作，技能直接影响交付效率。",
+      "证书要求": "证书不是绝对门槛，但可作为工程基础与持续学习能力的佐证。",
+      "创新能力": "需要根据业务场景设计更优的交互体验和性能方案。",
+      "学习能力": "前端生态迭代快，需持续跟进框架、构建工具和规范。",
+      "抗压能力": "面对上线窗口、跨端兼容和需求变更时需保持稳定交付。",
+      "沟通能力": "需要与设计、产品、后端频繁联动。",
+      "实习能力": "有真实项目经验能显著缩短上手周期。 "
+    }
+  },
+  {
+    "job_code": "J-BE-001",
+    "title": "后端开发工程师",
+    "summary": "负责服务端接口、数据建模、性能治理与稳定性建设，强调业务抽象和系统设计能力。",
+    "skills": ["Python", "FastAPI", "SQL", "PostgreSQL", "Redis", "系统设计", "接口设计"],
+    "certificates": ["软件设计师"],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 80,
+      "resilience": 76,
+      "communication": 72,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "服务端岗位要求在数据、接口、稳定性上形成完整工程能力。",
+      "证书要求": "证书可体现软件工程与基础知识储备。",
+      "创新能力": "需要结合场景优化架构、性能与可维护性。",
+      "学习能力": "业务和技术都变化快，需要快速理解新系统。",
+      "抗压能力": "高并发、线上问题与项目节点对稳定性要求高。",
+      "沟通能力": "要与前端、测试、产品对齐接口和边界。",
+      "实习能力": "参与过实际服务端项目可快速建立工程判断。 "
+    }
+  },
+  {
+    "job_code": "J-FS-001",
+    "title": "全栈工程师",
+    "summary": "同时负责前后端交付，要求较强的问题解决能力、业务理解能力和工程完整性。",
+    "skills": ["JavaScript", "TypeScript", "React", "Node.js", "Python", "数据库设计", "部署运维"],
+    "certificates": ["全栈开发专项证书"],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 85,
+      "resilience": 78,
+      "communication": 78,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.15,
+      "professional_skills": 0.5,
+      "professional_literacy": 0.15,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "全栈岗位要求跨端协同，既要搭页面也要构建服务。",
+      "证书要求": "证书用于证明工程综合能力和持续学习能力。",
+      "创新能力": "需要在资源有限时提出更高效的技术方案。",
+      "学习能力": "岗位跨度大，持续学习是硬门槛。",
+      "抗压能力": "多模块并行推进，节奏较快。",
+      "沟通能力": "需在研发、产品与业务之间高频协调。",
+      "实习能力": "真实完整项目经历能证明独立交付能力。 "
+    }
+  },
+  {
+    "job_code": "J-QA-001",
+    "title": "测试工程师",
+    "summary": "负责测试计划、功能回归、缺陷跟踪和质量保障，强调细致性与流程意识。",
+    "skills": ["测试用例设计", "接口测试", "缺陷管理", "SQL", "自动化测试基础", "质量分析"],
+    "certificates": ["软件测试工程师"],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 78,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.22,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "测试岗位要准确发现风险，测试设计能力决定覆盖深度。",
+      "证书要求": "证书可体现质量体系与测试方法基础。",
+      "创新能力": "需设计高价值场景和边界用例。",
+      "学习能力": "需要快速理解业务、系统和工具链。",
+      "抗压能力": "上线前冲刺阶段常需高密度回归。",
+      "沟通能力": "缺陷推动和风险沟通是质量保障关键。",
+      "实习能力": "真实项目测试经验可以快速建立问题敏感度。 "
+    }
+  },
+  {
+    "job_code": "J-QD-001",
+    "title": "测试开发工程师",
+    "summary": "通过自动化平台和脚本能力提升测试效率，要求质量意识与开发能力并重。",
+    "skills": ["Python", "自动化测试", "接口测试", "CI/CD", "质量平台", "脚本开发"],
+    "certificates": ["自动化测试专项证书"],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 80,
+      "resilience": 76,
+      "communication": 76,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.45,
+      "professional_literacy": 0.17,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "测试开发岗位需要把质量目标沉淀成工具和平台能力。",
+      "证书要求": "证书是质量工程系统学习的辅助证明。",
+      "创新能力": "要通过平台化和自动化方案降低重复劳动。",
+      "学习能力": "需同时理解开发和测试体系。",
+      "抗压能力": "要承担质量兜底和效率提升双重责任。",
+      "沟通能力": "需要推动研发团队接受质量左移方案。",
+      "实习能力": "真实自动化项目经验能显著证明实战能力。 "
+    }
+  },
+  {
+    "job_code": "J-DA-001",
+    "title": "数据分析师",
+    "summary": "通过数据清洗、分析建模和业务洞察支持决策，强调分析能力、表达能力和业务理解。",
+    "skills": ["SQL", "Python", "Excel", "数据可视化", "统计分析", "业务分析", "A/B 测试"],
+    "certificates": ["数据分析师证书"],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 82,
+      "resilience": 70,
+      "communication": 84,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.22,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "数据分析需要扎实的数据处理和业务拆解能力。",
+      "证书要求": "证书可证明统计、工具和分析方法基础。",
+      "创新能力": "需要从数据中提出新的业务假设和增长机会。",
+      "学习能力": "业务场景变化快，需不断更新分析框架。",
+      "抗压能力": "面对模糊问题和紧急决策支持时要保持清晰。",
+      "沟通能力": "必须把分析结果转化为业务可执行语言。",
+      "实习能力": "真实业务分析经历能提升结论可信度。 "
+    }
+  },
+  {
+    "job_code": "J-DE-001",
+    "title": "数据工程师",
+    "summary": "负责数据管道、数仓建模和数据基础设施建设，强调工程能力与稳定性意识。",
+    "skills": ["Python", "SQL", "ETL", "Airflow", "数据仓库", "Spark", "数据治理"],
+    "certificates": ["大数据工程师"],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 80,
+      "resilience": 78,
+      "communication": 72,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "数据工程直接决定数据链路稳定性和分析效率。",
+      "证书要求": "证书体现大数据基础和工程规范理解。",
+      "创新能力": "需要在数据质量、成本和时效之间平衡。",
+      "学习能力": "生态工具多，需快速掌握新框架。",
+      "抗压能力": "面对链路故障和数据时效要求需稳住节奏。",
+      "沟通能力": "需与分析、算法、产品共同定义数据标准。",
+      "实习能力": "有数仓和数据链路项目经验更易上手。 "
+    }
+  },
+  {
+    "job_code": "J-DPM-001",
+    "title": "数据产品经理",
+    "summary": "负责数据产品方案设计与落地，强调业务理解、跨团队推动和数据思维。",
+    "skills": ["需求分析", "数据指标体系", "原型设计", "SQL", "项目推进", "产品文档"],
+    "certificates": ["产品经理证书"],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 80,
+      "resilience": 72,
+      "communication": 88,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.26,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "需要把数据能力转成可交付的产品方案和指标体系。",
+      "证书要求": "证书是产品方法论与项目能力的辅助证明。",
+      "创新能力": "岗位需要不断定义新场景和产品价值。",
+      "学习能力": "既要懂业务又要懂数据，学习跨度大。",
+      "抗压能力": "要在多方目标冲突中推进项目落地。",
+      "沟通能力": "沟通推动是岗位核心竞争力之一。",
+      "实习能力": "有跨部门推进经历会显著加分。 "
+    }
+  },
+  {
+    "job_code": "J-AI-001",
+    "title": "AI 算法工程师",
+    "summary": "负责模型训练、评估与算法优化，强调数学基础、工程实现与问题抽象能力。",
+    "skills": ["Python", "机器学习", "深度学习", "PyTorch", "数据处理", "模型评估", "算法优化"],
+    "certificates": ["人工智能工程师"],
+    "capabilities": {
+      "innovation": 86,
+      "learning": 88,
+      "resilience": 74,
+      "communication": 70,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.5,
+      "professional_literacy": 0.14,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "算法岗位核心竞争力直接来自模型、数据和实验能力。",
+      "证书要求": "证书可作为学习路径的补充证明。",
+      "创新能力": "需要不断尝试新模型和优化策略。",
+      "学习能力": "模型与论文迭代快，必须持续更新知识结构。",
+      "抗压能力": "实验失败率高，需要保持稳定推进。",
+      "沟通能力": "要把复杂模型解释给业务和工程团队。",
+      "实习能力": "真实训练和部署项目能证明可落地能力。 "
+    }
+  },
+  {
+    "job_code": "J-OPS-001",
+    "title": "运维工程师",
+    "summary": "保障系统稳定运行、发布部署和监控告警，强调可靠性意识与应急响应能力。",
+    "skills": ["Linux", "Docker", "CI/CD", "监控告警", "网络基础", "故障排查", "自动化运维"],
+    "certificates": ["运维工程师认证"],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 78,
+      "resilience": 86,
+      "communication": 72,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.18,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "运维岗位需要对系统、网络与发布链路有完整认知。",
+      "证书要求": "认证可佐证基础设施与安全规范能力。",
+      "创新能力": "要通过自动化和平台化降低运维成本。",
+      "学习能力": "云原生和工具链迭代快，需要持续学习。",
+      "抗压能力": "面对故障和夜间响应，稳定性要求高。",
+      "沟通能力": "需协调开发、测试和业务快速恢复服务。",
+      "实习能力": "参与真实值班和发布流程是强证明。 "
+    }
+  },
+  {
+    "job_code": "J-UI-001",
+    "title": "UI/UX 设计师",
+    "summary": "负责产品视觉设计与用户体验优化，强调设计表达、用户洞察和协作落地能力。",
+    "skills": ["Figma", "视觉设计", "交互设计", "用户研究", "原型设计", "设计规范", "可用性分析"],
+    "certificates": ["UI 设计师认证"],
+    "capabilities": {
+      "innovation": 88,
+      "learning": 78,
+      "resilience": 70,
+      "communication": 84,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.24,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "设计岗位对工具熟练度、审美与体验方法都有明确要求。",
+      "证书要求": "证书不是硬门槛，但可补强专业度展示。",
+      "创新能力": "需要不断探索更好的视觉表达与交互方案。",
+      "学习能力": "趋势变化快，要持续吸收设计方法和行业案例。",
+      "抗压能力": "面对频繁迭代和评审反馈需稳定输出。",
+      "沟通能力": "要将设计意图清晰传达给产品和研发。",
+      "实习能力": "真实作品集与实战项目是核心说服力。 "
+    }
+  },
+  {
+    "job_code": "J-PM-001",
+    "title": "产品经理",
+    "summary": "负责需求洞察、方案设计和项目推进，强调系统思考、协作推进与商业敏感度。",
+    "skills": ["需求分析", "产品规划", "原型设计", "项目管理", "数据分析", "竞品分析", "PRD"],
+    "certificates": ["NPDP"],
+    "capabilities": {
+      "innovation": 84,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 90,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.28,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "产品岗位需要把用户问题转成可执行方案与节奏管理。",
+      "证书要求": "产品类证书是方法论和产品认知的佐证。",
+      "创新能力": "需要持续提出新机会和新方案。",
+      "学习能力": "业务、技术、用户三端都要持续理解。",
+      "抗压能力": "多方拉扯下仍需保证产品推进。",
+      "沟通能力": "沟通协调是产品经理核心能力。",
+      "实习能力": "真实需求落地经验远比口头理解更重要。 "
+    }
+  }
+]
+
