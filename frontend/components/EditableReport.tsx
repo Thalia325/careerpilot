@@ -4,6 +4,15 @@ import { useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return { "Content-Type": "application/json" };
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
+
 export function EditableReport({
   initialMarkdown
 }: {
@@ -20,7 +29,7 @@ export function EditableReport({
     try {
       const response = await fetch(`${API_BASE}/reports/save`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ report_id: 1, markdown_content: content })
       });
 
@@ -41,7 +50,7 @@ export function EditableReport({
     try {
       const response = await fetch(`${API_BASE}/reports/polish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ report_id: 1, markdown_content: content })
       });
       const data = await response.json();
@@ -63,7 +72,7 @@ export function EditableReport({
     try {
       const response = await fetch(`${API_BASE}/reports/export`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ report_id: 1, format })
       });
       const data = await response.json();

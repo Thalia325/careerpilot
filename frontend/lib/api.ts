@@ -31,15 +31,27 @@ class APIError extends Error {
   }
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
+    const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+    const headers: Record<string, string> = {
+      ...getAuthHeaders(),
+      ...(init?.headers as Record<string, string> || {}),
+    };
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(`${API_BASE}${path}`, {
       ...init,
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {})
-      }
+      headers,
     });
 
     if (!response.ok) {
@@ -163,6 +175,48 @@ export async function generateDemoReport(): Promise<ReportDraft> {
   }
 }
 
+export async function sendChatMessage(message: string): Promise<{ reply: string }> {
+  return request<{ reply: string }>("/chat", {
+    method: "POST",
+    body: JSON.stringify({ message })
+  });
+}
+
+export type ApiKeyStatus = {
+  configured: boolean;
+  auth_mode?: string | null;
+  api_key_masked?: string | null;
+  secret_key_masked?: string | null;
+  model_name?: string | null;
+};
+
+export async function getApiKeyStatus(): Promise<ApiKeyStatus> {
+  return request<ApiKeyStatus>("/api-key");
+}
+
+export async function saveApiKey(params: {
+  api_key: string;
+  secret_key?: string;
+  auth_mode: string;
+}): Promise<ApiKeyStatus> {
+  return request<ApiKeyStatus>("/api-key", {
+    method: "POST",
+    body: JSON.stringify(params)
+  });
+}
+
+export async function deleteApiKey(): Promise<ApiKeyStatus> {
+  return request<ApiKeyStatus>("/api-key", {
+    method: "DELETE"
+  });
+}
+
+export async function testApiKey(): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>("/api-key/test", {
+    method: "POST"
+  });
+}
+
 export async function getSchedulerJobs(): Promise<SchedulerJobItem[]> {
   try {
     return await request<SchedulerJobItem[]>("/scheduler/jobs");
@@ -179,4 +233,33 @@ export async function getSchedulerJobs(): Promise<SchedulerJobItem[]> {
     }
     throw error;
   }
+}
+
+export type UploadedFileInfo = {
+  id: number;
+  file_name: string;
+  file_type: string;
+  content_type: string;
+  created_at: string | null;
+};
+
+export async function listFiles(): Promise<UploadedFileInfo[]> {
+  const res = await request<{ data: UploadedFileInfo[] }>("/files");
+  return res.data ?? [];
+}
+
+export async function uploadFile(file: File, ownerId: number, fileType: string): Promise<{ id: number; file_name: string; url: string }> {
+  const form = new FormData();
+  form.append("upload", file);
+  form.append("owner_id", String(ownerId));
+  form.append("file_type", fileType);
+  const res = await request<{ data: { id: number; file_name: string; url: string } }>("/files/upload", {
+    method: "POST",
+    body: form,
+  });
+  return res.data;
+}
+
+export async function deleteFile(fileId: number): Promise<void> {
+  await request(`/files/${fileId}`, { method: "DELETE" });
 }

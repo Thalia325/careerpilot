@@ -1,4 +1,3 @@
-import os
 import uuid
 from pathlib import Path
 
@@ -12,22 +11,37 @@ from app.services.bootstrap import ServiceContainer
 
 router = APIRouter()
 
-# File upload constraints
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 10 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png"}
 
 
 def get_safe_filename(filename: str) -> str:
-    """Generate a safe filename using UUID to prevent path traversal attacks."""
     if not filename:
         raise ValueError("Filename cannot be empty")
-    # Extract extension
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError(f"File extension {ext} not allowed")
-    # Generate safe filename with UUID
     safe_name = f"{uuid.uuid4()}{ext}"
     return safe_name
+
+
+@router.get("/", response_model=APIResponse)
+async def list_files(
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    files = container.file_service.list_files(db, owner_id=current_user.id)
+    return APIResponse(data=[
+        {
+            "id": f.id,
+            "file_name": f.file_name,
+            "file_type": f.file_type,
+            "content_type": f.content_type,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in files
+    ])
 
 
 @router.post("/upload", response_model=APIResponse)
@@ -39,12 +53,9 @@ async def upload_file(
     container: ServiceContainer = Depends(get_container),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    """Upload a file with validation."""
-    # Verify user owns the resource
     if current_user.id != owner_id and current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权上传文件")
 
-    # Validate filename
     if not upload.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件名不能为空")
 
@@ -53,7 +64,6 @@ async def upload_file(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # Read and validate file size
     content = await upload.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
@@ -64,7 +74,6 @@ async def upload_file(
     if len(content) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件不能为空")
 
-    # Validate content type matches extension
     ext = Path(upload.filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -81,4 +90,18 @@ async def upload_file(
         content_type=upload.content_type or "application/octet-stream",
     )
     return APIResponse(data={"id": uploaded.id, "file_name": uploaded.file_name, "url": uploaded.url})
+
+
+@router.delete("/{file_id}", response_model=APIResponse)
+async def delete_file(
+    file_id: int,
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    try:
+        await container.file_service.delete_file(db, file_id=file_id, owner_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return APIResponse(message="文件已删除")
 

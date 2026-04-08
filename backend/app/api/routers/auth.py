@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import create_access_token, get_current_user, get_db_session
@@ -36,12 +35,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db_session)) -> Login
 @router.get("/me", response_model=LoginResponse)
 def me(current_user: User = Depends(get_current_user)) -> LoginResponse:
     """Get current authenticated user info."""
-    settings = get_settings()
-    access_token_expires = timedelta(hours=settings.jwt_expiration_hours)
-    access_token = create_access_token(data={"sub": str(current_user.id)}, expires_delta=access_token_expires)
-
     return LoginResponse(
-        access_token=access_token,
+        access_token="",
         role=current_user.role,
         user_id=current_user.id,
         username=current_user.username,

@@ -1,62 +1,78 @@
-import type { Metadata } from "next";
-import { AppShell } from "@/components/AppShell";
+"use client";
+
+import { useState, useEffect } from "react";
 import { SectionCard } from "@/components/SectionCard";
 import { StatCard } from "@/components/StatCard";
 import { getMatching, getPathPlan, getStudentProfile } from "@/lib/api";
+import { StudentShellClient } from "@/components/StudentShellClient";
 
-export const metadata: Metadata = {
-  title: "学生首页 - CareerPilot",
-  description: "查看职业准备情况、岗位匹配分析、职业路径规划等一站式服务"
-};
+export default function StudentDashboardPage() {
+  const [profile, setProfile] = useState<{ skills?: string[]; completeness_score?: number; competitiveness_score?: number } | null>(null);
+  const [matching, setMatching] = useState<{ suggestions?: string[]; total_score?: number } | null>(null);
+  const [pathPlan, setPathPlan] = useState<{ primary_path?: string[] } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function StudentDashboardPage() {
-  const profile = await getStudentProfile();
-  const matching = await getMatching();
-  const pathPlan = await getPathPlan();
+  useEffect(() => {
+    Promise.all([getStudentProfile(), getMatching(), getPathPlan()])
+      .then(([p, m, plan]) => {
+        setProfile(p);
+        setMatching(m);
+        setPathPlan(plan);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const skills = Array.isArray(profile?.skills) ? profile.skills : [];
   const suggestions = Array.isArray(matching?.suggestions) ? matching.suggestions : [];
   const primaryPath = Array.isArray(pathPlan?.primary_path) ? pathPlan.primary_path : [];
 
   return (
-    <AppShell title="学生首页" subtitle="从材料解析到生涯规划闭环，一站式查看当前职业准备情况。">
-      <div className="stats-grid">
-        <StatCard
-          label="画像完整度"
-          value={profile?.completeness_score != null ? `${profile.completeness_score}` : "-"}
-          note="基于上传材料与手动输入综合评估"
-        />
-        <StatCard
-          label="竞争力评分"
-          value={profile?.competitiveness_score != null ? `${profile.competitiveness_score}` : "-"}
-          note="聚焦目标岗位与市场要求"
-        />
-        <StatCard
-          label="目标岗位匹配"
-          value={matching?.total_score != null ? `${matching.total_score}` : "-"}
-          note="四维加权综合得分"
-        />
-        <StatCard
-          label="主路径长度"
-          value={primaryPath.length > 0 ? `${primaryPath.length} 阶段` : "-"}
-          note="图谱推荐职业成长路径"
-        />
+    <StudentShellClient title="个人概览">
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
+        {loading ? (
+          <p style={{ textAlign: "center", padding: "40px", color: "#888" }}>加载中...</p>
+        ) : (
+          <>
+            <div className="stats-grid">
+              <StatCard
+                label="档案完整度"
+                value={profile?.completeness_score != null ? `${profile.completeness_score}` : "-"}
+                note="基于上传材料与手动输入综合评估"
+              />
+              <StatCard
+                label="竞争力评分"
+                value={profile?.competitiveness_score != null ? `${profile.competitiveness_score}` : "-"}
+                note="聚焦目标岗位与市场要求"
+              />
+              <StatCard
+                label="目标岗位匹配"
+                value={matching?.total_score != null ? `${matching.total_score}` : "-"}
+                note="四维加权综合得分"
+              />
+              <StatCard
+                label="主路径长度"
+                value={primaryPath.length > 0 ? `${primaryPath.length} 阶段` : "-"}
+                note="图谱推荐职业成长路径"
+              />
+            </div>
+            <SectionCard title="当前优势">
+              <div className="badge-list">
+                {skills.slice(0, 6).map((skill: string) => (
+                  <span key={skill}>{skill}</span>
+                ))}
+              </div>
+            </SectionCard>
+            <SectionCard title="近期行动建议">
+              <ul className="timeline">
+                {suggestions.map((item: string) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </SectionCard>
+          </>
+        )}
       </div>
-      <SectionCard title="当前优势">
-        <div className="badge-list">
-          {skills.slice(0, 6).map((skill: string) => (
-            <span key={skill}>{skill}</span>
-          ))}
-        </div>
-      </SectionCard>
-      <SectionCard title="近期行动建议">
-        <ul className="timeline">
-          {suggestions.map((item: string) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </SectionCard>
-    </AppShell>
+    </StudentShellClient>
   );
 }
-

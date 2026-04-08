@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedRoutes = ["/admin", "/teacher", "/student", "/workspace"];
+const roleRoutes: Record<string, string> = {
+  student: "/student",
+  teacher: "/teacher",
+  admin: "/admin"
+};
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Check if the route is protected
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const protectedPrefixes = ["/admin", "/teacher", "/student", "/workspace"];
+  const isProtectedRoute = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
 
-  if (isProtectedRoute) {
-    // Check for token in cookies or localStorage
-    const token =
-      request.cookies.get("auth_token")?.value ||
-      request.cookies.get("token")?.value;
+  if (!isProtectedRoute) {
+    return NextResponse.next();
+  }
 
-    if (!token) {
-      // Redirect to login if no token found
-      return NextResponse.redirect(new URL("/login", request.url));
+  const token =
+    request.cookies.get("auth_token")?.value ||
+    request.cookies.get("token")?.value;
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const userRole = request.cookies.get("user_role")?.value;
+
+  if (userRole && roleRoutes[userRole]) {
+    const allowedPrefix = roleRoutes[userRole];
+    if (!pathname.startsWith(allowedPrefix) && !pathname.startsWith("/workspace")) {
+      return NextResponse.redirect(new URL(allowedPrefix, request.url));
     }
   }
 

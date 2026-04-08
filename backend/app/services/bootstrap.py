@@ -28,7 +28,6 @@ from app.services.profiles.student_profile_service import StudentProfileService
 from app.services.reports.report_service import ReportService
 from app.services.scheduler.scheduler_service import SchedulerService
 
-
 @dataclass
 class ServiceContainer:
     file_service: FileIngestionService
@@ -48,9 +47,11 @@ def _create_llm_provider(settings):
         if settings.llm_provider == "mock"
         else ErnieLLMProvider(
             api_key=settings.ernie_api_key,
-            secret_key=settings.ernie_secret_key,
             base_url=settings.ernie_base_url,
+            aistudio_base_url=settings.ernie_aistudio_base_url,
             model=settings.ernie_model,
+            secret_key=settings.ernie_secret_key or None,
+            auth_mode=settings.ernie_auth_mode,
         )
     )
 
@@ -114,6 +115,23 @@ def create_service_container() -> ServiceContainer:
         report_service=report_service,
         scheduler_service=scheduler_service,
         controller_agent=controller_agent,
+    )
+
+
+def get_user_llm_provider(db, user_id: int):
+    from app.api.routers.apikey import get_user_api_keys
+
+    keys = get_user_api_keys(db, user_id)
+    if not keys:
+        return None
+    settings = get_settings()
+    return ErnieLLMProvider(
+        api_key=keys.api_key,
+        secret_key=keys.secret_key,
+        base_url=settings.ernie_base_url,
+        aistudio_base_url=settings.ernie_aistudio_base_url,
+        model=settings.ernie_model,
+        auth_mode=keys.auth_mode,
     )
 
 

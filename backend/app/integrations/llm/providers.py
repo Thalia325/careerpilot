@@ -157,13 +157,109 @@ class MockLLMProvider(BaseLLMProvider):
 
 
 class ErnieLLMProvider(BaseLLMProvider):
-    def __init__(self, api_key: str, secret_key: str, base_url: str, model: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str,
+        model: str,
+        secret_key: str | None = None,
+        aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3",
+        auth_mode: str = "qianfan",
+    ) -> None:
         self.api_key = api_key
         self.secret_key = secret_key
         self.base_url = base_url
+        self.aistudio_base_url = aistudio_base_url
         self.model = model
+        self.auth_mode = auth_mode
         self.mock = MockLLMProvider()
-        self.client = OpenAI(api_key=api_key, base_url=base_url) if api_key else None
+
+        self._access_token: str | None = None
+        self._token_expires_at: float = 0
+
+        if auth_mode == "aistudio":
+            self.client = OpenAI(api_key=api_key, base_url=aistudio_base_url) if api_key else None
+        else:
+            self.client = None
+
+    @staticmethod
+    def _is_bce_key(api_key: str) -> bool:
+        return api_key.startswith("bce-v3/") or api_key.startswith("ALTAK")
+
+    @staticmethod
+    def _extract_bce_ak(api_key: str) -> str:
+        if api_key.startswith("bce-v3/"):
+            parts = api_key.split("/")
+            return parts[1] if len(parts) >= 2 else api_key
+        return api_key
+
+    @staticmethod
+    def _normalize(in_str: str, encoding_slash: bool = True) -> str:
+        import string
+        safe = string.ascii_letters + string.digits + ".~-_"
+        if not encoding_slash:
+            safe += "/"
+        return "".join(f"%{ord(c):02X}" if c not in safe else c for c in in_str)
+
+    @staticmethod
+    def _bce_sign(
+        method: str, path: str,
+        headers: dict[str, str], ak: str, sk: str,
+        timestamp: str, expiration: int = 1800,
+    ) -> str:
+        import hashlib
+        import hmac
+
+        sign_key_info = f"bce-auth-v1/{ak}/{timestamp}/{expiration}"
+        sign_key = hmac.new(
+            sk.encode("utf-8"), sign_key_info.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+        signed_keys = sorted(k.strip().lower() for k in headers.keys())
+        norm = ErnieLLMProvider._normalize
+        canonical_headers = "\n".join(
+            f"{norm(k)}:{norm(str(headers[next(ok for ok, ov in headers.items() if ok.lower() == k)]).strip())}"
+            for k in signed_keys
+        )
+
+        string_to_sign = "\n".join([method.upper(), path, "", canonical_headers])
+        sign_result = hmac.new(
+            sign_key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+        signed_headers_str = ";".join(signed_keys)
+        return f"{sign_key_info}/{signed_headers_str}/{sign_result}"
+
+    def _get_qianfan_token(self) -> str:
+        import time
+
+        now = time.time()
+        if self._access_token and now < self._token_expires_at:
+            return self._access_token
+
+        if not self.secret_key:
+            raise ValueError("千帆模式需要同时提供 API Key 和 Secret Key")
+
+        url = "https://aip.baidubce.com/oauth/2.0/token"
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": self.api_key,
+            "client_secret": self.secret_key,
+        }
+        try:
+            resp = httpx.post(url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            if "error" in data:
+                raise ValueError(f"获取千帆 Token 失败: {data.get('error_description', data['error'])}")
+            self._access_token = data["access_token"]
+            expires_in = data.get("expires_in", 2592000)
+            self._token_expires_at = now + expires_in - 300
+            return self._access_token
+        except httpx.HTTPStatusError as exc:
+            raise ValueError(f"获取千帆 Token 失败 (HTTP {exc.response.status_code}): {exc.response.text[:200]}") from exc
+        except KeyError:
+            raise ValueError(f"千帆 Token 响应格式异常: {str(data)[:200]}")
 
     @staticmethod
     def _extract_json(text: str) -> dict[str, Any]:
@@ -260,17 +356,72 @@ class ErnieLLMProvider(BaseLLMProvider):
         return normalized
 
     def _chat(self, system_prompt: str, user_prompt: str) -> str:
-        if not self.client:
-            raise RuntimeError("ERNIE API key not configured")
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.2,
-        )
-        return completion.choices[0].message.content or ""
+        if self.auth_mode == "aistudio":
+            if not self.client:
+                raise RuntimeError("AI Studio API key not configured")
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+            )
+            return completion.choices[0].message.content or ""
+        else:
+            if not self.secret_key:
+                raise ValueError("千帆模式需要同时提供 API Key 和 Secret Key")
+
+            url = f"{self.base_url}/v2/chat/completions"
+            path = "/v2/chat/completions"
+            body = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.2,
+            }
+
+            if self._is_bce_key(self.api_key):
+                from datetime import datetime, timezone
+
+                ak = self._extract_bce_ak(self.api_key)
+                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                headers = {
+                    "Host": "qianfan.baidubce.com",
+                    "Content-Type": "application/json",
+                    "x-bce-date": timestamp,
+                }
+                headers["Authorization"] = self._bce_sign(
+                    "POST", path,
+                    headers, ak, self.secret_key, timestamp,
+                )
+            else:
+                token = self._get_qianfan_token()
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                }
+
+            resp = httpx.post(url, headers=headers, json=body, timeout=60)
+            logger.debug(
+                "Qianfan response status=%s ak_type=%s auth_header=%s body=%s",
+                resp.status_code,
+                "bce" if self._is_bce_key(self.api_key) else "token",
+                headers.get("Authorization", "")[:60],
+                resp.text[:200],
+            )
+            if resp.status_code == 401:
+                detail = resp.text[:300]
+                raise ValueError(f"千帆认证失败 (401): {detail}")
+            if resp.status_code == 403:
+                raise ValueError(f"千帆访问被拒 (403): {resp.text[:200]}")
+            resp.raise_for_status()
+            data = resp.json()
+            if "error_code" in data:
+                raise ValueError(f"千帆 API 错误: {data.get('error_msg', data['error_code'])}")
+            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     async def generate_job_profile(self, job_posting: dict[str, Any]) -> dict[str, Any]:
         system_prompt = (

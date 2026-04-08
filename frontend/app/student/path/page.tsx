@@ -1,40 +1,56 @@
-import type { Metadata } from "next";
-import { AppShell } from "@/components/AppShell";
+"use client";
+
+import { useState, useEffect } from "react";
 import { SectionCard } from "@/components/SectionCard";
 import { getPathPlan } from "@/lib/api";
+import { StudentShellClient } from "@/components/StudentShellClient";
 
-export const metadata: Metadata = {
-  title: "职业路径规划 - CareerPilot",
-  description: "查看主路径、备选路径和成长建议"
-};
+export default function StudentPathPage() {
+  const [primaryPath, setPrimaryPath] = useState<string[]>([]);
+  const [alternatePaths, setAlternatePaths] = useState<string[][]>([]);
+  const [rationale, setRationale] = useState("暂无数据");
+  const [loading, setLoading] = useState(true);
 
-export default async function StudentPathPage() {
-  const plan = await getPathPlan();
-
-  const primaryPath = Array.isArray(plan?.primary_path) ? plan.primary_path : [];
-  const alternatePaths = Array.isArray(plan?.alternate_paths) ? plan.alternate_paths : [];
-  const rationale = plan?.rationale ?? "暂无数据";
+  useEffect(() => {
+    getPathPlan()
+      .then((plan) => {
+        setPrimaryPath(Array.isArray(plan?.primary_path) ? plan.primary_path : []);
+        setAlternatePaths(Array.isArray(plan?.alternate_paths) ? plan.alternate_paths : []);
+        setRationale(plan?.rationale ?? "暂无数据");
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
-    <AppShell title="职业路径规划" subtitle="结合岗位图谱、晋升路径与转岗路径，为学生生成主路径与备选路径。">
-      <SectionCard title="主路径">
-        <ul className="timeline">
-          {primaryPath.map((step: string) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ul>
-      </SectionCard>
-      <SectionCard title="备选路径">
-        <ul className="plain-list">
-          {alternatePaths.map((path: string[]) => (
-            <li key={path.join("-")}>{path.join(" -> ")}</li>
-          ))}
-        </ul>
-      </SectionCard>
-      <SectionCard title="路径依据">
-        <p>{rationale}</p>
-      </SectionCard>
-    </AppShell>
+    <StudentShellClient title="职业路径规划">
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
+        {loading ? (
+          <SectionCard title="加载中">
+            <p style={{ textAlign: "center", padding: "40px", color: "#888" }}>加载中...</p>
+          </SectionCard>
+        ) : (
+          <>
+            <SectionCard title="岗位晋升路径">
+              <ul className="timeline">
+                {primaryPath.map((step: string) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ul>
+            </SectionCard>
+            <SectionCard title="岗位转换方向">
+              <ul className="plain-list">
+                {alternatePaths.map((path: string[]) => (
+                  <li key={path.join("-")}>{path.join(" → ")}</li>
+                ))}
+              </ul>
+            </SectionCard>
+            <SectionCard title="路径依据">
+              <p>{rationale}</p>
+            </SectionCard>
+          </>
+        )}
+      </div>
+    </StudentShellClient>
   );
 }
-

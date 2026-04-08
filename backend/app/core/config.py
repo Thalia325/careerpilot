@@ -52,7 +52,9 @@ class Settings(BaseSettings):
 
     ernie_api_key: str = ""
     ernie_secret_key: str = ""
-    ernie_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3"
+    ernie_auth_mode: str = "qianfan"
+    ernie_base_url: str = "https://qianfan.baidubce.com"
+    ernie_aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3"
     ernie_model: str = "ernie-4.5-turbo-128k"
     paddle_ocr_service_url: str = ""
     ragflow_base_url: str = ""

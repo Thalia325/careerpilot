@@ -33,9 +33,13 @@ export function UploadLab() {
     setIsLoading(true);
     setFileError("");
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const response = await fetch(`${API_BASE}/ocr/parse`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ raw_text: rawText, document_type: "resume" })
       });
       const data = await response.json();

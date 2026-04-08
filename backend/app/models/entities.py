@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -10,11 +10,11 @@ from app.db.base import Base
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -313,3 +313,13 @@ class SchedulerJob(TimestampMixin, Base):
     next_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class UserApiKey(TimestampMixin, Base):
+    __tablename__ = "user_api_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    encrypted_api_key: Mapped[str] = mapped_column(Text)
+    encrypted_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    auth_mode: Mapped[str] = mapped_column(String(20), default="qianfan")

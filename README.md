@@ -1,6 +1,6 @@
 # CareerPilot
 
-CareerPilot 是一个面向大学生职业规划场景的 AI 智能体系统，严格对齐  `PaddleOCR + ERNIE × OpenClaw` 架构要求，实现岗位知识构建、学生画像、人岗匹配、职业路径规划、报告生成与闭环跟踪。
+CareerPilot 是一个面向大学生职业规划场景的 AI 智能体系统，严格对齐 A13 赛题与 `PaddleOCR + ERNIE × OpenClaw` 架构要求，实现岗位知识构建、学生画像、人岗匹配、职业路径规划、报告生成与闭环跟踪。
 
 ## 核心特性
 

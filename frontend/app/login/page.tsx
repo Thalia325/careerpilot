@@ -5,9 +5,30 @@ import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
+const roles = [
+  { key: "student", label: "学生" },
+  { key: "teacher", label: "教师" },
+  { key: "admin", label: "管理员" }
+] as const;
+
+type RoleKey = typeof roles[number]["key"];
+
+const roleRedirects: Record<RoleKey, string> = {
+  student: "/student",
+  teacher: "/teacher",
+  admin: "/admin"
+};
+
+function setCookie(name: string, value: string, days: number = 7) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Strict${secure}`;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const isDevelopment = process.env.NODE_ENV === "development";
+  const [activeRole, setActiveRole] = useState<RoleKey>("student");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,7 +43,7 @@ export default function LoginPage() {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, role: activeRole })
       });
 
       if (!response.ok) {
@@ -36,18 +57,14 @@ export default function LoginPage() {
         throw new Error("登录响应缺少令牌");
       }
 
+      const role = (data.role || activeRole) as RoleKey;
+
       localStorage.setItem("token", token);
-      localStorage.setItem("user_role", data.role || "student");
+      localStorage.setItem("user_role", role);
+      setCookie("auth_token", token);
+      setCookie("user_role", role);
 
-      const role = data.role || "student";
-      const redirectPath =
-        role === "teacher"
-          ? "/teacher"
-          : role === "admin"
-            ? "/admin"
-            : "/student/dashboard";
-
-      router.push(redirectPath);
+      router.push(roleRedirects[role]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录出错，请重试");
     } finally {
@@ -56,42 +73,33 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="landing">
-      <section className="landing-hero">
-        <div className="landing-panel">
-          <p className="eyebrow">登录入口</p>
-          <h1>统一身份接入</h1>
-          <p>使用您的账号登录 CareerPilot 职业规划系统</p>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-card__header">
+          <span className="landing-hero-section__badge">CareerPilot</span>
+          <h1>欢迎使用职航智策</h1>
+          <p>AI 职业规划助手，助力你的职业发展</p>
+        </div>
 
-          <form onSubmit={handleLogin} style={{ marginTop: "24px" }}>
-            {error && (
-              <div
-                role="alert"
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: "12px",
-                  background: "rgba(220, 38, 38, 0.12)",
-                  color: "#dc2626",
-                  marginBottom: "16px",
-                  fontSize: "0.95rem"
-                }}
-              >
-                {error}
-              </div>
-            )}
+        <div className="login-tabs">
+          {roles.map((r) => (
+            <button
+              key={r.key}
+              className={`login-tab ${activeRole === r.key ? "active" : ""}`}
+              onClick={() => { setActiveRole(r.key); setError(""); }}
+              type="button"
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                htmlFor="username"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                  fontSize: "0.95rem"
-                }}
-              >
-                用户名
-              </label>
+        <div className="login-card__body">
+          <form onSubmit={handleLogin} className="login-form">
+            {error && <div className="login-form__error">{error}</div>}
+
+            <div>
+              <label htmlFor="username">用户名</label>
               <input
                 id="username"
                 type="text"
@@ -99,22 +107,11 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="输入用户名"
                 required
-                aria-label="用户名输入框"
               />
             </div>
 
-            <div style={{ marginBottom: "22px" }}>
-              <label
-                htmlFor="password"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                  fontSize: "0.95rem"
-                }}
-              >
-                密码
-              </label>
+            <div>
+              <label htmlFor="password">密码</label>
               <input
                 id="password"
                 type="password"
@@ -122,49 +119,30 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="输入密码"
                 required
-                aria-label="密码输入框"
               />
             </div>
 
-            <button type="submit" disabled={loading} style={{ width: "100%" }}>
-              {loading ? "登录中..." : "登录"}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`btn-primary login-form__submit ${loading ? "btn-loading" : ""}`}
+            >
+              <span className="btn-text">{loading ? "登录中..." : "登录"}</span>
             </button>
           </form>
 
           {isDevelopment && (
-            <div
-              style={{
-                marginTop: "32px",
-                paddingTop: "24px",
-                borderTop: "1px solid rgba(214, 223, 238, 0.6)",
-                fontSize: "0.9em",
-                color: "#666"
-              }}
-            >
-              <p style={{ marginTop: 0, fontWeight: 600 }}>
-                开发环境演示账号（仅测试使用）：
-              </p>
-              <div className="plain-list">
-                <div>学生端：student_demo / demo123</div>
-                <div>教师端：teacher_demo / demo123</div>
-                <div>管理端：admin_demo / demo123</div>
+            <div className="login-form__dev-note">
+              <p>开发环境演示账号</p>
+              <div className="login-form__dev-accounts">
+                <div>学生：student_demo / demo123</div>
+                <div>教师：teacher_demo / demo123</div>
+                <div>管理员：admin_demo / demo123</div>
               </div>
             </div>
           )}
         </div>
-        <div className="landing-side">
-          <h2>快速进入</h2>
-          <p style={{ color: "var(--subtle)", marginBottom: "18px" }}>
-            或直接跳过登录流程，查看各角色演示：
-          </p>
-          <div className="plain-list">
-            <a href="/student/dashboard">作为学生查看</a>
-            <a href="/teacher">作为教师查看</a>
-            <a href="/admin">作为管理员查看</a>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
-

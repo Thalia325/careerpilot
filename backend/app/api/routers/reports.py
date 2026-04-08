@@ -11,6 +11,7 @@ from app.schemas.report import (
     ReportGenerateRequest,
     ReportPolishRequest,
     ReportResponse,
+    ReportSaveRequest,
 )
 from app.services.bootstrap import ServiceContainer
 
@@ -74,4 +75,28 @@ def export_report(
 
     exported = container.report_service.export_report(db, payload.report_id, payload.format)
     return ReportExportResponse(report_id=payload.report_id, exported=exported)
+
+
+@router.post("/save")
+def save_report(
+    payload: ReportSaveRequest,
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+):
+    if current_user.role not in ["student", "admin", "teacher"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+
+    try:
+        report = container.report_service.get_report(db, payload.report_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在，请先生成报告")
+    report.markdown_content = payload.markdown_content
+    report.status = "edited"
+    db.commit()
+    return {
+        "report_id": report.id,
+        "status": report.status,
+        "markdown_content": report.markdown_content,
+    }
 

@@ -80,3 +80,33 @@ class FileIngestionService:
             logger.error(f"Failed to parse uploaded file {uploaded_file_id} with type {document_type}: {str(e)}")
             raise ValueError(f"Failed to parse document: {str(e)}") from e
 
+    def list_files(self, db: Session, owner_id: int) -> list[UploadedFile]:
+        rows = db.scalars(
+            select(UploadedFile)
+            .where(UploadedFile.owner_id == owner_id)
+            .order_by(UploadedFile.created_at.desc())
+        ).all()
+        return list(rows)
+
+    async def delete_file(self, db: Session, file_id: int, owner_id: int) -> None:
+        uploaded = db.get(UploadedFile, file_id)
+        if not uploaded:
+            raise ValueError("文件不存在")
+        if uploaded.owner_id != owner_id:
+            raise ValueError("无权删除此文件")
+        resume = db.scalar(select(Resume).where(Resume.file_id == file_id))
+        if resume:
+            db.delete(resume)
+        transcript = db.scalar(select(Transcript).where(Transcript.file_id == file_id))
+        if transcript:
+            db.delete(transcript)
+        certificate = db.scalar(select(Certificate).where(Certificate.file_id == file_id))
+        if certificate:
+            db.delete(certificate)
+        try:
+            await self.storage_provider.delete_file(uploaded.storage_key)
+        except Exception as e:
+            logger.warning(f"Failed to delete physical file {uploaded.storage_key}: {e}")
+        db.delete(uploaded)
+        db.commit()
+

@@ -1,29 +1,22 @@
-from collections.abc import Generator
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
 
-from app.core.config import get_settings
+# 绝对路径，精准指向backend根目录的careerpilot.db，100%不会错
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'careerpilot.db')}"
 
+# 创建引擎，SQLite必须加check_same_thread=False
+engine = create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}, echo=False
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-settings = get_settings()
-
-
-def _engine_kwargs(url: str) -> dict:
-    kwargs: dict = {"future": True}
-    if url.startswith("sqlite"):
-        kwargs["connect_args"] = {"check_same_thread": False}
-    return kwargs
-
-
-engine = create_engine(settings.database_url, **_engine_kwargs(settings.database_url))
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-
-
-def get_db() -> Generator[Session, None, None]:
+def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-

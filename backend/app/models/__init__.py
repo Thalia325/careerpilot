@@ -24,6 +24,7 @@ from app.models.entities import (
     Transcript,
     UploadedFile,
     User,
+    UserApiKey,
 )
 
 __all__ = [
@@ -52,5 +53,6 @@ __all__ = [
     "Transcript",
     "UploadedFile",
     "User",
+    "UserApiKey",
 ]
 

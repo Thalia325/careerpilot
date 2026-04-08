@@ -17,6 +17,10 @@ class BaseStorageProvider(ABC):
     async def read_file(self, storage_key: str) -> bytes:
         raise NotImplementedError
 
+    @abstractmethod
+    async def delete_file(self, storage_key: str) -> None:
+        raise NotImplementedError
+
 
 class LocalStorageProvider(BaseStorageProvider):
     def __init__(self, root_path: Path) -> None:
@@ -25,12 +29,24 @@ class LocalStorageProvider(BaseStorageProvider):
 
     async def save_file(self, file_name: str, content: bytes, content_type: str) -> dict:
         storage_key = f"{uuid4().hex}_{file_name}"
-        path = self.root_path / storage_key
+        path = (self.root_path / storage_key).resolve()
+        if not str(path).startswith(str(self.root_path.resolve())):
+            raise ValueError("Invalid storage key: path traversal detected")
         path.write_bytes(content)
         return {"storage_key": storage_key, "url": str(path), "content_type": content_type}
 
     async def read_file(self, storage_key: str) -> bytes:
-        return (self.root_path / storage_key).read_bytes()
+        path = (self.root_path / storage_key).resolve()
+        if not str(path).startswith(str(self.root_path.resolve())):
+            raise ValueError("Invalid storage key: path traversal detected")
+        return path.read_bytes()
+
+    async def delete_file(self, storage_key: str) -> None:
+        path = (self.root_path / storage_key).resolve()
+        if not str(path).startswith(str(self.root_path.resolve())):
+            raise ValueError("Invalid storage key: path traversal detected")
+        if path.exists():
+            path.unlink()
 
 
 class MinIOStorageProvider(BaseStorageProvider):
@@ -56,4 +72,7 @@ class MinIOStorageProvider(BaseStorageProvider):
         buffer = io.BytesIO()
         self.client.download_fileobj(self.bucket, storage_key, buffer)
         return buffer.getvalue()
+
+    async def delete_file(self, storage_key: str) -> None:
+        self.client.delete_object(Bucket=self.bucket, Key=storage_key)
 

@@ -32,6 +32,11 @@ class ReportPolishRequest(BaseModel):
     markdown_content: str = Field(..., min_length=1, max_length=50000)
 
 
+class ReportSaveRequest(BaseModel):
+    report_id: int = Field(..., gt=0)
+    markdown_content: str = Field(..., min_length=1, max_length=50000)
+
+
 class ReportCheckRequest(BaseModel):
     report_id: int = Field(..., gt=0)
 
