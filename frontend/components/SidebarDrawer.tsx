@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Icon } from "./Icon";
 
 type NavItem = {
   href: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
   subtitle?: string;
 };
 
@@ -21,6 +21,19 @@ type SidebarDrawerProps = {
 
 export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: SidebarDrawerProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleNav = useCallback((href: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
+    if (pathname === href) return;
+    const isOnHomePage = ["/student", "/teacher", "/admin"].includes(pathname);
+    if (isOnHomePage) {
+      router.push(href);
+    } else {
+      router.replace(href);
+    }
+  }, [onClose, pathname, router]);
 
   useEffect(() => {
     if (isOpen) {
@@ -60,17 +73,17 @@ export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: Side
             </span>
           </div>
           <button className="sidebar-drawer__close" onClick={onClose} aria-label="关闭菜单">
-            ✕
+            <Icon name="close" size={16} />
           </button>
         </div>
         <nav className="sidebar-drawer__nav">
           {label && <p className="sidebar-drawer__nav-label">{label}</p>}
           {navItems.map((item) => (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={`sidebar-drawer__link ${isActive(item.href) ? "active" : ""}`}
-              onClick={onClose}
+              onClick={handleNav(item.href)}
             >
               <span className="sidebar-drawer__link-icon">{item.icon}</span>
               <span>
@@ -81,7 +94,7 @@ export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: Side
                   </span>
                 )}
               </span>
-            </Link>
+            </a>
           ))}
         </nav>
         {footer && <div className="sidebar-drawer__footer">{footer}</div>}
@@ -130,7 +143,7 @@ export function RoleShell({ title, navItems, navLabel, children }: RoleShellProp
             onClick={handleLogout}
             style={{ background: "none", border: "none", cursor: "pointer", width: "100%", color: "var(--color-error)" }}
           >
-            <span className="sidebar-drawer__link-icon">🚪</span>
+            <span className="sidebar-drawer__link-icon"><Icon name="logout" size={18} /></span>
             退出登录
           </button>
         }

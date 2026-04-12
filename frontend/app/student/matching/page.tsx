@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { SectionCard } from "@/components/SectionCard";
 import { EmptyState } from "@/components/EmptyState";
-import { getMatching } from "@/lib/api";
-import { StudentShellClient } from "@/components/StudentShellClient";
+import { getStudentSession, getMatching } from "@/lib/api";
+import { Icon } from "@/components/Icon";
 
 export default function StudentMatchingPage() {
   const [dimensions, setDimensions] = useState<Array<{ dimension: string; score: number; weight: number; reasoning: string }>>([]);
@@ -13,28 +13,29 @@ export default function StudentMatchingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMatching()
-      .then((matching) => {
+    (async () => {
+      try {
+        const sess = await getStudentSession();
+        if (!sess.student_id || !sess.suggested_job_code) { setLoading(false); return; }
+        const matching = await getMatching(sess.student_id, sess.suggested_job_code);
         setDimensions(Array.isArray(matching?.dimensions) ? matching.dimensions : []);
         setGapItems(Array.isArray(matching?.gap_items) ? matching.gap_items : []);
         setSummary(matching?.summary ?? "暂无数据");
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch {} finally { setLoading(false); }
+    })();
   }, []);
 
   const hasAnalysis = dimensions.length > 0;
 
   return (
-    <StudentShellClient title="我和这个岗位的匹配度">
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
         {loading ? (
           <SectionCard title="加载中">
             <p style={{ textAlign: "center", padding: "40px", color: "#888" }}>加载中...</p>
           </SectionCard>
         ) : !hasAnalysis ? (
           <EmptyState
-            icon="🎯"
+            icon={<Icon name="target" size={32} />}
             title="还没有匹配分析结果"
             description="上传简历并指定目标岗位后，系统将进行四维评分分析，识别你的优势和需要提升的能力。"
             actionLabel="开始智能匹配"
@@ -84,7 +85,6 @@ export default function StudentMatchingPage() {
             </SectionCard>
           </>
         )}
-      </div>
-    </StudentShellClient>
+    </div>
   );
 }

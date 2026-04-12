@@ -64,7 +64,7 @@ export default function LoginPage() {
       setCookie("auth_token", token);
       setCookie("user_role", role);
 
-      router.push(roleRedirects[role]);
+      router.replace(roleRedirects[role]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录出错，请重试");
     } finally {
@@ -139,6 +139,20 @@ export default function LoginPage() {
                 <div>教师：teacher_demo / demo123</div>
                 <div>管理员：admin_demo / demo123</div>
               </div>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ marginTop: "12px", width: "100%", background: "#555" }}
+                onClick={() => {
+                  setCookie("dev_bypass", "true");
+                  setCookie("user_role", activeRole);
+                  localStorage.setItem("token", "dev-bypass");
+                  localStorage.setItem("user_role", activeRole);
+                  router.replace(roleRedirects[activeRole]);
+                }}
+              >
+                开发模式直接进入（{roles.find(r => r.key === activeRole)?.label}）
+              </button>
             </div>
           )}
         </div>

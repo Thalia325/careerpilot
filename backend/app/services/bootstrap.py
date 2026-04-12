@@ -42,22 +42,17 @@ class ServiceContainer:
 
 
 def _create_llm_provider(settings):
-    return (
-        MockLLMProvider()
-        if settings.llm_provider == "mock"
-        else ErnieLLMProvider(
-            api_key=settings.ernie_api_key,
-            base_url=settings.ernie_base_url,
-            aistudio_base_url=settings.ernie_aistudio_base_url,
-            model=settings.ernie_model,
-            secret_key=settings.ernie_secret_key or None,
-            auth_mode=settings.ernie_auth_mode,
-        )
+    if settings.llm_provider == "mock":
+        return MockLLMProvider()
+    return ErnieLLMProvider(
+        access_token=settings.ernie_access_token,
+        base_url=settings.ernie_aistudio_base_url,
+        model=settings.ernie_model,
     )
 
 
 def _create_ocr_provider(settings):
-    return MockOCRProvider() if settings.ocr_provider == "mock" else PaddleOCRProvider(settings.paddle_ocr_service_url)
+    return MockOCRProvider() if settings.ocr_provider == "mock" else PaddleOCRProvider(settings.paddle_ocr_service_url, settings.paddle_ocr_api_key)
 
 
 def _create_rag_provider(settings):
@@ -119,19 +114,13 @@ def create_service_container() -> ServiceContainer:
 
 
 def get_user_llm_provider(db, user_id: int):
-    from app.api.routers.apikey import get_user_api_keys
-
-    keys = get_user_api_keys(db, user_id)
-    if not keys:
-        return None
     settings = get_settings()
+    if settings.llm_provider == "mock":
+        return MockLLMProvider()
     return ErnieLLMProvider(
-        api_key=keys.api_key,
-        secret_key=keys.secret_key,
-        base_url=settings.ernie_base_url,
-        aistudio_base_url=settings.ernie_aistudio_base_url,
+        access_token=settings.ernie_access_token,
+        base_url=settings.ernie_aistudio_base_url,
         model=settings.ernie_model,
-        auth_mode=keys.auth_mode,
     )
 
 

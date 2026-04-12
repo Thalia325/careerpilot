@@ -323,3 +323,33 @@ class UserApiKey(TimestampMixin, Base):
     encrypted_api_key: Mapped[str] = mapped_column(Text)
     encrypted_secret_key: Mapped[str | None] = mapped_column(Text, nullable=True)
     auth_mode: Mapped[str] = mapped_column(String(20), default="qianfan")
+
+
+class ChatMessageRecord(TimestampMixin, Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    role: Mapped[str] = mapped_column(String(20))
+    content: Mapped[str] = mapped_column(Text)
+    has_context: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ProfileVersion(TimestampMixin, Base):
+    __tablename__ = "profile_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), index=True)
+    version_no: Mapped[int] = mapped_column(Integer, default=1)
+    source_files: Mapped[str] = mapped_column(Text, default="")
+    snapshot_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+
+
+class HistoryTitle(TimestampMixin, Base):
+    __tablename__ = "history_titles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    record_type: Mapped[str] = mapped_column(String(40))
+    ref_id: Mapped[int] = mapped_column(Integer)
+    custom_title: Mapped[str] = mapped_column(String(200), default="")

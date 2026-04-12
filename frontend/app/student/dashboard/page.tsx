@@ -3,24 +3,35 @@
 import { useState, useEffect } from "react";
 import { SectionCard } from "@/components/SectionCard";
 import { StatCard } from "@/components/StatCard";
-import { getMatching, getPathPlan, getStudentProfile } from "@/lib/api";
-import { StudentShellClient } from "@/components/StudentShellClient";
+import { getStudentSession, getStudentProfile, getMatching, getPathPlan } from "@/lib/api";
 
-export default function StudentDashboardPage() {
+export default function DashboardPage() {
   const [profile, setProfile] = useState<{ skills?: string[]; completeness_score?: number; competitiveness_score?: number } | null>(null);
   const [matching, setMatching] = useState<{ suggestions?: string[]; total_score?: number } | null>(null);
   const [pathPlan, setPathPlan] = useState<{ primary_path?: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getStudentProfile(), getMatching(), getPathPlan()])
-      .then(([p, m, plan]) => {
-        setProfile(p);
-        setMatching(m);
-        setPathPlan(plan);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const sess = await getStudentSession();
+        if (!sess.student_id || !sess.suggested_job_code) {
+          setLoading(false);
+          return;
+        }
+        const [p, m, plan] = await Promise.all([
+          getStudentProfile(sess.student_id).catch(() => null),
+          getMatching(sess.student_id, sess.suggested_job_code).catch(() => null),
+          getPathPlan(sess.student_id, sess.suggested_job_code).catch(() => null),
+        ]);
+        if (p) setProfile(p);
+        if (m) setMatching(m);
+        if (plan) setPathPlan(plan);
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const skills = Array.isArray(profile?.skills) ? profile.skills : [];
@@ -28,8 +39,7 @@ export default function StudentDashboardPage() {
   const primaryPath = Array.isArray(pathPlan?.primary_path) ? pathPlan.primary_path : [];
 
   return (
-    <StudentShellClient title="个人概览">
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
         {loading ? (
           <p style={{ textAlign: "center", padding: "40px", color: "#888" }}>加载中...</p>
         ) : (
@@ -72,7 +82,6 @@ export default function StudentDashboardPage() {
             </SectionCard>
           </>
         )}
-      </div>
-    </StudentShellClient>
+    </div>
   );
 }

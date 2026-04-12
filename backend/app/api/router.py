@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
-from app.api.routers import agents, apikey, auth, career_paths, chat, files, graph, jobs, matching, ocr, reports, scheduler, student_profiles
+from app.api.routers import admin, agents, auth, career_paths, chat, files, graph, jobs, matching, ocr, reports, scheduler, student_profiles, students, teacher
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(students.router, prefix="/students", tags=["students"])
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(ocr.router, prefix="/ocr", tags=["ocr"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
@@ -14,6 +15,7 @@ api_router.include_router(career_paths.router, prefix="/career-paths", tags=["ca
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(scheduler.router, prefix="/scheduler", tags=["scheduler"])
 api_router.include_router(agents.router, prefix="/agents", tags=["agents"])
-api_router.include_router(apikey.router, prefix="/api-key", tags=["api-key"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(teacher.router, prefix="/teacher", tags=["teacher"])
 

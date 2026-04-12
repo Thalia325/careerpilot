@@ -38,13 +38,14 @@ class FileIngestionService:
         )
         db.add(uploaded)
         db.flush()
-        student = db.get(Student, owner_id)
-        if student and file_type == "resume":
-            db.add(Resume(student_id=owner_id, file_id=uploaded.id, parsed_json={}))
-        elif student and file_type == "transcript":
-            db.add(Transcript(student_id=owner_id, file_id=uploaded.id, parsed_json={}, gpa=None))
-        elif student and file_type == "certificate":
-            db.add(Certificate(student_id=owner_id, file_id=uploaded.id, name=file_name, issuer="", level="", parsed_json={}))
+        student = db.scalar(select(Student).where(Student.user_id == owner_id))
+        sid = student.id if student else None
+        if sid and file_type == "resume":
+            db.add(Resume(student_id=sid, file_id=uploaded.id, parsed_json={}))
+        elif sid and file_type == "transcript":
+            db.add(Transcript(student_id=sid, file_id=uploaded.id, parsed_json={}, gpa=None))
+        elif sid and file_type == "certificate":
+            db.add(Certificate(student_id=sid, file_id=uploaded.id, name=file_name, issuer="", level="", parsed_json={}))
         db.commit()
         db.refresh(uploaded)
         return uploaded

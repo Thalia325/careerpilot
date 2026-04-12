@@ -7,7 +7,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.integrations.llm.providers import BaseLLMProvider
-from app.models import Student, StudentProfile, StudentProfileEvidence, UploadedFile
+from app.models import Student, StudentProfile, StudentProfileEvidence, ProfileVersion, UploadedFile
 from app.schemas.profile import ManualStudentInput
 from app.services.ingestion.file_ingestion import FileIngestionService
 
@@ -97,6 +97,33 @@ class StudentProfileService:
                 )
             )
         db.commit()
+
+        existing = db.scalar(
+            select(ProfileVersion)
+            .where(ProfileVersion.student_id == student_id)
+            .order_by(ProfileVersion.version_no.desc())
+            .limit(1)
+        )
+        next_version = (existing.version_no + 1) if existing else 1
+
+        snapshot = {
+            "source_summary": profile.source_summary,
+            "skills": profile.skills_json,
+            "certificates": profile.certificates_json,
+            "capability_scores": profile.capability_scores,
+            "completeness_score": profile.completeness_score,
+            "competitiveness_score": profile.competitiveness_score,
+            "willingness": profile.willingness_json,
+            "evidence": combined_evidence,
+        }
+        db.add(ProfileVersion(
+            student_id=student_id,
+            version_no=next_version,
+            source_files=merged["source_summary"],
+            snapshot_json=snapshot,
+        ))
+        db.commit()
+
         return {
             "student_id": student_id,
             "source_summary": profile.source_summary,

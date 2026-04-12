@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { SidebarDrawer } from "@/components/SidebarDrawer";
 import { Icon } from "@/components/Icon";
 
@@ -14,16 +15,33 @@ const studentNavItems = [
   { href: "/student/history", label: "历史记录", icon: <Icon name="clock" size={18} /> },
 ];
 
-export function StudentShellClient({ title, children }: { title: string; children: ReactNode }) {
+const titleMap: Record<string, string> = {
+  "/student": "职航智策",
+  "/student/jobs": "岗位探索",
+  "/student/profile": "我的能力分析",
+  "/student/dashboard": "个人概览",
+  "/student/recommended": "推荐岗位",
+  "/student/history": "历史记录",
+  "/student/upload": "材料上传与智能识别",
+  "/student/matching": "岗位匹配分析",
+  "/student/path": "职业路径规划",
+};
+
+export default function StudentLayout({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [roleLabel, setRoleLabel] = useState("同学");
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const role = localStorage.getItem("user_role");
     if (role === "teacher") setRoleLabel("教师");
     else if (role === "admin") setRoleLabel("管理员");
   }, []);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -33,8 +51,10 @@ export function StudentShellClient({ title, children }: { title: string; childre
     router.push("/login");
   };
 
+  const title = titleMap[pathname] || "职航智策";
+
   return (
-    <div className="workspace-bg">
+    <div className="student-layout">
       <SidebarDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -51,6 +71,7 @@ export function StudentShellClient({ title, children }: { title: string; childre
           </button>
         }
       />
+
       <div className="workspace-topbar">
         <div className="workspace-topbar__left">
           <button className="hamburger-btn" onClick={() => setDrawerOpen(true)} aria-label="打开菜单">
@@ -63,7 +84,10 @@ export function StudentShellClient({ title, children }: { title: string; childre
           <button className="workspace-topbar__logout" onClick={handleLogout}>退出</button>
         </div>
       </div>
-      {children}
+
+      <div className="student-layout__body">
+        {children}
+      </div>
     </div>
   );
 }

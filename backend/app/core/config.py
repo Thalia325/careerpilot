@@ -51,16 +51,29 @@ class Settings(BaseSettings):
     storage_provider: Literal["local", "minio"] = "local"
 
     ernie_api_key: str = ""
-    ernie_secret_key: str = ""
-    ernie_auth_mode: str = "qianfan"
-    ernie_base_url: str = "https://qianfan.baidubce.com"
+    ernie_access_token_encrypted: str = ""
     ernie_aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3"
-    ernie_model: str = "ernie-4.5-turbo-128k"
-    paddle_ocr_service_url: str = ""
+    ernie_model: str = "ernie-5.0-thinking-preview"
+    paddle_ocr_service_url: str = "https://68s1bc8ea6pdwew2.aistudio-app.com/layout-parsing"
+    paddle_ocr_api_key_encrypted: str = ""
     ragflow_base_url: str = ""
     ragflow_api_key: str = ""
 
     data_dir: Path = ROOT_DIR / "data"
+
+    @property
+    def ernie_access_token(self) -> str:
+        if self.ernie_access_token_encrypted:
+            from app.core.crypto import decrypt_value
+            return decrypt_value(self.ernie_access_token_encrypted)
+        return self.ernie_api_key
+
+    @property
+    def paddle_ocr_api_key(self) -> str:
+        if self.paddle_ocr_api_key_encrypted:
+            from app.core.crypto import decrypt_value
+            return decrypt_value(self.paddle_ocr_api_key_encrypted)
+        return ""
 
     @property
     def local_storage_path(self) -> Path:

@@ -8,9 +8,7 @@ const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function UploadLab() {
-  const [rawText, setRawText] = useState(
-    "姓名：陈同学\n专业：软件工程\n技能：JavaScript TypeScript React Next.js Python FastAPI SQL\n项目：CareerPilot 职业规划系统\n实习：教育科技公司前端开发实习生\n证书：英语四级 计算机二级\nGPA：3.7"
-  );
+  const [rawText, setRawText] = useState("");
   const [result, setResult] = useState<string>("点击'智能识别文档'后，将展示结构化输出。");
   const [isLoading, setIsLoading] = useState(false);
   const [fileError, setFileError] = useState("");

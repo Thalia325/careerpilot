@@ -13,8 +13,7 @@ const navGroups = [
       { href: "/student/profile", label: "学生画像" },
       { href: "/student/jobs", label: "岗位探索" },
       { href: "/student/matching", label: "匹配分析" },
-      { href: "/student/path", label: "职业路径" },
-      { href: "/student/reports", label: "报告编辑与导出" }
+      { href: "/student/path", label: "职业路径" }
     ]
   },
   {

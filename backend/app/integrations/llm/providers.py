@@ -6,7 +6,6 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any
 
-import httpx
 from openai import OpenAI
 
 from app.services.reference import find_best_template
@@ -155,111 +154,73 @@ class MockLLMProvider(BaseLLMProvider):
             polished = f"# CareerPilot 职业发展报告\n\n{polished}"
         return polished + "\n\n> 本报告已完成智能润色与结构校验。"
 
+    def _chat(self, system_prompt: str, user_prompt: str) -> str:
+        if any(kw in user_prompt for kw in ("技能", "职业", "岗位", "方向", "入行", "前景", "分析", "评估", "规划", "报告", "简历")):
+            return (
+                "# 职业规划分析报告\n\n"
+                "## 一、综合概述\n"
+                "根据你提供的信息，你是一位具备一定技术基础和项目经验的大学生，"
+                "当前处于职业方向探索与能力提升的关键阶段。建议优先关注互联网产品、数据分析等数字化岗位方向。\n\n"
+                "## 二、能力分析\n"
+                "- **专业技能**：具备基础技术能力，需进一步深化核心技能栈\n"
+                "- **学习能力**：有一定自学能力，建议加强系统性学习规划\n"
+                "- **沟通协作**：需提升跨部门沟通与团队协作经验\n"
+                "- **创新能力**：建议多参与创新型项目或竞赛，积累实战经验\n"
+                "- **实习实践**：当前实践经验有限，需尽快补充实习经历\n\n"
+                "## 三、优势与不足\n"
+                "### 优势\n"
+                "- 有项目经验和技术基础\n"
+                "- 对职业发展有清晰意识\n"
+                "- 数字化岗位需求旺盛，方向选择正确\n\n"
+                "### 待提升\n"
+                "- 核心技能深度不够\n"
+                "- 缺乏行业实习经验\n"
+                "- 职业证书和资质有待补充\n\n"
+                "## 四、职业方向建议\n"
+                "| 方向 | 推荐理由 | 适合度 |\n"
+                "|------|----------|--------|\n"
+                "| 产品经理 | 综合能力要求高，发展空间大 | ★★★★☆ |\n"
+                "| 数据分析师 | 技术与业务结合，需求旺盛 | ★★★★★ |\n"
+                "| 项目经理 | 侧重协调管理，成长路径清晰 | ★★★☆☆ |\n\n"
+                "## 五、行动建议\n"
+                "### 短期（1-3个月）\n"
+                "1. 梳理已有项目经验，提炼可量化的成果描述\n"
+                "2. 补齐目标岗位核心技能中的薄弱项\n"
+                "3. 完善个人简历，突出项目亮点\n\n"
+                "### 中期（3-6个月）\n"
+                "1. 寻找至少 1 次相关岗位实习机会\n"
+                "2. 考取 1-2 个行业认可的职业证书\n"
+                "3. 参加行业活动，拓展职业人脉\n\n"
+                "### 长期（6-12个月）\n"
+                "1. 完成实习并沉淀可展示的项目成果\n"
+                "2. 定期复盘能力提升进度，更新个人画像\n"
+                "3. 模拟面试，提升求职竞争力\n\n"
+                "## 六、总结\n"
+                "你的职业发展基础扎实，当前最重要的是**补充实习经验**和**深化核心技能**。"
+                "建议聚焦 1-2 个目标岗位方向，制定清晰的阶段性计划，稳步提升竞争力。"
+            )
+        return (
+            "你好！我是职航智策 AI 助手，专门帮助大学生进行职业规划。\n\n"
+            "你可以问我：\n"
+            "- 某个岗位需要什么技能？\n"
+            "- 如何从当前专业转入某个职业方向？\n"
+            "- 某个行业的发展前景如何？\n\n"
+            "请描述你的问题，我会尽力为你解答！"
+        )
+
 
 class ErnieLLMProvider(BaseLLMProvider):
     def __init__(
         self,
-        api_key: str,
-        base_url: str,
-        model: str,
-        secret_key: str | None = None,
-        aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3",
-        auth_mode: str = "qianfan",
+        access_token: str,
+        base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3",
+        model: str = "ernie-5.0-thinking-preview",
     ) -> None:
-        self.api_key = api_key
-        self.secret_key = secret_key
+        self.access_token = access_token
         self.base_url = base_url
-        self.aistudio_base_url = aistudio_base_url
         self.model = model
-        self.auth_mode = auth_mode
         self.mock = MockLLMProvider()
-
-        self._access_token: str | None = None
-        self._token_expires_at: float = 0
-
-        if auth_mode == "aistudio":
-            self.client = OpenAI(api_key=api_key, base_url=aistudio_base_url) if api_key else None
-        else:
-            self.client = None
-
-    @staticmethod
-    def _is_bce_key(api_key: str) -> bool:
-        return api_key.startswith("bce-v3/") or api_key.startswith("ALTAK")
-
-    @staticmethod
-    def _extract_bce_ak(api_key: str) -> str:
-        if api_key.startswith("bce-v3/"):
-            parts = api_key.split("/")
-            return parts[1] if len(parts) >= 2 else api_key
-        return api_key
-
-    @staticmethod
-    def _normalize(in_str: str, encoding_slash: bool = True) -> str:
-        import string
-        safe = string.ascii_letters + string.digits + ".~-_"
-        if not encoding_slash:
-            safe += "/"
-        return "".join(f"%{ord(c):02X}" if c not in safe else c for c in in_str)
-
-    @staticmethod
-    def _bce_sign(
-        method: str, path: str,
-        headers: dict[str, str], ak: str, sk: str,
-        timestamp: str, expiration: int = 1800,
-    ) -> str:
-        import hashlib
-        import hmac
-
-        sign_key_info = f"bce-auth-v1/{ak}/{timestamp}/{expiration}"
-        sign_key = hmac.new(
-            sk.encode("utf-8"), sign_key_info.encode("utf-8"), hashlib.sha256
-        ).hexdigest()
-
-        signed_keys = sorted(k.strip().lower() for k in headers.keys())
-        norm = ErnieLLMProvider._normalize
-        canonical_headers = "\n".join(
-            f"{norm(k)}:{norm(str(headers[next(ok for ok, ov in headers.items() if ok.lower() == k)]).strip())}"
-            for k in signed_keys
-        )
-
-        string_to_sign = "\n".join([method.upper(), path, "", canonical_headers])
-        sign_result = hmac.new(
-            sign_key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha256
-        ).hexdigest()
-
-        signed_headers_str = ";".join(signed_keys)
-        return f"{sign_key_info}/{signed_headers_str}/{sign_result}"
-
-    def _get_qianfan_token(self) -> str:
-        import time
-
-        now = time.time()
-        if self._access_token and now < self._token_expires_at:
-            return self._access_token
-
-        if not self.secret_key:
-            raise ValueError("千帆模式需要同时提供 API Key 和 Secret Key")
-
-        url = "https://aip.baidubce.com/oauth/2.0/token"
-        params = {
-            "grant_type": "client_credentials",
-            "client_id": self.api_key,
-            "client_secret": self.secret_key,
-        }
-        try:
-            resp = httpx.post(url, params=params, timeout=30)
-            resp.raise_for_status()
-            data = resp.json()
-            if "error" in data:
-                raise ValueError(f"获取千帆 Token 失败: {data.get('error_description', data['error'])}")
-            self._access_token = data["access_token"]
-            expires_in = data.get("expires_in", 2592000)
-            self._token_expires_at = now + expires_in - 300
-            return self._access_token
-        except httpx.HTTPStatusError as exc:
-            raise ValueError(f"获取千帆 Token 失败 (HTTP {exc.response.status_code}): {exc.response.text[:200]}") from exc
-        except KeyError:
-            raise ValueError(f"千帆 Token 响应格式异常: {str(data)[:200]}")
+        self.client = OpenAI(api_key=access_token, base_url=base_url, timeout=60.0) if access_token else None
 
     @staticmethod
     def _extract_json(text: str) -> dict[str, Any]:
@@ -356,72 +317,17 @@ class ErnieLLMProvider(BaseLLMProvider):
         return normalized
 
     def _chat(self, system_prompt: str, user_prompt: str) -> str:
-        if self.auth_mode == "aistudio":
-            if not self.client:
-                raise RuntimeError("AI Studio API key not configured")
-            completion = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.2,
-            )
-            return completion.choices[0].message.content or ""
-        else:
-            if not self.secret_key:
-                raise ValueError("千帆模式需要同时提供 API Key 和 Secret Key")
-
-            url = f"{self.base_url}/v2/chat/completions"
-            path = "/v2/chat/completions"
-            body = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": 0.2,
-            }
-
-            if self._is_bce_key(self.api_key):
-                from datetime import datetime, timezone
-
-                ak = self._extract_bce_ak(self.api_key)
-                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                headers = {
-                    "Host": "qianfan.baidubce.com",
-                    "Content-Type": "application/json",
-                    "x-bce-date": timestamp,
-                }
-                headers["Authorization"] = self._bce_sign(
-                    "POST", path,
-                    headers, ak, self.secret_key, timestamp,
-                )
-            else:
-                token = self._get_qianfan_token()
-                headers = {
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                }
-
-            resp = httpx.post(url, headers=headers, json=body, timeout=60)
-            logger.debug(
-                "Qianfan response status=%s ak_type=%s auth_header=%s body=%s",
-                resp.status_code,
-                "bce" if self._is_bce_key(self.api_key) else "token",
-                headers.get("Authorization", "")[:60],
-                resp.text[:200],
-            )
-            if resp.status_code == 401:
-                detail = resp.text[:300]
-                raise ValueError(f"千帆认证失败 (401): {detail}")
-            if resp.status_code == 403:
-                raise ValueError(f"千帆访问被拒 (403): {resp.text[:200]}")
-            resp.raise_for_status()
-            data = resp.json()
-            if "error_code" in data:
-                raise ValueError(f"千帆 API 错误: {data.get('error_msg', data['error_code'])}")
-            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        if not self.client:
+            raise RuntimeError("AI Studio Access Token 未配置")
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+        )
+        return completion.choices[0].message.content or ""
 
     async def generate_job_profile(self, job_posting: dict[str, Any]) -> dict[str, Any]:
         system_prompt = (
@@ -496,6 +402,8 @@ class ErnieLLMProvider(BaseLLMProvider):
 
 
 async def safe_ping_http(url: str) -> bool:
+    import httpx
+
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             response = await client.get(url)

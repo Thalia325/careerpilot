@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class BaseOCRProvider(ABC):
@@ -108,8 +111,9 @@ class MockOCRProvider(BaseOCRProvider):
 
 
 class PaddleOCRProvider(BaseOCRProvider):
-    def __init__(self, service_url: str) -> None:
-        self.service_url = service_url
+    def __init__(self, service_url: str, api_key: str = "") -> None:
+        self.service_url = service_url.rstrip("/")
+        self.api_key = api_key
 
     async def parse_document(
         self,
@@ -118,11 +122,28 @@ class PaddleOCRProvider(BaseOCRProvider):
         document_type: str = "resume",
         raw_text: Optional[str] = None,
     ) -> dict[str, Any]:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                self.service_url,
-                files={"file": (file_name, content_bytes)},
-                data={"document_type": document_type, "raw_text": raw_text or ""},
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                logger.info("PaddleOCR request: POST %s file=%s", self.service_url, file_name)
+                response = await client.post(
+                    f"{self.service_url}",
+                    files={"file": (file_name, content_bytes)},
+                    data={"document_type": document_type, "raw_text": raw_text or ""},
+                    headers=headers,
+                )
+                response.raise_for_status()
+                result = response.json()
+                logger.info("PaddleOCR success: file=%s status=%d", file_name, response.status_code)
+                return result
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "PaddleOCR HTTP error: file=%s status=%d body=%s",
+                file_name, e.response.status_code, e.response.text[:500],
             )
-            response.raise_for_status()
-            return response.json()
+            raise ValueError(f"PaddleOCR API returned {e.response.status_code}: {e.response.text[:200]}") from e
+        except httpx.RequestError as e:
+            logger.error("PaddleOCR connection error: file=%s url=%s err=%s", file_name, self.service_url, e)
+            raise ValueError(f"PaddleOCR connection failed to {self.service_url}: {e}") from e

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ReactNode } from "react";
 
 export function EmptyState({
   icon,
@@ -10,7 +11,7 @@ export function EmptyState({
   actionHref,
   actionOnClick
 }: {
-  icon?: string;
+  icon?: ReactNode;
   title: string;
   description: string;
   actionLabel?: string;
