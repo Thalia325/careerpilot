@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import csv
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,10 +19,19 @@ def load_job_profile_templates() -> list[dict]:
     return _load_json(settings.data_dir / "job_profile_templates.json")
 
 
-@lru_cache
 def load_job_graph_seed() -> dict:
     settings = get_settings()
     return _load_json(settings.data_dir / "job_graph_seed.json")
+
+
+@lru_cache
+def load_sample_job_postings() -> list[dict]:
+    settings = get_settings()
+    path = settings.data_dir / "sample_jobs.csv"
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8-sig", newline="") as file:
+        return [dict(row) for row in csv.DictReader(file)]
 
 
 def find_best_template(title: str) -> dict:
@@ -33,4 +43,3 @@ def find_best_template(title: str) -> dict:
         if any(keyword.lower() in title_lower for keyword in template["skills"][:2]):
             return template
     return load_job_profile_templates()[0]
-

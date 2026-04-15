@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Student, Teacher, User
+from app.models import Student, Teacher, TeacherStudentLink, User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -80,8 +80,75 @@ def authenticate(db: Session, username: str, password: str) -> Optional[User]:
     if not user:
         return None
     if verify_password(password, user.password_hash):
-        # Migrate legacy password to bcrypt if needed
         if not user.password_hash.startswith("$2"):
             migrate_password_hash(db, user, password)
         return user
     return None
+
+
+def _find_teacher_by_code(db: Session, teacher_code: str) -> Teacher | None:
+    code = teacher_code.strip()
+    if not code:
+        return None
+    return db.scalar(
+        select(Teacher)
+        .join(User, Teacher.user_id == User.id)
+        .where(User.role == "teacher")
+        .where((User.username == code) | (User.email == code))
+    )
+
+
+def register_user(
+    db: Session,
+    username: str,
+    password: str,
+    full_name: str,
+    role: str = "student",
+    email: str = "",
+    teacher_code: str = "",
+) -> User:
+    if db.scalar(select(User).where(User.username == username)):
+        raise ValueError("用户名已存在")
+    teacher = None
+    if role == "student" and teacher_code.strip():
+        teacher = _find_teacher_by_code(db, teacher_code)
+        if not teacher:
+            raise ValueError("未找到对应老师，请检查老师用户名或邮箱")
+
+    user = User(
+        username=username,
+        password_hash=hash_password(password),
+        role=role,
+        full_name=full_name,
+        email=email,
+    )
+    db.add(user)
+    db.flush()
+    if role == "student":
+        student = Student(
+            user_id=user.id,
+            major="",
+            grade="",
+            career_goal="",
+            learning_preferences={},
+        )
+        db.add(student)
+        db.flush()
+        if teacher:
+            db.add(TeacherStudentLink(
+                teacher_id=teacher.id,
+                student_id=student.id,
+                group_name="自助注册",
+                is_primary=True,
+                source="invite_code",
+                status="active",
+            ))
+    elif role == "teacher":
+        db.add(Teacher(
+            user_id=user.id,
+            department="",
+            title="",
+        ))
+    db.commit()
+    db.refresh(user)
+    return user

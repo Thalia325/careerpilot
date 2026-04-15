@@ -1,4 +1,5 @@
 from app.models.entities import (
+    AnalysisRun,
     CareerPath,
     CareerReport,
     Certificate,
@@ -24,6 +25,8 @@ from app.models.entities import (
     StudentProfileEvidence,
     SystemConfig,
     Teacher,
+    TeacherComment,
+    TeacherStudentLink,
     Transcript,
     UploadedFile,
     User,
@@ -31,6 +34,7 @@ from app.models.entities import (
 )
 
 __all__ = [
+    "AnalysisRun",
     "CareerPath",
     "CareerReport",
     "Certificate",
@@ -56,6 +60,8 @@ __all__ = [
     "StudentProfileEvidence",
     "SystemConfig",
     "Teacher",
+    "TeacherComment",
+    "TeacherStudentLink",
     "Transcript",
     "UploadedFile",
     "User",

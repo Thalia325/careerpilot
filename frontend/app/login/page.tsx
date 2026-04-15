@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -47,7 +48,9 @@ export default function LoginPage() {
       });
 
       if (!response.ok) {
-        throw new Error("登录失败，请检查用户名和密码");
+        const body = await response.json().catch(() => null);
+        const detail = body?.detail || "登录失败，请检查用户名和密码";
+        throw new Error(detail);
       }
 
       const data = await response.json();
@@ -61,6 +64,13 @@ export default function LoginPage() {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user_role", role);
+      if (data.user_id !== undefined && data.user_id !== null) {
+        localStorage.setItem("user_id", String(data.user_id));
+      }
+      if (data.username) {
+        localStorage.setItem("username", data.username);
+      }
+      localStorage.removeItem("chat_messages");
       setCookie("auth_token", token);
       setCookie("user_role", role);
 
@@ -131,6 +141,13 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <p style={{ textAlign: "center", marginTop: 16, fontSize: 14, color: "var(--color-text-secondary, #888)" }}>
+            还没有账号？{" "}
+            <Link href="/register" style={{ color: "var(--color-primary, #4f46e5)", textDecoration: "underline" }}>
+              立即注册
+            </Link>
+          </p>
+
           {isDevelopment && (
             <div className="login-form__dev-note">
               <p>开发环境演示账号</p>
@@ -148,6 +165,9 @@ export default function LoginPage() {
                   setCookie("user_role", activeRole);
                   localStorage.setItem("token", "dev-bypass");
                   localStorage.setItem("user_role", activeRole);
+                  localStorage.setItem("user_id", "dev-bypass");
+                  localStorage.setItem("username", `dev-${activeRole}`);
+                  localStorage.removeItem("chat_messages");
                   router.replace(roleRedirects[activeRole]);
                 }}
               >

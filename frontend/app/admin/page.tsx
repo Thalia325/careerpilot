@@ -128,7 +128,12 @@ export default function AdminPage() {
 
             <div className="admin-dashboard__grid">
               <div className="admin-dashboard__card">
-                <h2>用户管理</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                  <h2 style={{ margin: 0 }}>用户管理</h2>
+                  <button type="button" className="admin-action-button" onClick={() => router.push("/admin/users")}>
+                    进入增删改查
+                  </button>
+                </div>
                 <table className="admin-user-table">
                   <thead>
                     <tr>

@@ -7,3 +7,8 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+
+class GreetingResponse(BaseModel):
+    greeting: str
+    subline: str

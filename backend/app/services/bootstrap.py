@@ -18,6 +18,7 @@ from app.services.agents.report_agent import ReportGenerationAgent
 from app.services.agents.resume_agent import ResumeParsingAgent
 from app.services.agents.tracking_agent import TrackingAgent
 from app.services.auth_service import ensure_demo_users
+from app.services.seed_demo_students import seed_demo_students
 from app.services.ingestion.file_ingestion import FileIngestionService
 from app.services.ingestion.job_import_service import JobImportService
 from app.services.matching.matching_service import MatchingService
@@ -126,6 +127,8 @@ def get_user_llm_provider(db, user_id: int):
 
 async def initialize_demo_data(db: Session, container: ServiceContainer) -> None:
     ensure_demo_users(db)
+    seed_demo_students(db)
+    # 每次启动都重新加载图谱数据（确保使用最新的图谱配置）
     await container.job_import_service.graph_provider.load_seed(load_job_graph_seed())
     has_profiles = db.scalar(select(JobProfile.id).limit(1))
     if not has_profiles:

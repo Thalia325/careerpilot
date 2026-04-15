@@ -1606,6 +1606,11 @@ a[aria-label] {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.sidebar-drawer__extra {
+  padding: 12px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
 /* ===========================
    HAMBURGER BUTTON
    =========================== */
@@ -1700,6 +1705,7 @@ a[aria-label] {
    =========================== */
 .student-layout {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
@@ -1714,11 +1720,31 @@ a[aria-label] {
 }
 
 .student-main {
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   background: #f5f7fa;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
+}
+
+.student-main.is-upload-dragging::after {
+  content: "松开即可上传简历";
+  position: absolute;
+  inset: 16px;
+  z-index: 40;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(15, 116, 218, 0.55);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--brand);
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 18px 40px rgba(15, 116, 218, 0.12);
 }
 
 @keyframes chat-spinner {
@@ -1781,8 +1807,9 @@ a[aria-label] {
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 8px 16px 140px;
+  padding: 8px 16px 16px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
@@ -1850,14 +1877,33 @@ a[aria-label] {
 }
 
 .student-main__input-area {
-  position: absolute;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
+  max-height: 45%;
+  overflow-y: auto;
   background: #fff;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding: 16px 24px;
   z-index: 10;
+}
+
+.student-main__input-area.is-compact {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.student-main__input-area.is-compact .student-main__input {
+  min-height: 42px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.student-main__input-area.is-compact .student-main__send-btn {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
 }
 
 .student-main__input-wrapper {
@@ -1921,6 +1967,12 @@ a[aria-label] {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.student-main__upload-row.is-dragging {
+  background: rgba(15, 116, 218, 0.06);
 }
 
 .student-main__upload-btn {
@@ -1952,6 +2004,8 @@ a[aria-label] {
 
 .student-main__centered {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2115,6 +2169,66 @@ a[aria-label] {
 .student-main__file-item-delete:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.student-main__pipeline-wrap {
+  max-width: 720px;
+  margin: 0 auto 16px;
+}
+
+.student-main__result-area {
+  max-width: 720px;
+  margin: 0 auto 16px;
+  text-align: center;
+}
+
+.student-main__result-title {
+  font-size: 0.9375rem;
+  color: #666;
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+
+.student-main__result-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.student-main__result-btn {
+  text-decoration: none;
+  display: inline-flex;
+  font-size: 14px;
+  padding: 8px 16px;
+  background: #2563eb;
+}
+
+.student-main__result-btn--red {
+  background: #dc2626;
+}
+
+.student-main__result-btn--purple {
+  background: #7c3aed;
+}
+
+.student-main__result-btn--teal {
+  background: #0891b2;
+}
+
+.student-main__result-btn--green {
+  background: #059669;
+}
+
+.student-main__result-hint {
+  font-size: 0.8125rem;
+  color: #888;
+  margin: 8px 0 0;
+}
+
+.student-main__result-hint a {
+  color: #1a73e8;
+  text-decoration: none;
 }
 
 /* ===========================
@@ -2439,6 +2553,219 @@ a[aria-label] {
   background: var(--success);
 }
 
+.student-info-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+.student-info-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.student-info-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.student-info-header h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.5rem;
+}
+
+.student-info-header p,
+.student-info-muted {
+  margin: 8px 0 0;
+  color: var(--subtle);
+  line-height: 1.7;
+}
+
+.student-info-account {
+  min-width: 160px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.student-info-account span {
+  display: block;
+  color: var(--subtle);
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.student-info-account strong {
+  color: var(--ink);
+}
+
+.student-info-current-teacher {
+  padding: 12px 14px;
+  border: 1px solid #cfe0f5;
+  border-radius: 8px;
+  background: #f7fbff;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+
+.student-info-current-teacher--empty {
+  color: var(--subtle);
+}
+
+.student-info-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.student-info-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.student-info-form input,
+.student-info-form select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+}
+
+.student-info-form input:focus,
+.student-info-form select:focus {
+  outline: none;
+  border-color: #0f74da;
+  box-shadow: 0 0 0 3px rgba(15, 116, 218, 0.12);
+}
+
+.student-info-alert {
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.student-info-alert--error {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.student-info-alert--success {
+  color: #0b7b72;
+  background: rgba(11, 123, 114, 0.1);
+}
+
+.student-info-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.student-info-actions .btn-primary {
+  min-width: 140px;
+}
+
+@media (max-width: 720px) {
+  .student-info-header,
+  .student-info-form {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .student-info-account {
+    min-width: 0;
+  }
+}
+
+.admin-user-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-user-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.admin-user-form input,
+.admin-user-form select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.admin-user-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-action-button,
+.admin-table-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.admin-action-button:hover,
+.admin-table-button:hover {
+  background: rgba(15, 116, 218, 0.06);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.admin-action-button--primary {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.admin-action-button--primary:hover {
+  background: var(--brand-2);
+}
+
+.admin-table-button--danger {
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+}
+
+.admin-table-button--danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
 /* ===========================
    LANDING PAGE MINI HEADER
    =========================== */
@@ -2752,62 +3079,27 @@ a[aria-label] {
 /* ===========================
    RECOMMENDED JOBS PAGE
    =========================== */
-.recommended-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+.recommended-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
-.recommended-card {
-  background: #fff;
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-decoration: none;
-  color: var(--ink);
-  display: block;
+.recommended-hero {
+  margin-bottom: 20px;
 }
 
-.recommended-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.recommended-card__title {
-  font-size: 1rem;
+.recommended-hero h1 {
+  font-size: 1.5rem;
   font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.recommended-card__company {
-  font-size: 0.8125rem;
-  color: var(--subtle);
-  margin: 0 0 4px;
-}
-
-.recommended-card__salary {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--accent);
   margin: 0 0 8px;
+  color: #333;
 }
 
-.recommended-card__tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.recommended-card__tag {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(15, 116, 218, 0.06);
-  color: var(--brand);
-  font-size: 0.6875rem;
-  font-weight: 500;
+.recommended-hero p {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0;
 }
 
 /* ===========================
@@ -2828,10 +3120,17 @@ a[aria-label] {
   border-radius: var(--radius-lg);
   border: 1px solid rgba(0, 0, 0, 0.06);
   transition: transform 0.2s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .history-item:hover {
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.history-item:visited {
+  color: inherit;
 }
 
 .history-item__title {

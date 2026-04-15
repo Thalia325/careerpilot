@@ -3,6 +3,8 @@ export const demoStudentProfile = {
   source_summary: "简历、证书、手动录入",
   skills: ["需求分析", "原型设计", "SQL", "Python", "Excel", "PPT", "数据可视化", "沟通协调"],
   certificates: ["英语六级", "PMP 项目管理认证"],
+  projects: ["校园电商平台产品设计方案"],
+  internships: ["某互联网公司产品实习生"],
   capability_scores: {
     专业技能: 82,
     创新能力: 79,
@@ -20,12 +22,14 @@ export const demoStudentProfile = {
   evidence: [
     { source: "resume.pdf", excerpt: "实习经历：某互联网公司产品实习生，负责需求分析和原型设计", confidence: 0.92 },
     { source: "手动录入", excerpt: "补充项目：校园电商平台产品设计方案", confidence: 0.95 }
-  ]
+  ],
+  profile_version_id: null as number | null
 };
 
 export const demoMatching = {
   student_id: 1,
   job_code: "J-PM-001",
+  match_result_id: null as number | null,
   total_score: 85.6,
   weights: {
     basic_requirements: 0.15,
@@ -43,6 +47,7 @@ export const demoMatching = {
     { type: "skill", name: "数据分析", suggestion: "加强 SQL 和数据可视化工具的实践应用。" },
     { type: "skill", name: "技术理解力", suggestion: "建议了解基础的前端和后端技术架构。" }
   ],
+  strengths: ["需求分析能力突出，具备完整的需求文档撰写经验", "原型设计工具熟练，能独立产出交互方案", "沟通协调能力强，多次跨部门协作经验", "学习能力与适应性好，快速掌握新领域知识"],
   suggestions: ["完善 1 个完整的产品从 0 到 1 案例", "加强跨部门协作经验表达", "定期复盘产品方法论积累"],
   summary: "适合优先冲刺产品经理岗位，优势在于需求分析和沟通协调能力，短板在数据分析深度与技术理解力。"
 };
@@ -53,11 +58,80 @@ export const demoPath = {
     ["产品助理", "运营经理"],
     ["产品助理", "项目经理"]
   ],
+  vertical_graph: {
+    title: "产品经理",
+    description: "负责需求洞察、方案设计和项目推进，强调系统思考、协作推进与商业敏感度。",
+    nodes: [
+      { title: "产品助理/初级产品经理", description: "执行需求整理与基础产品文档。", skills: ["需求分析", "原型设计"], level: 1, stage: "当前目标" },
+      { title: "产品经理", description: "独立负责模块规划与跨团队推进。", skills: ["项目管理", "数据分析"], level: 2, stage: "中期晋升" },
+      { title: "高级产品经理/产品总监", description: "负责产品线规划和团队管理。", skills: ["产品战略", "商业分析"], level: 3, stage: "长期发展" },
+    ],
+    edges: [
+      { from: "产品助理/初级产品经理", to: "产品经理", relation: "晋升", description: "补齐独立负责模块的能力。" },
+      { from: "产品经理", to: "高级产品经理/产品总监", relation: "晋升", description: "沉淀产品线规划和团队管理能力。" },
+    ],
+    promotion_paths: [
+      ["产品助理/初级产品经理", "产品经理", "高级产品经理/产品总监"],
+    ],
+    vertical_paths: [],
+  },
+  transition_graph: {
+    target: "产品经理",
+    nodes: [],
+    edges: [],
+    clusters: [],
+    role_paths: [
+      { title: "产品经理", description: "产品路线核心岗位，负责需求洞察与方案设计。", skills: ["需求分析", "项目管理"], paths: [
+        { steps: ["产品经理", "数据产品经理"], relation: "换岗", description: "补齐数据指标体系与数据驱动决策能力。", skill_bridge: ["SQL", "指标体系", "数据可视化"] },
+        { steps: ["产品经理", "项目经理"], relation: "换岗", description: "强化项目推进与资源协调能力。", skill_bridge: ["风险管理", "资源协调", "进度管控"] },
+        { steps: ["产品经理", "运营专家"], relation: "换岗", description: "结合产品思维与运营策略实现增长。", skill_bridge: ["用户运营", "数据分析", "增长策略"] },
+      ] },
+      { title: "数据分析师", description: "数据类岗位，负责数据挖掘与洞察输出。", skills: ["SQL", "Python"], paths: [
+        { steps: ["数据分析师", "数据产品经理"], relation: "换岗", description: "补充产品文档与需求分析能力。", skill_bridge: ["需求分析", "原型设计", "用户研究"] },
+        { steps: ["数据分析师", "产品经理"], relation: "换岗", description: "强化业务洞察与跨团队沟通。", skill_bridge: ["用户研究", "项目推进", "商业分析"] },
+      ] },
+      { title: "数据产品经理", description: "数据与产品交叉岗位。", skills: ["数据可视化", "需求分析"], paths: [
+        { steps: ["数据产品经理", "产品经理"], relation: "换岗", description: "拓展通用产品规划能力。", skill_bridge: ["项目管理", "用户研究", "商业分析"] },
+        { steps: ["数据产品经理", "数据分析师"], relation: "换岗", description: "深入数据建模与分析能力。", skill_bridge: ["Python", "机器学习", "统计学"] },
+      ] },
+      { title: "项目经理", description: "项目管理岗位，负责推进交付。", skills: ["风险管理", "资源协调"], paths: [
+        { steps: ["项目经理", "产品经理"], relation: "换岗", description: "转向需求定义与方案设计。", skill_bridge: ["需求分析", "原型设计", "用户研究"] },
+        { steps: ["项目经理", "运营专家"], relation: "换岗", description: "结合项目经验与运营增长。", skill_bridge: ["用户运营", "数据分析", "活动策划"] },
+      ] },
+      { title: "运营专家", description: "运营类岗位，负责用户增长与留存。", skills: ["用户运营", "增长策略"], paths: [
+        { steps: ["运营专家", "产品经理"], relation: "换岗", description: "从运营视角切入产品规划。", skill_bridge: ["需求分析", "数据驱动", "用户研究"] },
+        { steps: ["运营专家", "数据分析师"], relation: "换岗", description: "强化数据建模与洞察输出。", skill_bridge: ["SQL", "Python", "数据可视化"] },
+      ] },
+    ],
+  },
   rationale: "依据岗位图谱、技能相邻度与学生当前能力结构推荐。",
+  current_ability: {
+    skills: ["需求分析", "原型设计", "SQL", "Python", "Excel", "PPT", "数据可视化", "沟通协调"],
+    certificates: ["英语六级", "PMP 项目管理认证"],
+    projects: ["校园电商平台产品设计方案"],
+    internships: ["某互联网公司产品实习生"],
+    capability_scores: { 专业技能: 82, 创新能力: 79, 学习能力: 85, 抗压能力: 74, 沟通能力: 88, 实习能力: 76 },
+    matched_skills: ["需求分析", "项目管理", "沟通协调", "PPT"],
+    missing_skills: ["数据分析", "技术理解力", "商业分析", "用户研究"],
+  },
+  gaps: [
+    { stage: "当前岗位", missing_skills: ["数据分析", "商业分析", "用户研究"] },
+  ],
   recommendations: [
     { phase: "短期", focus: "补齐数据分析与技术理解能力", items: ["SQL", "数据可视化", "基础技术架构"] },
     { phase: "中期", focus: "形成完整产品案例和跨部门协作经验", items: ["实习", "产品案例", "复盘"] }
-  ]
+  ],
+  certificate_recommendations: [
+    { name: "NPDP 产品经理认证", priority: "高", reason: "目标岗位 产品经理 建议持有 NPDP 产品经理认证" },
+  ],
+  learning_resources: [
+    { type: "技能", name: "数据分析", suggestion: "通过在线课程或项目实践提升 数据分析 技能", phase: "短期" },
+    { type: "技能", name: "技术理解力", suggestion: "通过在线课程或项目实践提升 技术理解力 技能", phase: "短期" },
+  ],
+  evaluation_metrics: [
+    { phase: "短期", metric: "技能覆盖率提升", target: "短期内掌握 SQL, 数据可视化", evaluation_method: "技能自评 + 项目实践验证" },
+    { phase: "中期", metric: "项目/实习成果达成", target: "中期内完成 实习, 产品案例", evaluation_method: "实习反馈 + 阶段复盘" },
+  ],
 };
 
 export type JobCategory = "产品/技术" | "设计/创意" | "运营/市场" | "金融/商务" | "人力/行政" | "教育/咨询";

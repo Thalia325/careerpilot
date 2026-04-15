@@ -1,6 +1,9 @@
 .DS_Store
 .env
+.claude/
 .venv
+venv/
+backend/venv/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
@@ -14,3 +17,11 @@ backend/uploads/*
 exports/*
 !exports/.gitkeep
 backend/careerpilot.db
+backend/careerpilot.db.*
+backend/careerpilot-*.db
+backend/*.db-shm
+backend/*.db-wal
+screenshots/
+run-logs/
+*.log
+*.tsbuildinfo

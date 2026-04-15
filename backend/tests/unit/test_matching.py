@@ -25,4 +25,3 @@ async def test_four_dimension_matching(db_session):
     assert result["total_score"] > 0
     assert len(result["dimensions"]) == 4
     assert any(item["dimension"] == "职业技能" for item in result["dimensions"])
-

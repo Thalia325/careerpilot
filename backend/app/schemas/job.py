@@ -48,6 +48,34 @@ class JobProfileGenerationRequest(BaseModel):
     title_keywords: Optional[list[str]] = None
 
 
+class RecommendedJobItem(BaseModel):
+    """Standardized recommendation result for frontend display and downstream use."""
+
+    job_code: str
+    title: str
+    company: str
+    location: str = ""
+    salary: str = ""
+    industry: str = ""
+    company_size: str = ""
+    ownership_type: str = ""
+    match_score: float
+    matched_tags: list[str] = []
+    missing_tags: list[str] = []
+    reason: str = ""
+    summary: str = ""
+    tags: list[str] = []
+    experience_tags: list[str] = []
+    base_score: Optional[float] = None
+    experience_score: Optional[float] = None
+    skill_score: Optional[float] = None
+    potential_score: Optional[float] = None
+
+
+class RecommendedJobsResponse(BaseModel):
+    items: list[RecommendedJobItem]
+
+
 class GraphQueryResponse(BaseModel):
     job_code: str
     title: str

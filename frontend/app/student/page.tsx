@@ -2,19 +2,31 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Markdown from "react-markdown";
 import {
   sendChatMessage,
   listFiles,
   uploadFile,
   deleteFile,
+  clearFiles,
   getStudentSession,
   parseOCR,
   generateStudentProfile,
   getMatching,
   generateReport,
+  getGreeting,
+  updateTargetJob,
+  startAnalysisRun,
+  updateAnalysisContext,
+  markStepRunning,
+  markStepComplete,
+  markStepFailed,
+  markAnalysisComplete,
+  resetAnalysisRun,
   type UploadedFileInfo,
   type StudentSession,
+  type AnalysisRunState,
   APIError,
 } from "@/lib/api";
 import { PipelineProgress, type PipelineStep, type PipelineStepStatus } from "@/components/PipelineProgress";
@@ -80,10 +92,18 @@ function getUserId(): number | null {
   }
 }
 
+function getAccountStorageKey(name: string): string | null {
+  if (typeof window === "undefined") return null;
+  const userId = getUserId() ?? localStorage.getItem("user_id");
+  if (!userId) return null;
+  return `${name}:user:${userId}`;
+}
+
 function buildSteps(
   currentKey: string | null,
   errorKey: string | null,
-  errorDetail?: string
+  errorDetail?: string,
+  completedKeys?: Set<string>,
 ): PipelineStep[] {
   const idx = currentKey ? PIPELINE_STEP_KEYS.indexOf(currentKey as typeof PIPELINE_STEP_KEYS[number]) : -1;
   return PIPELINE_STEP_KEYS.map((key, i) => {
@@ -92,10 +112,12 @@ function buildSteps(
     if (errorKey === key) {
       status = "error";
       detail = errorDetail;
+    } else if (completedKeys?.has(key)) {
+      status = "done";
     } else if (idx >= 0 && i < idx) {
       status = "done";
     } else if (idx >= 0 && i === idx) {
-      status = "done";
+      status = "running";
     } else if (currentKey === null && i === 0) {
       status = "pending";
     }
@@ -104,9 +126,12 @@ function buildSteps(
 }
 
 export default function StudentMainPage() {
+  const searchParams = useSearchParams();
+  const historyId = searchParams.get("history");
   const [query, setQuery] = useState("");
   const [showGuide, setShowGuide] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDraggingUpload, setIsDraggingUpload] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileInfo[]>([]);
@@ -116,6 +141,7 @@ export default function StudentMainPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const dragDepthRef = useRef(0);
 
   const [session, setSession] = useState<StudentSession | null>(null);
   const [jobCode, setJobCode] = useState<string | null>(null);
@@ -125,7 +151,10 @@ export default function StudentMainPage() {
   const [pipelineErrorDetail, setPipelineErrorDetail] = useState<string | undefined>();
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineDone, setPipelineDone] = useState(false);
+  const [pipelineCompletedSteps, setPipelineCompletedSteps] = useState<Set<string>>(new Set());
+  const [analysisRunId, setAnalysisRunId] = useState<number | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
+  const [greeting, setGreeting] = useState({ title: "你好，想了解什么职业方向？", sub: "输入你感兴趣的岗位方向或上传简历，AI 帮你分析" });
 
   const refreshFiles = useCallback(async () => {
     try {
@@ -134,22 +163,74 @@ export default function StudentMainPage() {
     } catch {}
   }, []);
 
+  const loadGreeting = useCallback(async () => {
+    try {
+      const g = await getGreeting();
+      setGreeting({ title: g.greeting, sub: g.subline });
+    } catch {}
+  }, []);
+
   useEffect(() => {
     refreshFiles();
+    loadGreeting();
     getStudentSession()
       .then((s) => {
         setSession(s);
-        if (s.suggested_job_code) {
+        if (s.target_job_code) {
+          setJobCode(s.target_job_code);
+          setJobTitle(s.target_job_title || "");
+        } else if (s.suggested_job_code) {
           setJobCode(s.suggested_job_code);
           setJobTitle(s.suggested_job_title || "");
         }
       })
       .catch(() => {});
-  }, [refreshFiles]);
+  }, [refreshFiles, loadGreeting]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (!messagesLoaded) return;
+    const key = getAccountStorageKey("chat_messages");
+    if (!key) return;
+    if (messages.length > 0) {
+      localStorage.setItem(key, JSON.stringify(messages));
+    } else {
+      localStorage.removeItem(key);
+    }
+  }, [messages, messagesLoaded]);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    localStorage.removeItem("chat_messages");
+    const key = getAccountStorageKey("chat_messages");
+    if (!key) {
+      setMessagesLoaded(true);
+      return;
+    }
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasMockNotice = parsed.some(
+            (msg: ChatMessage) => typeof msg?.content === "string" && msg.content.includes("Mock 模式"),
+          );
+          if (hasMockNotice) {
+            localStorage.removeItem(key);
+          } else {
+            setMessages(parsed);
+          }
+        }
+      } catch {
+        // Ignore invalid saved data
+      }
+    }
+    setMessagesLoaded(true);
+  }, []);
 
   const runPipeline = useCallback(
     async (sid: number, jCode: string, fileIds: number[]) => {
@@ -157,30 +238,85 @@ export default function StudentMainPage() {
       setPipelineDone(false);
       setPipelineError(null);
       setPipelineErrorDetail(undefined);
+      setPipelineCompletedSteps(new Set());
+
+      let runId: number | null = null;
+      // Track current step locally to avoid stale closure on pipelineCurrent
+      let currentStep: string = "uploaded";
+      let profileVersionId: number | null = null;
+      let matchResultId: number | null = null;
 
       try {
-        setPipelineCurrent("uploaded");
+        // Start backend analysis run
+        const run = await startAnalysisRun(sid, jCode, fileIds);
+        runId = run.run_id;
+        setAnalysisRunId(runId);
 
-        setPipelineCurrent("parsed");
+        // Step 1: uploaded
+        currentStep = "uploaded";
+        setPipelineCurrent(currentStep);
+        await markStepRunning(runId, currentStep);
+        await markStepComplete(runId, currentStep);
+        setPipelineCompletedSteps((prev) => new Set(prev).add(currentStep));
+
+        // Step 2: parsed (OCR)
+        currentStep = "parsed";
+        setPipelineCurrent(currentStep);
+        await markStepRunning(runId, currentStep);
         for (const fid of fileIds) {
           await parseOCR(fid, "resume");
         }
+        await markStepComplete(runId, currentStep);
+        setPipelineCompletedSteps((prev) => new Set(prev).add(currentStep));
 
-        setPipelineCurrent("profiled");
-        await generateStudentProfile(sid, fileIds);
+        // Step 3: profiled
+        currentStep = "profiled";
+        setPipelineCurrent(currentStep);
+        await markStepRunning(runId, currentStep);
+        const profile = await generateStudentProfile(sid, fileIds);
+        profileVersionId = profile.profile_version_id ?? null;
+        if (profileVersionId) {
+          await updateAnalysisContext(runId, { profile_version_id: profileVersionId });
+        }
+        await markStepComplete(runId, currentStep);
+        setPipelineCompletedSteps((prev) => new Set(prev).add(currentStep));
 
-        setPipelineCurrent("matched");
-        await getMatching(sid, jCode);
+        // Step 4: matched
+        currentStep = "matched";
+        setPipelineCurrent(currentStep);
+        await markStepRunning(runId, currentStep);
+        const matching = await getMatching(sid, jCode, profileVersionId, runId);
+        matchResultId = matching.match_result_id ?? null;
+        if (matchResultId) {
+          await updateAnalysisContext(runId, { match_result_id: matchResultId });
+        }
+        await markStepComplete(runId, currentStep);
+        setPipelineCompletedSteps((prev) => new Set(prev).add(currentStep));
 
-        setPipelineCurrent("reported");
-        const report = await generateReport(sid, jCode);
+        // Step 5: reported
+        currentStep = "reported";
+        setPipelineCurrent(currentStep);
+        await markStepRunning(runId, currentStep);
+        const report = await generateReport(sid, jCode, {
+          analysis_run_id: runId,
+          profile_version_id: profileVersionId,
+          match_result_id: matchResultId,
+        });
+        await updateAnalysisContext(runId, {
+          report_id: report.report_id,
+          profile_version_id: report.profile_version_id ?? profileVersionId,
+          match_result_id: report.match_result_id ?? matchResultId,
+          path_recommendation_id: report.path_recommendation_id,
+        });
+        await markStepComplete(runId, currentStep);
+        setPipelineCompletedSteps((prev) => new Set(prev).add(currentStep));
+        await markAnalysisComplete(runId);
         setReportId(report.report_id);
 
-        setPipelineCurrent("reported");
         setPipelineDone(true);
       } catch (err: unknown) {
-        const current = pipelineCurrent;
-        setPipelineError(current);
+        // Use locally tracked step to avoid stale closure
+        setPipelineError(currentStep);
         let detail = "未知错误";
         if (err instanceof APIError) {
           detail = err.message;
@@ -188,11 +324,20 @@ export default function StudentMainPage() {
           detail = err.message;
         }
         setPipelineErrorDetail(detail);
+
+        // Mark failure in backend
+        if (runId) {
+          try {
+            await markStepFailed(runId, currentStep, detail);
+          } catch {
+            // Ignore state update failures
+          }
+        }
       } finally {
         setPipelineRunning(false);
       }
     },
-    [pipelineCurrent]
+    []
   );
 
   const retryPipeline = useCallback(() => {
@@ -202,9 +347,25 @@ export default function StudentMainPage() {
       ? PIPELINE_STEP_KEYS.indexOf(pipelineError as typeof PIPELINE_STEP_KEYS[number])
       : 0;
     const startKey = PIPELINE_STEP_KEYS[Math.max(0, errorIdx)];
+
+    // Reset backend state if we have a run ID
+    if (analysisRunId) {
+      resetAnalysisRun(analysisRunId).catch(() => {});
+    }
+
+    // Reset completed steps to those before the failed step
+    const completed = new Set<string>();
+    for (let i = 0; i < errorIdx; i++) {
+      completed.add(PIPELINE_STEP_KEYS[i]);
+    }
+    setPipelineCompletedSteps(completed);
     setPipelineCurrent(startKey);
+    setPipelineError(null);
+    setPipelineErrorDetail(undefined);
+
+    // Re-run pipeline from the failed step
     runPipeline(session.student_id, jobCode, fileIds);
-  }, [session, jobCode, uploadedFiles, pipelineError, runPipeline]);
+  }, [session, jobCode, uploadedFiles, pipelineError, analysisRunId, runPipeline]);
 
   const handleSend = async () => {
     const text = query.trim();
@@ -284,7 +445,46 @@ export default function StudentMainPage() {
     }
   };
 
+  const isFileDrag = (e: React.DragEvent<HTMLElement>) => Array.from(e.dataTransfer.types).includes("Files");
+
+  const handlePageDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (isUploading || pipelineRunning) return;
+    dragDepthRef.current += 1;
+    setIsDraggingUpload(true);
+  };
+
+  const handlePageDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = isUploading || pipelineRunning ? "none" : "copy";
+    if (!isUploading && !pipelineRunning) setIsDraggingUpload(true);
+  };
+
+  const handlePageDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDraggingUpload(false);
+  };
+
+  const handlePageDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDraggingUpload(false);
+    if (isUploading || pipelineRunning) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
   const handleDeleteFile = async (fileId: number) => {
+    if (!window.confirm("确定要删除此文件吗？删除后不可恢复。")) return;
     setDeletingId(fileId);
     try {
       await deleteFile(fileId);
@@ -295,9 +495,15 @@ export default function StudentMainPage() {
     }
   };
 
-  const handleJobSelect = (code: string, title: string) => {
+  const handleJobSelect = async (code: string, title: string) => {
     setJobCode(code);
     setJobTitle(title);
+    try {
+      const result = await updateTargetJob(code, title);
+      if (result.analysis_run_id) {
+        setAnalysisRunId(result.analysis_run_id);
+      }
+    } catch {}
   };
 
   const fileTypeLabel: Record<string, string> = {
@@ -341,43 +547,65 @@ export default function StudentMainPage() {
     const steps = buildSteps(
       pipelineDone ? "reported" : pipelineCurrent,
       pipelineError,
-      pipelineErrorDetail
+      pipelineErrorDetail,
+      pipelineCompletedSteps,
     );
 
     return (
-      <PipelineProgress
-        steps={steps}
-        onRetry={retryPipeline}
-      />
+      <div className="student-main__pipeline-wrap">
+        <PipelineProgress
+          steps={steps}
+          onRetry={retryPipeline}
+        />
+      </div>
     );
   };
 
   const renderPipelineResult = () => {
     if (!pipelineDone) return null;
     return (
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <Link href="/student/profile" className="btn-primary" style={{ textDecoration: "none", display: "inline-flex", fontSize: 14, padding: "8px 16px" }}>
-          查看能力画像
-        </Link>
-        <Link href="/student/matching" className="btn-primary" style={{ textDecoration: "none", display: "inline-flex", fontSize: 14, padding: "8px 16px", background: "#7c3aed" }}>
-          查看匹配分析
-        </Link>
-        <Link href="/student/path" className="btn-primary" style={{ textDecoration: "none", display: "inline-flex", fontSize: 14, padding: "8px 16px", background: "#0891b2" }}>
-          查看职业路径
-        </Link>
-        {reportId && (
-          <Link href={`/results/${reportId}`} className="btn-primary" style={{ textDecoration: "none", display: "inline-flex", fontSize: 14, padding: "8px 16px", background: "#059669" }}>
-            查看完整报告
+      <div className="student-main__result-area">
+        <p className="student-main__result-title">
+          🎉 分析完成！以下是你的能力档案和职业规划结果：
+        </p>
+        <div className="student-main__result-actions">
+          <Link href="/student/profile" className="btn-primary student-main__result-btn">
+            查看能力画像
           </Link>
-        )}
+          <Link href="/student/recommended" className="btn-primary student-main__result-btn student-main__result-btn--red">
+            查看推荐岗位
+          </Link>
+          <Link href="/student/matching" className="btn-primary student-main__result-btn student-main__result-btn--purple">
+            查看匹配分析
+          </Link>
+          <Link href="/student/path" className="btn-primary student-main__result-btn student-main__result-btn--teal">
+            查看职业路径
+          </Link>
+          {reportId && (
+            <Link href={`/results/${reportId}`} className="btn-primary student-main__result-btn student-main__result-btn--green">
+              查看完整报告
+            </Link>
+          )}
+        </div>
+        <p className="student-main__result-hint">
+          💡 所有结果也会保存在<a href="/student/history">历史记录</a>中，随时可以查看
+        </p>
       </div>
     );
   };
 
   const needsJobSelect = !jobCode && uploadedFiles.length > 0 && !pipelineRunning && !pipelineDone;
+  const inputIsCompact = isLoading || pipelineRunning;
+  const isHistoricalChatView = historyId && historyId.startsWith("chat-");
 
   return (
-    <div className="student-main">
+    <div
+      className={`student-main${isDraggingUpload ? " is-upload-dragging" : ""}`}
+      onDragEnter={handlePageDragEnter}
+      onDragOver={handlePageDragOver}
+      onDragLeave={handlePageDragLeave}
+      onDrop={handlePageDrop}
+    >
       {showGuide && (
         <div style={{ maxWidth: 720, margin: "16px auto", padding: "20px 24px", background: "#fff", borderRadius: 16, border: "1px solid rgba(0,0,0,0.06)" }}>
           <h3 style={{ fontSize: "1rem", margin: "0 0 12px" }}>两步使用指南</h3>
@@ -424,8 +652,8 @@ export default function StudentMainPage() {
       {messages.length === 0 ? (
         <div className="student-main__centered">
           <div className="student-main__greeting">
-            <h1>你好，想了解什么职业方向？</h1>
-            <p>输入你感兴趣的岗位方向或上传简历，AI 帮你分析</p>
+            <h1>{greeting.title}</h1>
+            <p>{greeting.sub}</p>
             <div className="student-main__tags">
               {buildSuggestions(session).map((q) => (
                 <button key={q} className="student-main__tag" onClick={() => setQuery(q)}>
@@ -454,10 +682,12 @@ export default function StudentMainPage() {
               <button
                 className={`student-main__upload-card${isDraggingUpload ? " is-dragging" : ""}`}
                 onClick={() => { if (!isUploading) fileInputRef.current?.click(); }}
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingUpload(true); }}
-                onDragLeave={() => setIsDraggingUpload(false)}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingUpload(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingUpload(false); }}
                 onDrop={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                  dragDepthRef.current = 0;
                   setIsDraggingUpload(false);
                   const file = e.dataTransfer.files?.[0];
                   if (file) processFile(file);
@@ -480,20 +710,30 @@ export default function StudentMainPage() {
             <button
               className="chat-new-topic-btn"
               onClick={() => {
+                const key = getAccountStorageKey("chat_messages");
+                if (key) localStorage.removeItem(key);
+                localStorage.removeItem("chat_messages");
                 setMessages([]);
                 setQuery("");
                 setPipelineCurrent(null);
                 setPipelineDone(false);
                 setPipelineError(null);
                 setPipelineErrorDetail(undefined);
+                setPipelineCompletedSteps(new Set());
+                setAnalysisRunId(null);
                 setReportId(null);
                 setUploadError("");
                 setUploadSuccess("");
-                refreshFiles();
+                clearFiles().catch(() => {});
+                setUploadedFiles([]);
+                loadGreeting();
                 getStudentSession()
                   .then((s) => {
                     setSession(s);
-                    if (s.suggested_job_code) {
+                    if (s.target_job_code) {
+                      setJobCode(s.target_job_code);
+                      setJobTitle(s.target_job_title || "");
+                    } else if (s.suggested_job_code) {
                       setJobCode(s.suggested_job_code);
                       setJobTitle(s.suggested_job_title || "");
                     }
@@ -506,6 +746,19 @@ export default function StudentMainPage() {
             </button>
           </div>
           <div className="chat-messages">
+            {isHistoricalChatView && (
+              <div style={{
+                padding: "8px 14px",
+                marginBottom: "12px",
+                background: "#fff3e0",
+                borderRadius: "8px",
+                fontSize: "0.875rem",
+                color: "#f57c00",
+                textAlign: "center",
+              }}>
+                ⚠️ 正在查看历史对话记录
+              </div>
+            )}
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: "12px" }}>
                 <div style={{
@@ -536,7 +789,7 @@ export default function StudentMainPage() {
             <div ref={chatEndRef} />
           </div>
 
-          <div className="student-main__input-area">
+          <div className={`student-main__input-area${inputIsCompact ? " is-compact" : ""}`}>
             <div className="student-main__input-wrapper">
               <div className="student-main__input-row">
                 <input
@@ -551,18 +804,20 @@ export default function StudentMainPage() {
                   <Icon name="send" size={16} />
                 </button>
               </div>
-              <div className="student-main__upload-row">
-                <input ref={fileInputRef} hidden type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={handleFile} />
-                <button className="student-main__upload-btn" onClick={() => { if (!isUploading) fileInputRef.current?.click(); }} disabled={isUploading || pipelineRunning}>
-                  {isUploading ? "上传中…" : pipelineRunning ? "分析中…" : "上传简历"}
-                </button>
-                <span className="student-main__upload-hint">
-                  {pipelineRunning ? "分析进行中，请稍候…" : "上传简历，自动生成能力档案和匹配报告"}
-                </span>
-              </div>
+              {!inputIsCompact && (
+                <div className={`student-main__upload-row${isDraggingUpload ? " is-dragging" : ""}`}>
+                  <input ref={fileInputRef} hidden type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" onChange={handleFile} />
+                  <button className="student-main__upload-btn" onClick={() => { if (!isUploading) fileInputRef.current?.click(); }} disabled={isUploading || pipelineRunning}>
+                    {isUploading ? "上传中…" : "上传简历"}
+                  </button>
+                  <span className="student-main__upload-hint">
+                    上传简历，自动生成能力档案和匹配报告
+                  </span>
+                </div>
+              )}
               {uploadError && <p className="student-main__upload-error">{uploadError}</p>}
               {uploadSuccess && <p className="student-main__upload-success">{uploadSuccess}</p>}
-              {renderFileList()}
+              {!inputIsCompact && renderFileList()}
             </div>
           </div>
         </>

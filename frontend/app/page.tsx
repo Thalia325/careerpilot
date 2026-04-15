@@ -23,7 +23,10 @@ export default function HomePage() {
         </div>
         <div className="landing-header__right">
           <Link href="/login" className="landing-header__login-btn">
-            登录 / 注册
+            登录
+          </Link>
+          <Link href="/register" className="landing-header__login-btn" style={{ marginLeft: 8 }}>
+            注册
           </Link>
         </div>
       </header>

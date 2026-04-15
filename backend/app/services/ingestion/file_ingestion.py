@@ -5,7 +5,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.integrations.ocr.providers import BaseOCRProvider
+from app.integrations.ocr.providers import BaseOCRProvider, OCRError
 from app.integrations.storage.providers import BaseStorageProvider
 from app.models import Certificate, Resume, Student, Transcript, UploadedFile
 
@@ -74,6 +74,9 @@ class FileIngestionService:
                     certificate.name = result["structured_json"].get("certificates", [uploaded.file_name])[0]
             db.commit()
             return result
+        except OCRError:
+            # Propagate classified OCR errors as-is
+            raise
         except ValueError as e:
             logger.error(f"ValueError while parsing file {uploaded_file_id}: {str(e)}")
             raise
@@ -88,6 +91,17 @@ class FileIngestionService:
             .order_by(UploadedFile.created_at.desc())
         ).all()
         return list(rows)
+
+    async def clear_files(self, db: Session, owner_id: int) -> int:
+        files = self.list_files(db, owner_id)
+        count = 0
+        for f in files:
+            try:
+                await self.delete_file(db, file_id=f.id, owner_id=owner_id)
+                count += 1
+            except Exception as e:
+                logger.warning(f"Failed to delete file {f.id}: {e}")
+        return count
 
     async def delete_file(self, db: Session, file_id: int, owner_id: int) -> None:
         uploaded = db.get(UploadedFile, file_id)

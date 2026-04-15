@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type", "Authorization"],
     )
     app.include_router(api_router, prefix=settings.api_prefix)
+    app.mount("/exports", StaticFiles(directory=settings.export_path), name="exports")
 
     @app.get("/")
     def root():

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routers import admin, agents, auth, career_paths, chat, files, graph, jobs, matching, ocr, reports, scheduler, student_profiles, students, teacher
+from app.api.routers import admin, agents, analysis, auth, career_paths, chat, files, graph, jobs, matching, ocr, reports, scheduler, student_profiles, students, teacher
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -18,4 +18,5 @@ api_router.include_router(agents.router, prefix="/agents", tags=["agents"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(teacher.router, prefix="/teacher", tags=["teacher"])
+api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
 

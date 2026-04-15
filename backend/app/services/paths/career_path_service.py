@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,11 +12,95 @@ from app.services.paths.graph_query_service import GraphQueryService
 logger = logging.getLogger(__name__)
 
 
+TRANSITION_FALLBACKS: dict[str, list[list[str]]] = {
+    "AI 算法工程师": [
+        ["AI 算法工程师", "数据工程师"],
+        ["AI 算法工程师", "后端开发工程师"],
+        ["AI 算法工程师", "数据分析师"],
+        ["AI 算法工程师", "AI 产品经理"],
+    ],
+    "数据工程师": [
+        ["数据工程师", "AI 算法工程师"],
+        ["数据工程师", "数据分析师"],
+        ["数据工程师", "后端开发工程师"],
+    ],
+    "数据分析师": [
+        ["数据分析师", "数据产品经理"],
+        ["数据分析师", "AI 算法工程师"],
+        ["数据分析师", "产品经理"],
+    ],
+    "后端开发工程师": [
+        ["后端开发工程师", "AI 算法工程师"],
+        ["后端开发工程师", "数据工程师"],
+        ["后端开发工程师", "全栈工程师"],
+    ],
+    "前端开发工程师": [
+        ["前端开发工程师", "全栈工程师"],
+        ["前端开发工程师", "产品经理"],
+        ["前端开发工程师", "UI/UX 设计师"],
+    ],
+    "全栈工程师": [
+        ["全栈工程师", "后端开发工程师"],
+        ["全栈工程师", "前端架构师"],
+        ["全栈工程师", "产品经理"],
+    ],
+    "产品经理": [
+        ["产品经理", "数据产品经理"],
+        ["产品经理", "项目经理"],
+        ["产品经理", "运营专家"],
+    ],
+    "UI/UX 设计师": [
+        ["UI/UX 设计师", "产品经理"],
+        ["UI/UX 设计师", "数据产品经理"],
+        ["UI/UX 设计师", "前端开发工程师"],
+    ],
+    "测试工程师": [
+        ["测试工程师", "测试开发工程师"],
+        ["测试工程师", "产品经理"],
+        ["测试工程师", "数据分析师"],
+    ],
+    "测试开发工程师": [
+        ["测试开发工程师", "后端开发工程师"],
+        ["测试开发工程师", "运维工程师"],
+        ["测试开发工程师", "全栈工程师"],
+    ],
+}
+
+
+def _unique_paths(paths: list[list[str]]) -> list[list[str]]:
+    seen: set[str] = set()
+    result: list[list[str]] = []
+    for path in paths:
+        normalized = [item for item in path if item]
+        key = "->".join(normalized)
+        if len(normalized) >= 2 and key not in seen:
+            seen.add(key)
+            result.append(normalized)
+    return result
+
+
+def _job_info(title: str, profiles_by_title: dict[str, JobProfile]) -> dict:
+    profile = profiles_by_title.get(title)
+    return {
+        "title": title,
+        "description": profile.summary if profile and profile.summary else f"{title} 相关岗位，需结合业务场景持续积累项目经验。",
+        "skills": (profile.skill_requirements if profile else [])[:6],
+    }
+
+
 class CareerPathService:
     def __init__(self, graph_query_service: GraphQueryService) -> None:
         self.graph_query_service = graph_query_service
 
-    async def plan_path(self, db: Session, student_id: int, job_code: str) -> dict:
+    async def plan_path(
+        self,
+        db: Session,
+        student_id: int,
+        job_code: str,
+        profile_version_id: int | None = None,
+        match_result_id: int | None = None,
+        analysis_run_id: int | None = None,
+    ) -> dict:
         try:
             student_profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
             job_profile = db.scalar(select(JobProfile).where(JobProfile.job_code == job_code))
@@ -23,7 +108,14 @@ class CareerPathService:
                 raise ValueError("路径规划缺少学生画像或岗位画像")
             graph = await self.graph_query_service.query_job(job_code)
             primary_path = graph["promotion_paths"][0] if graph["promotion_paths"] else [job_profile.title]
-            alternate_paths = graph["transition_paths"][:2]
+            all_profiles = list(db.scalars(select(JobProfile)).all())
+            profiles_by_title: dict[str, JobProfile] = {}
+            for profile in all_profiles:
+                profiles_by_title.setdefault(profile.title, profile)
+
+            alternate_paths = self._build_transition_paths(graph, job_profile.title)
+            vertical_graph = self._build_vertical_graph(graph, primary_path, profiles_by_title)
+            transition_graph = self._build_transition_graph(graph, job_profile.title, alternate_paths, profiles_by_title)
             gaps = [
                 {"stage": "当前岗位", "missing_skills": graph["adjacent_skill_gaps"].get(path[-1], [])}
                 for path in alternate_paths
@@ -41,6 +133,13 @@ class CareerPathService:
                 },
             ]
             rationale = "基于岗位图谱的晋升链路和转岗链路，结合学生当前技能覆盖情况生成主路径与备选路径。"
+
+            # Build enriched content
+            current_ability = self._build_current_ability(student_profile, job_profile)
+            certificate_recommendations = self._build_certificate_recommendations(student_profile, job_profile)
+            learning_resources = self._build_learning_resources(student_profile, job_profile, gaps)
+            evaluation_metrics = self._build_evaluation_metrics(job_profile, recommendations)
+
             existing = db.scalar(
                 select(PathRecommendation)
                 .where(PathRecommendation.student_id == student_id)
@@ -52,17 +151,40 @@ class CareerPathService:
                 db.flush()
             existing.primary_path_json = primary_path
             existing.alternate_paths_json = alternate_paths
+            existing.vertical_graph_json = vertical_graph
+            existing.transition_graph_json = transition_graph
             existing.gaps_json = gaps
             existing.recommendations_json = recommendations
+            existing.current_ability_json = current_ability
+            existing.certificate_recommendations_json = certificate_recommendations
+            existing.learning_resources_json = learning_resources
+            existing.evaluation_metrics_json = evaluation_metrics
+            # Store binding IDs
+            if profile_version_id is not None:
+                existing.profile_version_id = profile_version_id
+            if match_result_id is not None:
+                existing.match_result_id = match_result_id
+            if analysis_run_id is not None:
+                existing.analysis_run_id = analysis_run_id
             db.commit()
             return {
+                "path_recommendation_id": existing.id,
                 "student_id": student_id,
                 "target_job_code": job_code,
                 "primary_path": primary_path,
                 "alternate_paths": alternate_paths,
+                "vertical_graph": vertical_graph,
+                "transition_graph": transition_graph,
                 "gaps": gaps,
                 "recommendations": recommendations,
                 "rationale": rationale,
+                "current_ability": current_ability,
+                "certificate_recommendations": certificate_recommendations,
+                "learning_resources": learning_resources,
+                "evaluation_metrics": evaluation_metrics,
+                "profile_version_id": existing.profile_version_id,
+                "match_result_id": existing.match_result_id,
+                "analysis_run_id": existing.analysis_run_id,
             }
         except ValueError as e:
             logger.error(f"ValueError in plan_path for student {student_id}, job {job_code}: {str(e)}")
@@ -71,3 +193,187 @@ class CareerPathService:
             logger.error(f"Unexpected error in plan_path for student {student_id}, job {job_code}: {str(e)}")
             raise ValueError(f"Failed to plan career path: {str(e)}") from e
 
+    def _build_current_ability(self, student_profile: StudentProfile, job_profile: JobProfile) -> dict[str, Any]:
+        """Build current ability starting point from student profile."""
+        student_skills = set(student_profile.skills_json or [])
+        job_skills = set(job_profile.skill_requirements or [])
+        matched_skills = list(student_skills & job_skills)
+        missing_skills = list(job_skills - student_skills)
+        student_certs = set(student_profile.certificates_json or [])
+        job_certs = set(job_profile.certificate_requirements or [])
+        return {
+            "skills": student_profile.skills_json or [],
+            "certificates": list(student_certs),
+            "projects": student_profile.projects_json or [],
+            "internships": student_profile.internships_json or [],
+            "capability_scores": student_profile.capability_scores or {},
+            "matched_skills": matched_skills,
+            "missing_skills": missing_skills,
+        }
+
+    def _build_certificate_recommendations(self, student_profile: StudentProfile, job_profile: JobProfile) -> list[dict[str, Any]]:
+        """Build certificate recommendations based on gap analysis."""
+        student_certs = set(student_profile.certificates_json or [])
+        job_certs = set(job_profile.certificate_requirements or [])
+        missing_certs = job_certs - student_certs
+        recommendations = []
+        for cert in missing_certs:
+            recommendations.append({
+                "name": cert,
+                "priority": "高" if cert in list(job_certs)[:3] else "中",
+                "reason": f"目标岗位 {job_profile.title} 要求持有 {cert} 证书",
+            })
+        return recommendations
+
+    def _build_learning_resources(
+        self, student_profile: StudentProfile, job_profile: JobProfile, gaps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Build learning resource recommendations."""
+        resources = []
+        # From missing skills
+        missing_skills = set(job_profile.skill_requirements or []) - set(student_profile.skills_json or [])
+        for skill in list(missing_skills)[:5]:
+            resources.append({
+                "type": "技能",
+                "name": skill,
+                "suggestion": f"通过在线课程或项目实践提升 {skill} 技能",
+                "phase": "短期",
+            })
+        # From gaps
+        for gap in gaps[:3]:
+            for missing in gap.get("missing_skills", [])[:2]:
+                resources.append({
+                    "type": "技能",
+                    "name": missing,
+                    "suggestion": f"补齐 {missing} 以满足转岗路径要求",
+                    "phase": "中期",
+                })
+        return resources
+
+    def _build_evaluation_metrics(self, job_profile: JobProfile, recommendations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Build evaluation metrics for short/mid-term plans."""
+        metrics = []
+        for rec in recommendations:
+            phase = rec.get("phase", "短期")
+            items = rec.get("items", [])
+            if phase == "短期":
+                metrics.append({
+                    "phase": phase,
+                    "metric": "技能覆盖率提升",
+                    "target": f"{phase}内掌握 {', '.join(items[:2])}",
+                    "evaluation_method": "技能自评 + 项目实践验证",
+                })
+            else:
+                metrics.append({
+                    "phase": phase,
+                    "metric": "项目/实习成果达成",
+                    "target": f"{phase}内完成 {', '.join(items[:2])}",
+                    "evaluation_method": "实习反馈 + 阶段复盘",
+                })
+        return metrics
+
+    def _build_vertical_graph(self, graph: dict, primary_path: list[str], profiles_by_title: dict[str, JobProfile]) -> dict:
+        promotion_paths = _unique_paths(graph.get("promotion_paths", []) or [primary_path])
+        nodes = []
+        for idx, title in enumerate(primary_path):
+            info = _job_info(title, profiles_by_title)
+            nodes.append({
+                **info,
+                "level": idx + 1,
+                "stage": "当前目标" if idx == 0 else ("中期晋升" if idx == 1 else "长期发展"),
+            })
+        edges = [
+            {
+                "from": primary_path[idx],
+                "to": primary_path[idx + 1],
+                "relation": "晋升",
+                "description": f"从 {primary_path[idx]} 晋升到 {primary_path[idx + 1]}，需要沉淀项目成果和团队协作能力。",
+            }
+            for idx in range(len(primary_path) - 1)
+        ]
+        return {
+            "title": graph.get("title", primary_path[0] if primary_path else ""),
+            "description": graph.get("description") or _job_info(primary_path[0], profiles_by_title)["description"],
+            "nodes": nodes,
+            "edges": edges,
+            "promotion_paths": promotion_paths,
+            "vertical_paths": graph.get("vertical_paths", []),
+        }
+
+    def _build_transition_paths(self, graph: dict, target_title: str) -> list[list[str]]:
+        paths = _unique_paths(graph.get("transition_paths", []) + TRANSITION_FALLBACKS.get(target_title, []))
+        for cluster in graph.get("transition_clusters", []):
+            paths.extend(_unique_paths(cluster.get("related_paths", [])))
+        for related_title in [target_title, "数据工程师", "数据分析师", "后端开发工程师", "全栈工程师", "产品经理", "UI/UX 设计师", "测试开发工程师"]:
+            paths.extend(TRANSITION_FALLBACKS.get(related_title, []))
+        return _unique_paths(paths)
+
+    def _build_transition_graph(
+        self,
+        graph: dict,
+        target_title: str,
+        paths: list[list[str]],
+        profiles_by_title: dict[str, JobProfile],
+    ) -> dict:
+        role_order: list[str] = [target_title]
+        for path in paths:
+            for title in path:
+                if title not in role_order:
+                    role_order.append(title)
+
+        role_order = role_order[:8]
+        role_paths = []
+        for title in role_order:
+            title_paths = [path for path in paths if path[0] == title or title in path]
+            title_paths.extend(TRANSITION_FALLBACKS.get(title, []))
+            unique = _unique_paths(title_paths)
+            if len(unique) < 2:
+                unique.extend(_unique_paths([[title, target_title], [title, "数据产品经理"]]))
+            unique = [path for path in _unique_paths(unique) if path[0] == title or title in path][:3]
+            if len(unique) < 2:
+                continue
+            role_paths.append({
+                **_job_info(title, profiles_by_title),
+                "paths": [
+                    {
+                        "steps": path,
+                        "relation": "换岗",
+                        "description": f"{path[0]} 可通过补齐 {path[-1]} 的核心技能完成转换。",
+                        "skill_bridge": _job_info(path[-1], profiles_by_title)["skills"][:4],
+                    }
+                    for path in unique[:3]
+                ],
+            })
+
+        if len(role_paths) < 5:
+            for title in TRANSITION_FALLBACKS:
+                if any(item["title"] == title for item in role_paths):
+                    continue
+                unique = _unique_paths(TRANSITION_FALLBACKS[title])
+                role_paths.append({
+                    **_job_info(title, profiles_by_title),
+                    "paths": [
+                        {
+                            "steps": path,
+                            "relation": "换岗",
+                            "description": f"{path[0]} 可向 {path[-1]} 转换，重点补齐目标岗位技能。",
+                            "skill_bridge": _job_info(path[-1], profiles_by_title)["skills"][:4],
+                        }
+                        for path in unique[:3]
+                    ],
+                })
+                if len(role_paths) >= 5:
+                    break
+
+        nodes = [_job_info(title, profiles_by_title) for title in role_order]
+        edges = [
+            {"from": path[0], "to": path[-1], "relation": "换岗", "steps": path}
+            for path in paths[:20]
+        ]
+        return {
+            "target": target_title,
+            "nodes": nodes,
+            "edges": edges,
+            "role_paths": role_paths[:8],
+            "clusters": graph.get("transition_clusters", []),
+        }

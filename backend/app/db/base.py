@@ -1,15 +1,17 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 
-# 绝对路径，精准指向backend根目录的careerpilot.db
+
+# 默认指向 backend 根目录的 careerpilot.db；测试/部署可用 DATABASE_URL 覆盖。
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'careerpilot.db')}"
+DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{os.path.join(BASE_DIR, 'careerpilot.db')}"
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
-# 创建引擎，SQLite必须加check_same_thread=False
 engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}, echo=False
+    DATABASE_URL, connect_args=connect_args, echo=False
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

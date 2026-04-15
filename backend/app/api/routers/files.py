@@ -12,7 +12,8 @@ from app.services.bootstrap import ServiceContainer
 router = APIRouter()
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
-ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png"}
+ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"}
+VALID_FILE_TYPES = {"resume", "certificate", "transcript", "other"}
 
 
 def get_safe_filename(filename: str) -> str:
@@ -56,6 +57,12 @@ async def upload_file(
     if current_user.id != owner_id and current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权上传文件")
 
+    if file_type not in VALID_FILE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"不支持的文件类型标签: {file_type}. 支持的类型: {', '.join(sorted(VALID_FILE_TYPES))}",
+        )
+
     if not upload.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件名不能为空")
 
@@ -89,7 +96,23 @@ async def upload_file(
         content=content,
         content_type=upload.content_type or "application/octet-stream",
     )
-    return APIResponse(data={"id": uploaded.id, "file_name": uploaded.file_name, "url": uploaded.url})
+    return APIResponse(data={
+        "id": uploaded.id,
+        "file_name": uploaded.file_name,
+        "file_type": uploaded.file_type,
+        "created_at": uploaded.created_at.isoformat() if uploaded.created_at else None,
+        "url": uploaded.url,
+    })
+
+
+@router.delete("/clear", response_model=APIResponse)
+async def clear_files(
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    count = await container.file_service.clear_files(db, owner_id=current_user.id)
+    return APIResponse(message=f"已删除 {count} 个文件")
 
 
 @router.delete("/{file_id}", response_model=APIResponse)

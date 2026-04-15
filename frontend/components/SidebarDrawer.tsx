@@ -17,9 +17,10 @@ type SidebarDrawerProps = {
   navItems: NavItem[];
   label?: string;
   footer?: ReactNode;
+  extra?: ReactNode;
 };
 
-export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: SidebarDrawerProps) {
+export function SidebarDrawer({ isOpen, onClose, navItems, label, footer, extra }: SidebarDrawerProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -54,7 +55,10 @@ export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: Side
     return () => window.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => {
+    if (pathname.startsWith("/results/") && href === "/student/report") return true;
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   return (
     <>
@@ -97,6 +101,7 @@ export function SidebarDrawer({ isOpen, onClose, navItems, label, footer }: Side
             </a>
           ))}
         </nav>
+        {extra && <div className="sidebar-drawer__extra">{extra}</div>}
         {footer && <div className="sidebar-drawer__footer">{footer}</div>}
       </aside>
     </>
@@ -125,6 +130,8 @@ export function RoleShell({ title, navItems, navLabel, children }: RoleShellProp
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user_role");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("username");
     document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     router.push("/login");

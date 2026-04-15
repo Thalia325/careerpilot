@@ -23,9 +23,11 @@ class BaseGraphProvider(ABC):
 class MockGraphProvider(BaseGraphProvider):
     def __init__(self) -> None:
         self.jobs: dict[str, dict[str, Any]] = {}
+        self.seed_data: dict[str, Any] = {}
 
     async def load_seed(self, seed_data: dict[str, Any]) -> None:
         self.jobs = seed_data.get("jobs", {}).copy()
+        self.seed_data = seed_data.copy()
 
     async def upsert_job_profile(self, job_profile: dict[str, Any]) -> None:
         existing = self.jobs.get(job_profile["job_code"], {})
@@ -51,15 +53,41 @@ class MockGraphProvider(BaseGraphProvider):
                 target_job = next((job for job in self.jobs.values() if job.get("title") == target_title), None)
                 target_skills = set(target_job.get("skills", [])) if target_job else set()
                 adjacent_skill_gaps[target_title] = sorted(target_skills.difference(skills))
+
+        # 查找该岗位所属的垂直路径
+        vertical_path_info = []
+        for path_name, path_info in self.seed_data.get("vertical_paths", {}).items():
+            if title in path_info.get("jobs", []):
+                vertical_path_info.append({
+                    "name": path_name,
+                    "description": path_info.get("description", ""),
+                    "levels": path_info.get("levels", [])
+                })
+
+        # 查找该岗位相关的换岗集群
+        transition_clusters = []
+        for cluster_name, cluster_info in self.seed_data.get("transition_clusters", {}).items():
+            for path in cluster_info.get("paths", []):
+                if title in path:
+                    transition_clusters.append({
+                        "name": cluster_name,
+                        "description": cluster_info.get("description", ""),
+                        "related_paths": cluster_info.get("paths", [])
+                    })
+                    break
+
         return {
             "job_code": job_code,
             "title": title,
+            "description": item.get("description", ""),
             "promotion_paths": promotions,
             "transition_paths": transitions,
             "upstream_jobs": sorted(set(upstream)),
             "downstream_jobs": sorted(set(downstream)),
             "required_skills": skills,
             "adjacent_skill_gaps": adjacent_skill_gaps,
+            "vertical_paths": vertical_path_info,
+            "transition_clusters": transition_clusters,
         }
 
 

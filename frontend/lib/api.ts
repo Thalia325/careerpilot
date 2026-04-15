@@ -19,23 +19,54 @@ export type ReportDraft = {
   markdown_content: string;
   content: Record<string, unknown>;
   status: string;
+  path_recommendation_id: number | null;
+  profile_version_id: number | null;
+  match_result_id: number | null;
+  analysis_run_id: number | null;
 };
 
 export type StudentSession = {
   student_id: number | null;
   user_id: number;
+  username: string;
+  full_name: string;
+  email: string;
   major: string;
   grade: string;
   career_goal: string;
+  target_job_code: string;
+  target_job_title: string;
   suggested_job_code: string | null;
   suggested_job_title: string | null;
+  resolved_job_code: string;
+  resolved_job_title: string;
+  teacher: {
+    teacher_id: number;
+    teacher_user_id: number;
+    teacher_name: string;
+    teacher_username: string;
+    teacher_email: string;
+    link_id: number;
+    source: string;
+  } | null;
+};
+
+export type StudentInfoInput = {
+  full_name: string;
+  email: string;
+  major: string;
+  grade: string;
+  career_goal: string;
+  teacher_code?: string;
 };
 
 export class APIError extends Error {
   constructor(
     public statusCode: number,
     message: string,
-    public isNetworkError: boolean = false
+    public isNetworkError: boolean = false,
+    public errorCode?: string,
+    public retryable?: boolean,
   ) {
     super(message);
     this.name = "APIError";
@@ -67,13 +98,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
     if (!response.ok) {
       let detail = `请求失败 (${response.status})`;
+      let errorCode: string | undefined;
+      let retryable: boolean | undefined;
       try {
         const body = await response.json();
-        if (body.detail) detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
-        else if (body.message) detail = body.message;
+        if (body.detail) {
+          if (typeof body.detail === "object" && body.detail !== null) {
+            detail = body.detail.message || JSON.stringify(body.detail);
+            errorCode = body.detail.error_code;
+            retryable = body.detail.retryable;
+          } else {
+            detail = body.detail;
+          }
+        } else if (body.message) {
+          detail = body.message;
+        }
+        if (body.error_code && !errorCode) errorCode = body.error_code;
+        if (body.retryable !== undefined && retryable === undefined) retryable = body.retryable;
       } catch {}
       console.error(`[API Error] ${path}:`, detail);
-      throw new APIError(response.status, detail, false);
+      throw new APIError(response.status, detail, false, errorCode, retryable);
     }
 
     const data = await response.json();
@@ -97,6 +141,20 @@ export async function getStudentSession(): Promise<StudentSession> {
   return request<StudentSession>("/students/me");
 }
 
+export async function updateStudentInfo(data: StudentInfoInput): Promise<StudentSession> {
+  return request<StudentSession>("/students/me", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateTargetJob(jobCode: string, jobTitle: string): Promise<{ ok: boolean; target_job_code: string; target_job_title: string; analysis_run_id: number | null }> {
+  return request("/students/me/target-job", {
+    method: "PUT",
+    body: JSON.stringify({ job_code: jobCode, job_title: jobTitle }),
+  });
+}
+
 export async function getStudentProfile(studentId: number): Promise<StudentProfile> {
   try {
     return await request<StudentProfile>(`/student-profiles/${studentId}`);
@@ -109,11 +167,16 @@ export async function getStudentProfile(studentId: number): Promise<StudentProfi
   }
 }
 
-export async function getMatching(studentId: number, jobCode: string): Promise<MatchingResult> {
+export async function getMatching(studentId: number, jobCode: string, profileVersionId?: number | null, analysisRunId?: number | null): Promise<MatchingResult> {
   try {
     return await request<MatchingResult>("/matching/analyze", {
       method: "POST",
-      body: JSON.stringify({ student_id: studentId, job_code: jobCode })
+      body: JSON.stringify({
+        student_id: studentId,
+        job_code: jobCode,
+        profile_version_id: profileVersionId ?? null,
+        analysis_run_id: analysisRunId ?? null,
+      })
     });
   } catch (error) {
     if (error instanceof APIError && error.isNetworkError && process.env.NODE_ENV === "development") {
@@ -122,6 +185,10 @@ export async function getMatching(studentId: number, jobCode: string): Promise<M
     }
     throw error;
   }
+}
+
+export async function getMatchResult(matchId: number): Promise<MatchingResult> {
+  return await request<MatchingResult>(`/matching/${matchId}`);
 }
 
 export async function getPathPlan(studentId: number, jobCode: string): Promise<PathPlan> {
@@ -140,6 +207,11 @@ export async function getPathPlan(studentId: number, jobCode: string): Promise<P
   }
 }
 
+export async function getPathResult(pathId: number): Promise<PathPlan> {
+  const response = await request<{ data: PathPlan }>(`/career-paths/${pathId}`);
+  return response.data;
+}
+
 export async function getJobTemplates(): Promise<JobDetail[]> {
   try {
     const response = await request<{ data: JobDetail[] }>("/jobs/profiles/templates");
@@ -153,11 +225,46 @@ export async function getJobTemplates(): Promise<JobDetail[]> {
   }
 }
 
-export async function generateReport(studentId: number, jobCode: string): Promise<ReportDraft> {
+export type JobExploreItem = Omit<JobDetail, "category"> & {
+  job_code?: string;
+  category: string;
+  industry?: string;
+  location?: string;
+  company_name?: string;
+  company_size?: string;
+  ownership_type?: string;
+  company_intro?: string;
+  source?: string;
+};
+
+export async function getJobExplorationJobs(limit: number = 180): Promise<JobExploreItem[]> {
+  try {
+    const response = await request<{ data: JobExploreItem[] }>(`/jobs/explore?limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.warn("[Fallback] Using job templates for exploration:", error instanceof Error ? error.message : error);
+    if (process.env.NODE_ENV === "development") {
+      return demoJobTemplates.map((job) => ({ ...job }));
+    }
+    throw error;
+  }
+}
+
+export async function generateReport(
+  studentId: number,
+  jobCode: string,
+  context?: { analysis_run_id?: number | null; profile_version_id?: number | null; match_result_id?: number | null },
+): Promise<ReportDraft> {
   try {
     return await request<ReportDraft>("/reports/generate", {
       method: "POST",
-      body: JSON.stringify({ student_id: studentId, job_code: jobCode })
+      body: JSON.stringify({
+        student_id: studentId,
+        job_code: jobCode,
+        analysis_run_id: context?.analysis_run_id ?? null,
+        profile_version_id: context?.profile_version_id ?? null,
+        match_result_id: context?.match_result_id ?? null,
+      })
     });
   } catch (error) {
     if (error instanceof APIError && error.isNetworkError && process.env.NODE_ENV === "development") {
@@ -168,11 +275,63 @@ export async function generateReport(studentId: number, jobCode: string): Promis
         job_code: jobCode,
         markdown_content: demoReportMarkdown,
         content: {},
-        status: "draft"
+        status: "draft",
+        path_recommendation_id: null,
+        profile_version_id: null,
+        match_result_id: null,
+        analysis_run_id: null,
       };
     }
     throw error;
   }
+}
+
+export async function getReport(reportId: number): Promise<ReportDraft> {
+  return request<ReportDraft>(`/reports/${reportId}`);
+}
+
+export type ReportCheckResult = {
+  report_id: number;
+  is_complete: boolean;
+  missing_sections: string[];
+  suggestions: string[];
+};
+
+export type ReportExportResult = {
+  report_id: number;
+  exported: {
+    format: string;
+    path: string;
+    file_name: string;
+  };
+};
+
+export async function polishReport(reportId: number, markdownContent: string): Promise<ReportDraft> {
+  return request<ReportDraft>("/reports/polish", {
+    method: "POST",
+    body: JSON.stringify({ report_id: reportId, markdown_content: markdownContent }),
+  });
+}
+
+export async function saveReport(reportId: number, markdownContent: string): Promise<{ report_id: number; status: string; markdown_content: string }> {
+  return request("/reports/save", {
+    method: "POST",
+    body: JSON.stringify({ report_id: reportId, markdown_content: markdownContent }),
+  });
+}
+
+export async function checkReport(reportId: number): Promise<ReportCheckResult> {
+  return request<ReportCheckResult>("/reports/check", {
+    method: "POST",
+    body: JSON.stringify({ report_id: reportId }),
+  });
+}
+
+export async function exportReport(reportId: number, format: "pdf" | "docx"): Promise<ReportExportResult> {
+  return request<ReportExportResult>("/reports/export", {
+    method: "POST",
+    body: JSON.stringify({ report_id: reportId, format }),
+  });
 }
 
 export async function parseOCR(uploadedFileId: number, documentType: string = "resume"): Promise<{ raw_text: string; layout_blocks: unknown[]; structured_json: Record<string, unknown> }> {
@@ -182,24 +341,31 @@ export async function parseOCR(uploadedFileId: number, documentType: string = "r
   });
 }
 
-export async function generateStudentProfile(studentId: number, uploadedFileIds: number[]): Promise<StudentProfile> {
+export async function generateStudentProfile(studentId: number, uploadedFileIds: number[], mode: "current_resume" | "merged_materials" = "current_resume"): Promise<StudentProfile> {
   return request<StudentProfile>("/student-profiles/generate", {
     method: "POST",
-    body: JSON.stringify({ student_id: studentId, uploaded_file_ids: uploadedFileIds, manual_input: null })
+    body: JSON.stringify({ student_id: studentId, uploaded_file_ids: uploadedFileIds, mode, manual_input: null })
   });
 }
 
 export type ProfileVersionItem = {
   id: number;
   version_no: number;
+  uploaded_file_ids: number[];
+  file_summaries: { file_id: number; file_name: string; file_type: string; summary: string }[];
   source_files: string;
   snapshot: StudentProfile;
+  evidence_snapshot: { source: string; excerpt: string; confidence: number }[];
   created_at: string;
 };
 
 export async function getProfileVersions(studentId: number): Promise<ProfileVersionItem[]> {
   const res = await request<{ items: ProfileVersionItem[] }>(`/student-profiles/${studentId}/versions`);
   return res.items;
+}
+
+export async function getProfileVersionDetail(studentId: number, versionId: number): Promise<ProfileVersionItem> {
+  return request<ProfileVersionItem>(`/student-profiles/${studentId}/versions/${versionId}`);
 }
 
 function generateDemoChatReply(message: string): string {
@@ -233,12 +399,34 @@ export async function sendChatMessage(message: string): Promise<{ reply: string 
       body: JSON.stringify({ message })
     });
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && error instanceof APIError && error.isNetworkError) {
       console.warn("[Fallback] Using demo reply for chat due to error:", error instanceof Error ? error.message : error);
       return { reply: generateDemoChatReply(message) };
     }
     throw error;
   }
+}
+
+export async function getGreeting(): Promise<{ greeting: string; subline: string }> {
+  try {
+    return await request<{ greeting: string; subline: string }>("/chat/greeting");
+  } catch {
+    return { greeting: "你好，想了解什么职业方向？", subline: "输入你感兴趣的岗位方向或上传简历，AI 帮你分析" };
+  }
+}
+
+export async function registerAccount(
+  username: string,
+  password: string,
+  full_name: string,
+  role: string,
+  email: string = "",
+  teacher_code: string = "",
+): Promise<{ access_token: string; role: string; user_id: number; username: string; full_name: string }> {
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password, full_name, role, email, teacher_code }),
+  });
 }
 
 export async function getSchedulerJobs(): Promise<SchedulerJobItem[]> {
@@ -269,12 +457,12 @@ export async function listFiles(): Promise<UploadedFileInfo[]> {
   return res.data ?? [];
 }
 
-export async function uploadFile(file: File, ownerId: number, fileType: string): Promise<{ id: number; file_name: string; url: string }> {
+export async function uploadFile(file: File, ownerId: number, fileType: string): Promise<{ id: number; file_name: string; file_type: string; created_at: string | null; url: string }> {
   const form = new FormData();
   form.append("upload", file);
   form.append("owner_id", String(ownerId));
   form.append("file_type", fileType);
-  const res = await request<{ data: { id: number; file_name: string; url: string } }>("/files/upload", {
+  const res = await request<{ data: { id: number; file_name: string; file_type: string; created_at: string | null; url: string } }>("/files/upload", {
     method: "POST",
     body: form,
   });
@@ -283,6 +471,10 @@ export async function uploadFile(file: File, ownerId: number, fileType: string):
 
 export async function deleteFile(fileId: number): Promise<void> {
   await request(`/files/${fileId}`, { method: "DELETE" });
+}
+
+export async function clearFiles(): Promise<void> {
+  await request("/files/clear", { method: "DELETE" });
 }
 
 export type AdminUser = {
@@ -295,9 +487,42 @@ export type AdminUser = {
   updated_at: string | null;
 };
 
+export type AdminUserInput = {
+  username: string;
+  password?: string;
+  full_name: string;
+  role: "student" | "teacher" | "admin";
+  email: string;
+};
+
 export async function getAdminUsers(): Promise<{ total: number; items: AdminUser[] }> {
   const res = await request<{ data: { total: number; items: AdminUser[] } }>("/admin/users");
   return res.data;
+}
+
+export async function getAdminUser(userId: number): Promise<AdminUser> {
+  const res = await request<{ data: AdminUser }>(`/admin/users/${userId}`);
+  return res.data;
+}
+
+export async function createAdminUser(data: AdminUserInput & { password: string }): Promise<AdminUser> {
+  const res = await request<{ data: AdminUser }>("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function updateAdminUser(userId: number, data: Partial<AdminUserInput>): Promise<AdminUser> {
+  const res = await request<{ data: AdminUser }>(`/admin/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function deleteAdminUser(userId: number): Promise<void> {
+  await request(`/admin/users/${userId}`, { method: "DELETE" });
 }
 
 export type AdminStatsOverview = {
@@ -356,10 +581,29 @@ export type TeacherStudentReport = {
   major: string;
   grade: string;
   career_goal: string;
+  last_analysis_time: string | null;
+  followup_status: string;
 };
 
-export async function getTeacherStudentReports(): Promise<TeacherStudentReport[]> {
-  const res = await request<{ data: TeacherStudentReport[] }>("/teacher/students/reports");
+export type TeacherReportFilters = {
+  major?: string;
+  grade?: string;
+  target_job?: string;
+  report_status?: string;
+  score_min?: number;
+  score_max?: number;
+};
+
+export async function getTeacherStudentReports(filters?: TeacherReportFilters): Promise<TeacherStudentReport[]> {
+  const params = new URLSearchParams();
+  if (filters?.major) params.set("major", filters.major);
+  if (filters?.grade) params.set("grade", filters.grade);
+  if (filters?.target_job) params.set("target_job", filters.target_job);
+  if (filters?.report_status) params.set("report_status", filters.report_status);
+  if (filters?.score_min !== undefined) params.set("score_min", String(filters.score_min));
+  if (filters?.score_max !== undefined) params.set("score_max", String(filters.score_max));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await request<{ data: TeacherStudentReport[] }>(`/teacher/students/reports${query}`);
   return res.data;
 }
 
@@ -370,6 +614,21 @@ export type DistributionItem = {
 
 export async function getMatchDistribution(): Promise<DistributionItem[]> {
   const res = await request<{ data: DistributionItem[] }>("/teacher/stats/match-distribution");
+  return res.data;
+}
+
+export type TeacherOverviewStats = {
+  total_students: number;
+  students_with_resume: number;
+  students_with_profile: number;
+  students_with_report: number;
+  avg_match_score: number;
+  pending_review_reports: number;
+  students_need_followup: number;
+};
+
+export async function getTeacherOverviewStats(): Promise<TeacherOverviewStats> {
+  const res = await request<{ data: TeacherOverviewStats }>("/teacher/stats/overview");
   return res.data;
 }
 
@@ -396,13 +655,207 @@ export async function getTeacherAdvice(): Promise<TeacherAdviceItem[]> {
   return res.data;
 }
 
+export type TeacherInfo = {
+  teacher_id: number;
+  user_id: number;
+  username: string;
+  full_name: string;
+  email: string;
+  department: string;
+  title: string;
+  student_count: number;
+};
+
+export type TeacherInfoInput = {
+  full_name: string;
+  email: string;
+  department: string;
+  title: string;
+};
+
+export async function getTeacherInfo(): Promise<TeacherInfo> {
+  const res = await request<{ data: TeacherInfo }>("/teacher/me");
+  return res.data;
+}
+
+export async function updateTeacherInfo(data: TeacherInfoInput): Promise<TeacherInfo> {
+  const res = await request<{ data: TeacherInfo }>("/teacher/me", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export type TeacherStudentReportListItem = {
+  report_id: number;
+  target_job: string;
+  status: string;
+  profile_version_id: number | null;
+  match_result_id: number | null;
+  analysis_run_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  profile_version_no: number | null;
+};
+
+export async function getTeacherStudentReportList(studentId: number): Promise<TeacherStudentReportListItem[]> {
+  const res = await request<{ data: TeacherStudentReportListItem[] }>(`/teacher/students/${studentId}/reports`);
+  return res.data;
+}
+
+export type TeacherReportDetail = {
+  report_id: number;
+  student_id: number;
+  student_name: string;
+  student_major: string;
+  student_grade: string;
+  target_job_code: string;
+  status: string;
+  content: Record<string, unknown>;
+  markdown_content: string;
+  resume_summary: Record<string, unknown>;
+  profile_snapshot: Record<string, unknown>;
+  match_analysis: {
+    total_score: number;
+    gaps: { item: string; description: string }[];
+    strengths: string[];
+    suggestions: string[];
+  };
+  profile_version_id: number | null;
+  match_result_id: number | null;
+  path_recommendation_id: number | null;
+  analysis_run_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export async function getTeacherReportDetail(reportId: number): Promise<TeacherReportDetail> {
+  const res = await request<{ data: TeacherReportDetail }>(`/teacher/reports/${reportId}`);
+  return res.data;
+}
+
+export type ClassOverviewData = {
+  job_distribution: { name: string; value: number }[];
+  report_completion_rate: number;
+  resume_completeness: { name: string; value: number }[];
+  skill_gaps: { name: string; count: number }[];
+  followup_students: { student_id: number; name: string; major: string; career_goal: string }[];
+};
+
+export async function getClassOverview(): Promise<ClassOverviewData> {
+  const res = await request<{ data: ClassOverviewData }>("/teacher/stats/class-overview");
+  return res.data;
+}
+
+export async function updateFollowupStatus(
+  studentId: number,
+  data: { status?: string; next_followup_date?: string; teacher_notes?: string },
+): Promise<{ student_id: number; status: string; deadline: string | null; updated: boolean }> {
+  const params = new URLSearchParams();
+  if (data.status) params.set("status_value", data.status);
+  if (data.next_followup_date) params.set("next_followup_date", data.next_followup_date);
+  if (data.teacher_notes) params.set("teacher_notes", data.teacher_notes);
+  const res = await request<{ data: { student_id: number; status: string; deadline: string | null; updated: boolean } }>(
+    `/teacher/students/${studentId}/followup?${params.toString()}`,
+    { method: "PATCH" },
+  );
+  return res.data;
+}
+
+// --- Teacher Comment CRUD ---
+
+export type TeacherCommentItem = {
+  id: number;
+  teacher_id: number;
+  teacher_name: string;
+  student_id: number;
+  report_id: number;
+  comment: string;
+  priority: string;
+  visible_to_student: boolean;
+  student_read_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export async function createTeacherComment(
+  reportId: number,
+  commentText: string,
+  priority: string = "normal",
+  visibleToStudent: boolean = true,
+): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; created_at: string | null }> {
+  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; created_at: string | null } }>(
+    `/teacher/reports/${reportId}/comments?comment_text=${encodeURIComponent(commentText)}&priority=${priority}&visible_to_student=${visibleToStudent}`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function getTeacherComments(reportId: number): Promise<TeacherCommentItem[]> {
+  const res = await request<{ data: TeacherCommentItem[] }>(`/teacher/reports/${reportId}/comments`);
+  return res.data;
+}
+
+export async function updateTeacherComment(
+  commentId: number,
+  data: { comment_text?: string; priority?: string; visible_to_student?: boolean },
+): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; updated_at: string | null }> {
+  const params = new URLSearchParams();
+  if (data.comment_text !== undefined) params.set("comment_text", data.comment_text);
+  if (data.priority !== undefined) params.set("priority", data.priority);
+  if (data.visible_to_student !== undefined) params.set("visible_to_student", String(data.visible_to_student));
+  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; updated_at: string | null } }>(
+    `/teacher/comments/${commentId}?${params.toString()}`,
+    { method: "PUT" },
+  );
+  return res.data;
+}
+
+export async function deleteTeacherComment(commentId: number): Promise<void> {
+  await request(`/teacher/comments/${commentId}`, { method: "DELETE" });
+}
+
+// --- Student: Teacher Feedback ---
+
+export type TeacherFeedbackItem = {
+  id: number;
+  teacher_name: string;
+  report_id: number;
+  comment: string;
+  priority: string;
+  student_read_at: string | null;
+  created_at: string | null;
+};
+
+export async function getStudentTeacherFeedback(): Promise<TeacherFeedbackItem[]> {
+  const res = await request<{ items: TeacherFeedbackItem[] }>("/students/me/teacher-feedback");
+  return res.items;
+}
+
+export async function markFeedbackRead(commentId: number): Promise<{ ok: boolean; read_at: string }> {
+  return request(`/students/me/teacher-feedback/${commentId}/read`, { method: "POST" });
+}
+
 export type RecommendedJob = {
   job_code: string;
   title: string;
   company: string;
   salary: string;
+  location?: string;
+  industry?: string;
+  company_size?: string;
+  ownership_type?: string;
+  summary?: string;
   tags: string[];
+  matched_tags?: string[];
+  missing_tags?: string[];
+  experience_tags?: string[];
+  reason?: string;
   match_score: number | null;
+  base_score?: number | null;
+  experience_score?: number | null;
+  skill_score?: number | null;
+  potential_score?: number | null;
 };
 
 export async function getRecommendedJobs(): Promise<RecommendedJob[]> {
@@ -417,10 +870,16 @@ export type HistoryItem = {
   title: string;
   desc: string;
   time: string;
+  profile_version_id?: number;
+  uploaded_file_ids?: number[];
+  analysis_run_id?: number;
+  match_result_id?: number;
+  source_file_id?: number;
 };
 
-export async function getStudentHistory(): Promise<HistoryItem[]> {
-  const res = await request<{ items: HistoryItem[] }>("/students/me/history");
+export async function getStudentHistory(type?: string): Promise<HistoryItem[]> {
+  const query = type ? `?type=${encodeURIComponent(type)}` : "";
+  const res = await request<{ items: HistoryItem[] }>(`/students/me/history${query}`);
   return res.items;
 }
 
@@ -441,4 +900,76 @@ export type JobListItem = {
 export async function getJobsList(skip: number = 0, limit: number = 100): Promise<{ total: number; items: JobListItem[] }> {
   const res = await request<{ data: { total: number; items: JobListItem[]; pagination: { total: number } } }>(`/jobs?skip=${skip}&limit=${limit}`);
   return { total: res.data.pagination?.total ?? res.data.total ?? 0, items: res.data.items };
+}
+
+// --- Analysis Pipeline State ---
+
+export type AnalysisRunState = {
+  run_id: number;
+  status: "pending" | "running" | "completed" | "failed";
+  current_step: string;
+  failed_step: string;
+  error_detail: string;
+  step_results: Record<string, boolean>;
+  uploaded_file_ids?: number[];
+  resume_file_id?: number | null;
+  profile_version_id?: number | null;
+  target_job_code?: string | null;
+  match_result_id?: number | null;
+  path_recommendation_id?: number | null;
+  report_id?: number | null;
+};
+
+export async function startAnalysisRun(studentId: number, jobCode: string, fileIds: number[]): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>("/analysis/start", {
+    method: "POST",
+    body: JSON.stringify({ student_id: studentId, job_code: jobCode, file_ids: fileIds }),
+  });
+}
+
+export async function getAnalysisRun(runId: number): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}`);
+}
+
+export async function getLatestAnalysis(): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>("/analysis/latest");
+}
+
+export async function updateAnalysisContext(
+  runId: number,
+  data: {
+    profile_version_id?: number | null;
+    target_job_code?: string | null;
+    match_result_id?: number | null;
+    path_recommendation_id?: number | null;
+    report_id?: number | null;
+  },
+): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/context`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function markStepRunning(runId: number, stepKey: string): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/step/${stepKey}/running`, { method: "POST" });
+}
+
+export async function markStepComplete(runId: number, stepKey: string): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/step/${stepKey}/complete`, { method: "POST" });
+}
+
+export async function markStepFailed(runId: number, stepKey: string, errorDetail: string): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/step/${stepKey}/fail`, {
+    method: "POST",
+    body: JSON.stringify({ error_detail: errorDetail }),
+  });
+}
+
+export async function markAnalysisComplete(runId: number): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/complete`, { method: "POST" });
+}
+
+export async function resetAnalysisRun(runId: number): Promise<AnalysisRunState> {
+  return request<AnalysisRunState>(`/analysis/${runId}/reset`, { method: "POST" });
 }

@@ -22,7 +22,19 @@ type IconName =
   | "star"
   | "close"
   | "menu"
-  | "send";
+  | "send"
+  | "code"
+  | "dollar-sign"
+  | "building"
+  | "lightbulb"
+  | "check-circle"
+  | "alert-circle"
+  | "trending-up"
+  | "hash"
+  | "check"
+  | "plus"
+  | "tag"
+  | "upload";
 
 const paths: Record<IconName, string> = {
   home: "M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z",
@@ -45,6 +57,18 @@ const paths: Record<IconName, string> = {
   close: "M6 6l12 12M18 6L6 18",
   menu: "M3 8h18M3 12h18M3 16h18",
   send: "M4 4l16 8-16 8V4zM4 12h10",
+  code: "M16 18l6-6-6-6M8 6l-6 6 6 6",
+  "dollar-sign": "M12 2v20M8 7h8a4 4 0 010 8h-4M8 17h6a4 4 0 010 8H8",
+  building: "M3 21h18M5 21V7l8-4 8 4v14M8 21v-4a2 2 0 012-2h4a2 2 0 012 2v4",
+  lightbulb: "M12 2a7 7 0 00-7 7c0 3.866 7 13 7 13s7-9.134 7-13a7 7 0 00-7-7zM12 22a2 2 0 100-4 2 2 0 000 4z",
+  "check-circle": "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm-2-15l-4 4 2 2 4-4-2-2zm2 4l6 6-2 2-6-6 2-2z",
+  "alert-circle": "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-14v4m0 4h.01",
+  "trending-up": "M22 12l-4-4-6 6-6-6-4 4v8h20v-8z",
+  hash: "M4 9h16M4 15h16M10 3v18M14 3v18",
+  check: "M20 6L9 17l-5-5",
+  plus: "M12 5v14M5 12h14",
+  tag: "M12 2l-10 10 3 3 10-10-3-3z M9 7l6 6",
+  upload: "M12 16V4M12 4l-4 4M12 4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2",
 };
 
 type IconProps = {

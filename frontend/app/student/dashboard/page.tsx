@@ -15,14 +15,15 @@ export default function DashboardPage() {
     (async () => {
       try {
         const sess = await getStudentSession();
-        if (!sess.student_id || !sess.suggested_job_code) {
+        const jobCode = sess.target_job_code || sess.suggested_job_code || "";
+        if (!sess.student_id || !jobCode) {
           setLoading(false);
           return;
         }
         const [p, m, plan] = await Promise.all([
           getStudentProfile(sess.student_id).catch(() => null),
-          getMatching(sess.student_id, sess.suggested_job_code).catch(() => null),
-          getPathPlan(sess.student_id, sess.suggested_job_code).catch(() => null),
+          getMatching(sess.student_id, jobCode).catch(() => null),
+          getPathPlan(sess.student_id, jobCode).catch(() => null),
         ]);
         if (p) setProfile(p);
         if (m) setMatching(m);

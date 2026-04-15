@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+import re
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.integrations.llm.providers import BaseLLMProvider
-from app.models import CareerReport, GrowthTask, JobProfile, ReportVersion, Student, StudentProfile
+from app.models import AnalysisRun, CareerReport, GrowthTask, JobProfile, PathRecommendation, ProfileVersion, ReportVersion, Student, StudentProfile, UploadedFile
+from app.services.matching.recommendation import _resume_relevance
 from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
 from app.services.reports.exporters import export_markdown_to_docx, export_markdown_to_pdf
@@ -17,7 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class ReportService:
-    REQUIRED_SECTIONS = ["overview", "matching_analysis", "goals", "action_plan", "evidence"]
+    REQUIRED_SECTIONS = [
+        "student_summary", "resume_summary", "capability_profile", "target_job_analysis",
+        "matching_analysis", "gap_analysis", "career_path", "short_term_plan",
+        "mid_term_plan", "evaluation_cycle", "teacher_comments",
+    ]
 
     def __init__(
         self,
@@ -30,46 +35,212 @@ class ReportService:
         self.career_path_service = career_path_service
         self.settings = get_settings()
 
-    async def generate_report(self, db: Session, student_id: int, job_code: str) -> dict:
+    def _check_evidence_sufficiency(self, latest_ocr: dict, match_result: dict) -> list[str]:
+        """Return list of missing evidence descriptions; empty means sufficient."""
+        missing: list[str] = []
+        if not match_result or not match_result.get("dimensions"):
+            missing.append("匹配结果维度数据为空，无法生成评分分析")
+        # OCR missing is a warning but doesn't block report generation
+        return missing
+
+    async def generate_report(
+        self,
+        db: Session,
+        student_id: int,
+        job_code: str,
+        analysis_run_id: int | None = None,
+        profile_version_id: int | None = None,
+        match_result_id: int | None = None,
+    ) -> dict:
         student = db.get(Student, student_id)
         student_profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
         job_profile = db.scalar(select(JobProfile).where(JobProfile.job_code == job_code))
         if not student or not student_profile or not job_profile:
             raise ValueError("生成报告前请先准备学生画像与岗位画像")
+        latest_ocr = self._latest_resume_ocr(db, student.user_id, job_profile, student_profile.source_summary)
+        student_name = self._student_name_from_ocr(student, latest_ocr)
+
+        # Resolve context IDs from analysis_run if not explicitly provided
+        if analysis_run_id and not (profile_version_id or match_result_id):
+            run = db.get(AnalysisRun, analysis_run_id)
+            if run:
+                if not profile_version_id:
+                    profile_version_id = run.profile_version_id
+                if not match_result_id:
+                    match_result_id = run.match_result_id
+
+        # If analysis_run_id is provided, look for a report bound to that specific run
+        # to support multiple reports per student+job (different analysis runs)
+        if analysis_run_id:
+            report = db.scalar(
+                select(CareerReport)
+                .where(CareerReport.student_id == student_id)
+                .where(CareerReport.target_job_code == job_code)
+                .where(CareerReport.analysis_run_id == analysis_run_id)
+            )
+        else:
+            report = db.scalar(
+                select(CareerReport)
+                .where(CareerReport.student_id == student_id)
+                .where(CareerReport.target_job_code == job_code)
+                .where(CareerReport.analysis_run_id == None)
+            )
+        if (
+            report
+            and report.content_json
+            and report.markdown_content
+            and report.updated_at
+            and student_profile.updated_at
+            and report.updated_at >= student_profile.updated_at
+            and self._report_matches_current_resume(report, student_name, latest_ocr)
+            and "学生基本情况" in report.markdown_content
+        ):
+            return {
+                "report_id": report.id,
+                "student_id": student_id,
+                "job_code": job_code,
+                "content": report.content_json,
+                "markdown_content": report.markdown_content,
+                "status": report.status,
+                "path_recommendation_id": report.path_recommendation_id,
+                "profile_version_id": report.profile_version_id,
+                "match_result_id": report.match_result_id,
+                "analysis_run_id": report.analysis_run_id,
+            }
         match_result = self.matching_service.analyze_match(db, student_id, job_code)
-        path_result = await self.career_path_service.plan_path(db, student_id, job_code)
+        actual_match_result_id = match_result_id or match_result.get("match_result_id") if isinstance(match_result, dict) else match_result_id
+        path_result = await self.career_path_service.plan_path(
+            db, student_id, job_code,
+            profile_version_id=profile_version_id,
+            match_result_id=actual_match_result_id,
+            analysis_run_id=analysis_run_id,
+        )
+
+        # Evidence sufficiency check — return insufficient_data before calling LLM
+        evidence_gaps = self._check_evidence_sufficiency(latest_ocr, match_result)
+        if evidence_gaps:
+            insufficient_content = {
+                "student_summary": {},
+                "resume_summary": {},
+                "capability_profile": {},
+                "target_job_analysis": {},
+                "matching_analysis": {},
+                "gap_analysis": {},
+                "career_path": {},
+                "short_term_plan": {},
+                "mid_term_plan": {},
+                "evaluation_cycle": {},
+                "teacher_comments": {"status": "insufficient_data"},
+            }
+            insufficient_md = (
+                "# CareerPilot 职业发展报告\n\n"
+                "> **资料不足，无法生成完整报告**\n\n"
+                "以下关键证据缺失，请补充后重试：\n"
+            )
+            for gap in evidence_gaps:
+                insufficient_md += f"- {gap}\n"
+            insufficient_md += (
+                "\n建议：请先上传简历并完成 OCR 解析，确保匹配分析数据可用。"
+            )
+            # Persist insufficient_data status so frontend can react
+            if not report:
+                report = CareerReport(student_id=student_id, target_job_code=job_code)
+                db.add(report)
+                db.flush()
+            report.content_json = insufficient_content
+            report.markdown_content = insufficient_md
+            report.status = "insufficient_data"
+            db.commit()
+            return {
+                "report_id": report.id,
+                "student_id": student_id,
+                "job_code": job_code,
+                "content": report.content_json,
+                "markdown_content": report.markdown_content,
+                "status": report.status,
+                "path_recommendation_id": report.path_recommendation_id,
+                "profile_version_id": report.profile_version_id,
+                "match_result_id": report.match_result_id,
+                "analysis_run_id": report.analysis_run_id,
+            }
+
+        # Look up the PathRecommendation that plan_path just created/updated
+        path_rec = db.scalar(
+            select(PathRecommendation)
+            .where(PathRecommendation.student_id == student_id)
+            .where(PathRecommendation.target_job_code == job_code)
+        )
+
+        # Get profile version snapshot for grade info
+        student_grade = student.grade or ""
+        if profile_version_id:
+            pv = db.get(ProfileVersion, profile_version_id)
+            if pv and pv.snapshot_json:
+                snapshot = pv.snapshot_json if isinstance(pv.snapshot_json, dict) else {}
+                student_grade = snapshot.get("grade", student_grade)
+
         llm_result = await self.llm_provider.generate_report(
             {
-                "student_name": student.user.full_name if hasattr(student, "user") else f"学生{student_id}",
+                "student_name": student_name,
+                "student_major": self._student_major_from_ocr(student, student_profile, latest_ocr),
+                "student_grade": student_grade,
+                "resume_intent": self._resume_intent_from_ocr(latest_ocr),
+                "resume_evidence": self._resume_evidence_from_ocr(latest_ocr),
                 "student_profile": {
                     "skills": student_profile.skills_json,
                     "certificates": student_profile.certificates_json,
                     "capability_scores": student_profile.capability_scores,
                     "completeness_score": student_profile.completeness_score,
+                    "competitiveness_score": student_profile.competitiveness_score,
+                    "projects": student_profile.projects_json,
+                    "internships": student_profile.internships_json,
                 },
                 "job_profile": {
                     "job_code": job_profile.job_code,
                     "title": job_profile.title,
                     "summary": job_profile.summary,
                     "skill_requirements": job_profile.skill_requirements,
+                    "certificate_requirements": job_profile.certificate_requirements,
                 },
                 "job_title": job_profile.title,
                 "match_result": match_result,
                 "path_result": path_result,
             }
         )
-        report = db.scalar(
-            select(CareerReport)
-            .where(CareerReport.student_id == student_id)
-            .where(CareerReport.target_job_code == job_code)
-        )
+        # Use the same run-scoped lookup for the post-LLM write
+        if analysis_run_id:
+            report = db.scalar(
+                select(CareerReport)
+                .where(CareerReport.student_id == student_id)
+                .where(CareerReport.target_job_code == job_code)
+                .where(CareerReport.analysis_run_id == analysis_run_id)
+            )
+        else:
+            report = db.scalar(
+                select(CareerReport)
+                .where(CareerReport.student_id == student_id)
+                .where(CareerReport.target_job_code == job_code)
+                .where(CareerReport.analysis_run_id == None)
+            )
         if not report:
             report = CareerReport(student_id=student_id, target_job_code=job_code)
             db.add(report)
             db.flush()
+        if path_rec:
+            report.path_recommendation_id = path_rec.id
+        report.profile_version_id = profile_version_id
+        report.match_result_id = actual_match_result_id
+        report.analysis_run_id = analysis_run_id
         report.content_json = llm_result["content"]
         report.markdown_content = llm_result["markdown_content"]
         report.status = "generated"
+
+        # If analysis_run_id provided, update AnalysisRun.report_id
+        if analysis_run_id:
+            run = db.get(AnalysisRun, analysis_run_id)
+            if run:
+                run.report_id = report.id
+
         version_count = len(list(db.scalars(select(ReportVersion).where(ReportVersion.report_id == report.id)).all()))
         db.add(
             ReportVersion(
@@ -80,7 +251,7 @@ class ReportService:
                 editor_notes="系统自动生成",
             )
         )
-        self._sync_growth_tasks(db, report.id, student_id, report.content_json["action_plan"])
+        self._sync_growth_tasks(db, report.id, student_id, llm_result["content"])
         db.commit()
         return {
             "report_id": report.id,
@@ -89,26 +260,131 @@ class ReportService:
             "content": report.content_json,
             "markdown_content": report.markdown_content,
             "status": report.status,
+            "path_recommendation_id": report.path_recommendation_id,
+            "profile_version_id": report.profile_version_id,
+            "match_result_id": report.match_result_id,
+            "analysis_run_id": report.analysis_run_id,
         }
 
-    def _sync_growth_tasks(self, db: Session, report_id: int, student_id: int, action_plan: dict) -> None:
-        for item in action_plan.get("short_term", []):
+    def _latest_resume_ocr(self, db: Session, owner_id: int, job_profile: JobProfile | None = None, source_summary: str = "") -> dict:
+        uploads = list(db.scalars(
+            select(UploadedFile)
+            .where(UploadedFile.owner_id == owner_id)
+            .where(UploadedFile.file_type == "resume")
+            .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+            .limit(8)
+        ).all())
+        if not uploads:
+            return {}
+        if source_summary:
+            source_names = {item.strip() for item in source_summary.split("；") if item.strip()}
+            sourced_uploads = [upload for upload in uploads if upload.file_name in source_names]
+            if sourced_uploads:
+                uploads = sourced_uploads
+        if job_profile:
+            ranked = []
+            for uploaded in uploads:
+                ocr = (uploaded.meta_json or {}).get("ocr_result") or (uploaded.meta_json or {}).get("ocr")
+                if isinstance(ocr, dict):
+                    ranked.append((_resume_relevance(ocr, job_profile), ocr))
+            ranked.sort(key=lambda item: item[0], reverse=True)
+            if ranked and ranked[0][0] > 0:
+                return ranked[0][1]
+
+        uploaded = uploads[0]
+        if not uploaded.meta_json:
+            return {}
+        ocr = uploaded.meta_json.get("ocr_result") or uploaded.meta_json.get("ocr")
+        return ocr if isinstance(ocr, dict) else {}
+
+    def _report_matches_current_resume(self, report: CareerReport, student_name: str, ocr: dict) -> bool:
+        raw_text = self._ocr_raw_text(ocr)
+        if raw_text and student_name and student_name not in report.markdown_content:
+            return False
+        intent_job = self._resume_intent_from_ocr(ocr).get("job")
+        if intent_job and intent_job not in report.markdown_content and report.target_job_code == "J-FE-001":
+            return False
+        return True
+
+    def _ocr_structured(self, ocr: dict) -> dict:
+        structured = ocr.get("structured_json") if isinstance(ocr, dict) else {}
+        return structured if isinstance(structured, dict) else {}
+
+    def _ocr_raw_text(self, ocr: dict) -> str:
+        raw_text = ocr.get("raw_text") if isinstance(ocr, dict) else ""
+        return raw_text if isinstance(raw_text, str) else ""
+
+    def _student_name_from_ocr(self, student: Student, ocr: dict) -> str:
+        structured = self._ocr_structured(ocr)
+        structured_name = str(structured.get("name") or "").strip()
+        if structured_name and structured_name != "未知学生":
+            return structured_name
+
+        for line in self._ocr_raw_text(ocr).splitlines():
+            candidate = line.strip()
+            if re.fullmatch(r"[\u4e00-\u9fa5·]{2,8}", candidate):
+                return candidate
+
+        if hasattr(student, "user") and student.user and student.user.full_name:
+            return student.user.full_name
+        return f"学生{student.id}"
+
+    def _student_major_from_ocr(self, student: Student, student_profile: StudentProfile, ocr: dict) -> str:
+        structured = self._ocr_structured(ocr)
+        major = str(structured.get("major") or "").strip()
+        if major:
+            return major
+        if student_profile.source_summary:
+            return student_profile.source_summary
+        return student.major
+
+    def _resume_intent_from_ocr(self, ocr: dict) -> dict:
+        raw_text = self._ocr_raw_text(ocr)
+        intent: dict[str, str] = {}
+        patterns = {
+            "job": r"意向岗位[:：\s]*([^\n]+)",
+            "city": r"意向城市[:：\s]*([^\n]+)",
+            "salary": r"期望薪资[:：\s]*([^\n]+)",
+        }
+        for key, pattern in patterns.items():
+            match = re.search(pattern, raw_text)
+            if match:
+                value = re.split(r"\s{2,}|意向城市|期望薪资|求职类型", match.group(1).strip())[0].strip(" ：:")
+                if value:
+                    intent[key] = value
+        return intent
+
+    def _resume_evidence_from_ocr(self, ocr: dict) -> dict:
+        structured = self._ocr_structured(ocr)
+        return {
+            "name": structured.get("name"),
+            "major": structured.get("major"),
+            "skills": structured.get("skills") or [],
+            "projects": structured.get("projects") or [],
+            "internships": structured.get("internships") or [],
+            "raw_excerpt": self._ocr_raw_text(ocr)[:1200],
+        }
+
+    def _sync_growth_tasks(self, db: Session, report_id: int, student_id: int, content: dict) -> None:
+        short_term = content.get("short_term_plan", {}).get("items", [])
+        mid_term = content.get("mid_term_plan", {}).get("items", [])
+        for item in short_term:
             db.add(
                 GrowthTask(
                     student_id=student_id,
                     report_id=report_id,
-                    title=item,
+                    title=item if isinstance(item, str) else str(item),
                     phase="short_term",
                     metric="阶段技能覆盖率提升",
                     status="pending",
                 )
             )
-        for item in action_plan.get("mid_term", []):
+        for item in mid_term:
             db.add(
                 GrowthTask(
                     student_id=student_id,
                     report_id=report_id,
-                    title=item,
+                    title=item if isinstance(item, str) else str(item),
                     phase="mid_term",
                     metric="项目/实习成果达成",
                     status="pending",
@@ -120,6 +396,22 @@ class ReportService:
         if not report:
             raise ValueError("报告不存在")
         return report
+
+    def save_report(self, db: Session, report_id: int, markdown_content: str) -> None:
+        report = self.get_report(db, report_id)
+        report.markdown_content = markdown_content
+        report.status = "edited"
+        version_count = len(list(db.scalars(select(ReportVersion).where(ReportVersion.report_id == report.id)).all()))
+        db.add(
+            ReportVersion(
+                report_id=report.id,
+                version_no=version_count + 1,
+                content_json=report.content_json,
+                markdown_content=markdown_content,
+                editor_notes="手动保存",
+            )
+        )
+        db.commit()
 
     async def polish_report(self, db: Session, report_id: int, markdown_content: str) -> dict:
         report = self.get_report(db, report_id)
@@ -144,21 +436,31 @@ class ReportService:
             "content": report.content_json,
             "markdown_content": polished,
             "status": report.status,
+            "path_recommendation_id": report.path_recommendation_id,
+            "profile_version_id": report.profile_version_id,
+            "match_result_id": report.match_result_id,
+            "analysis_run_id": report.analysis_run_id,
         }
 
     def check_completeness(self, db: Session, report_id: int) -> dict:
         try:
             report = self.get_report(db, report_id)
-            missing = [section for section in self.REQUIRED_SECTIONS if section not in report.content_json]
+            missing = []
+            for section in self.REQUIRED_SECTIONS:
+                section_data = report.content_json.get(section)
+                if not section_data or (isinstance(section_data, dict) and not section_data):
+                    missing.append(section)
             suggestions = []
             if "matching_analysis" in missing:
-                suggestions.append("补充职业探索与岗位匹配分析。")
-            if "goals" in missing:
-                suggestions.append("补充职业目标和路径规划。")
-            if "action_plan" in missing:
-                suggestions.append("补充短期、中期行动计划与评估指标。")
-            if "evidence" in missing:
-                suggestions.append("补充岗位画像、学生画像、路径推荐依据。")
+                suggestions.append("补充人岗匹配分析。")
+            if "career_path" in missing:
+                suggestions.append("补充职业路径规划。")
+            if "short_term_plan" in missing or "mid_term_plan" in missing:
+                suggestions.append("补充短期、中期行动计划。")
+            if "evaluation_cycle" in missing:
+                suggestions.append("补充评估周期与指标。")
+            if "teacher_comments" in missing:
+                suggestions.append("教师建议区域待补充（可由教师点评后生成）。")
             return {
                 "report_id": report_id,
                 "is_complete": len(missing) == 0,
@@ -189,4 +491,3 @@ class ReportService:
         except Exception as e:
             logger.error(f"Failed to export report {report_id} as {export_format}: {str(e)}")
             raise ValueError(f"Failed to export report: {str(e)}") from e
-
