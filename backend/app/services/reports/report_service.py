@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
+from ast import literal_eval
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -34,6 +36,299 @@ class ReportService:
         self.matching_service = matching_service
         self.career_path_service = career_path_service
         self.settings = get_settings()
+
+    UNAVAILABLE_VALUES = {
+        "",
+        "无",
+        "暂无",
+        "未知",
+        "未填写",
+        "不详",
+        "经历",
+        "生",
+        "负责人",
+        "模型",
+        "N/A",
+        "none",
+        "null",
+    }
+
+    def _clean_text(self, value: Any) -> str:
+        if value is None:
+            return ""
+        text = str(value).strip()
+        if not text:
+            return ""
+        text = re.sub(r"\s+", " ", text)
+        text = text.strip(" ，,；;。")
+        if text in self.UNAVAILABLE_VALUES:
+            return ""
+        if "由于信息不足" in text or "无法详细" in text or "无法列举" in text:
+            return ""
+        return text
+
+    def _parse_object_string(self, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        text = value.strip()
+        if not (text.startswith("{") and text.endswith("}")):
+            return value
+        try:
+            return literal_eval(text)
+        except Exception:
+            return value
+
+    def _clean_list(self, values: Any, *, limit: int = 8, object_keys: list[str] | None = None) -> list[str]:
+        if not isinstance(values, list):
+            values = [values] if values else []
+        cleaned: list[str] = []
+        for item in values:
+            item = self._parse_object_string(item)
+            if isinstance(item, dict):
+                parts = []
+                for key in object_keys or ["name", "description", "role", "actual_achievements", "responsibilities"]:
+                    part = self._clean_text(item.get(key))
+                    if part:
+                        parts.append(part)
+                text = "；".join(dict.fromkeys(parts))
+            elif isinstance(item, (list, tuple)):
+                text = " → ".join(self._clean_text(part) for part in item if self._clean_text(part))
+            else:
+                text = self._clean_text(item)
+            if text and text not in cleaned:
+                cleaned.append(text)
+            if len(cleaned) >= limit:
+                break
+        return cleaned
+
+    def _line(self, label: str, value: Any) -> str:
+        text = self._clean_text(value)
+        return f"- {label}：{text}\n" if text else ""
+
+    def _list_lines(self, items: list[str]) -> str:
+        return "".join(f"- {item}\n" for item in items if self._clean_text(item))
+
+    def _normalize_report_content(self, content: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(content or {})
+
+        resume = dict(normalized.get("resume_summary") or {})
+        resume["skills"] = self._clean_list(resume.get("skills"), limit=12)
+        resume["projects"] = self._clean_list(
+            resume.get("projects"),
+            limit=5,
+            object_keys=["name", "description", "role", "actual_achievements"],
+        )
+        resume["internships"] = self._clean_list(
+            resume.get("internships"),
+            limit=5,
+            object_keys=["company", "position", "duration", "responsibilities", "gained_skills"],
+        )
+        resume["certificates"] = self._clean_list(resume.get("certificates"), limit=6)
+        normalized["resume_summary"] = resume
+
+        profile = dict(normalized.get("capability_profile") or {})
+        profile["skills"] = self._clean_list(profile.get("skills"), limit=12)
+        profile["certificates"] = self._clean_list(profile.get("certificates"), limit=6)
+        profile["projects"] = self._clean_list(
+            profile.get("projects"),
+            limit=5,
+            object_keys=["name", "description", "role", "actual_achievements"],
+        )
+        profile["internships"] = self._clean_list(
+            profile.get("internships"),
+            limit=5,
+            object_keys=["company", "position", "duration", "responsibilities", "gained_skills"],
+        )
+        normalized["capability_profile"] = profile
+
+        target = dict(normalized.get("target_job_analysis") or {})
+        target["skill_requirements"] = self._clean_list(target.get("skill_requirements"), limit=12)
+        target["certificate_requirements"] = self._clean_list(target.get("certificate_requirements"), limit=6)
+        target["matched_skills"] = self._clean_list(target.get("matched_skills"), limit=10)
+        target["missing_skills"] = self._clean_list(target.get("missing_skills"), limit=10)
+        normalized["target_job_analysis"] = target
+
+        matching = dict(normalized.get("matching_analysis") or {})
+        matching["strengths"] = self._clean_list(matching.get("strengths"), limit=8)
+        normalized["matching_analysis"] = matching
+
+        gap = dict(normalized.get("gap_analysis") or {})
+        gap["suggestions"] = self._clean_list(gap.get("suggestions"), limit=8)
+        normalized["gap_analysis"] = gap
+
+        for key in ["short_term_plan", "mid_term_plan"]:
+            plan = dict(normalized.get(key) or {})
+            plan["items"] = self._clean_list(plan.get("items"), limit=8)
+            normalized[key] = plan
+
+        return normalized
+
+    def _build_standard_markdown(self, content: dict[str, Any]) -> str:
+        content = self._normalize_report_content(content)
+        student = content.get("student_summary") or {}
+        resume = content.get("resume_summary") or {}
+        profile = content.get("capability_profile") or {}
+        target = content.get("target_job_analysis") or {}
+        matching = content.get("matching_analysis") or {}
+        gap = content.get("gap_analysis") or {}
+        career = content.get("career_path") or {}
+        short_plan = content.get("short_term_plan") or {}
+        mid_plan = content.get("mid_term_plan") or {}
+        evaluation = content.get("evaluation_cycle") or {}
+
+        sections: list[str] = ["# CareerPilot 职业发展报告\n\n"]
+
+        basic = (
+            self._line("姓名", student.get("name"))
+            + self._line("专业", student.get("major"))
+            + self._line("年级", student.get("grade"))
+            + self._line("简历意向岗位", student.get("intent_job"))
+            + self._line("意向城市", student.get("intent_city"))
+        )
+        sections.append(f"## 一、学生基本情况\n{basic}\n")
+
+        resume_lines = ""
+        if resume.get("skills"):
+            resume_lines += f"- 技能：{'、'.join(resume['skills'])}\n"
+        if resume.get("projects"):
+            resume_lines += "### 项目经历\n" + self._list_lines(resume["projects"])
+        if resume.get("internships"):
+            resume_lines += "### 实习经历\n" + self._list_lines(resume["internships"])
+        if resume.get("certificates"):
+            resume_lines += f"- 证书：{'、'.join(resume['certificates'])}\n"
+        sections.append(f"## 二、简历解析摘要\n{resume_lines}\n")
+
+        capability = ""
+        if profile.get("skills"):
+            capability += f"- 能力标签：{'、'.join(profile['skills'])}\n"
+        scores = profile.get("capability_scores") if isinstance(profile.get("capability_scores"), dict) else {}
+        if scores:
+            score_labels = {
+                "innovation": "创新能力",
+                "learning": "学习能力",
+                "resilience": "抗压能力",
+                "communication": "沟通能力",
+                "internship": "实践能力",
+            }
+            score_text = [
+                f"{label} {float(scores[key]):.0f} 分"
+                for key, label in score_labels.items()
+                if key in scores and isinstance(scores.get(key), (int, float))
+            ]
+            if score_text:
+                capability += f"- 维度评分：{'；'.join(score_text)}\n"
+        if isinstance(profile.get("completeness_score"), (int, float)):
+            capability += f"- 画像完整度：{profile['completeness_score']:.0f}%\n"
+        sections.append(f"## 三、能力画像\n{capability}\n")
+
+        target_lines = (
+            self._line("目标岗位", target.get("job_title"))
+            + self._line("岗位摘要", target.get("summary"))
+        )
+        if target.get("skill_requirements"):
+            target_lines += f"- 技能要求：{'、'.join(target['skill_requirements'])}\n"
+        if target.get("matched_skills"):
+            target_lines += f"- 已匹配技能：{'、'.join(target['matched_skills'])}\n"
+        if target.get("missing_skills"):
+            target_lines += f"- 待补齐技能：{'、'.join(target['missing_skills'])}\n"
+        if target.get("certificate_requirements"):
+            target_lines += f"- 证书要求：{'、'.join(target['certificate_requirements'])}\n"
+        sections.append(f"## 四、目标岗位分析\n{target_lines}\n")
+
+        match_lines = ""
+        if isinstance(matching.get("total_score"), (int, float)):
+            match_lines += f"- 综合匹配得分：{matching['total_score']:.1f} 分\n"
+        if matching.get("strengths"):
+            match_lines += f"- 当前契合点：{'、'.join(matching['strengths'])}\n"
+        dimensions = matching.get("dimensions") if isinstance(matching.get("dimensions"), list) else []
+        if dimensions:
+            match_lines += "### 维度评分\n"
+            for dim in dimensions:
+                if not isinstance(dim, dict):
+                    continue
+                name = self._clean_text(dim.get("dimension"))
+                score = dim.get("score")
+                reasoning = self._clean_text(dim.get("reasoning"))
+                if name and isinstance(score, (int, float)):
+                    suffix = f"：{reasoning}" if reasoning else ""
+                    match_lines += f"- {name}：{score:.1f} 分{suffix}\n"
+        sections.append(f"## 五、人岗匹配分析\n{match_lines}\n")
+
+        gap_lines = ""
+        skill_gaps = [self._clean_text(item.get("name")) for item in gap.get("skill_gaps", []) if isinstance(item, dict)]
+        skill_gaps = [item for item in skill_gaps if item]
+        if skill_gaps:
+            gap_lines += f"- 主要技能差距：{'、'.join(skill_gaps)}\n"
+        if gap.get("suggestions"):
+            gap_lines += "### 提升建议\n" + self._list_lines(gap["suggestions"])
+        sections.append(f"## 六、差距分析\n{gap_lines}\n")
+
+        path_lines = ""
+        primary_path = self._clean_list(career.get("primary_path"), limit=6)
+        if primary_path:
+            path_lines += f"- 主路径：{' → '.join(primary_path)}\n"
+        alt_paths = career.get("alternate_paths") if isinstance(career.get("alternate_paths"), list) else []
+        cleaned_alt = []
+        for path in alt_paths:
+            if isinstance(path, list):
+                item = " → ".join(self._clean_list(path, limit=5))
+                if item and item not in cleaned_alt:
+                    cleaned_alt.append(item)
+            if len(cleaned_alt) >= 3:
+                break
+        if cleaned_alt:
+            path_lines += "### 备选路径\n" + self._list_lines(cleaned_alt)
+        rationale = self._clean_text(career.get("rationale"))
+        if rationale:
+            path_lines += f"- 路径依据：{rationale}\n"
+        sections.append(f"## 七、职业路径规划\n{path_lines}\n")
+
+        sections.append(f"## 八、短期行动计划\n{self._list_lines(short_plan.get('items') or [])}\n")
+        sections.append(f"## 九、中期行动计划\n{self._list_lines(mid_plan.get('items') or [])}\n")
+
+        eval_lines = ""
+        metrics = evaluation.get("metrics") if isinstance(evaluation.get("metrics"), list) else []
+        for metric in metrics:
+            if not isinstance(metric, dict):
+                continue
+            phase = self._clean_text(metric.get("phase"))
+            name = self._clean_text(metric.get("metric"))
+            target = self._clean_text(metric.get("target"))
+            method = self._clean_text(metric.get("evaluation_method"))
+            pieces = [piece for piece in [name, f"目标：{target}" if target else "", f"方式：{method}" if method else ""] if piece]
+            if phase and pieces:
+                eval_lines += f"- {phase}：{'；'.join(pieces)}\n"
+        sections.append(f"## 十、评估周期\n{eval_lines}\n")
+
+        sections.append("## 十一、教师建议\n教师点评由教师端补充，不在自动报告中编造。\n")
+
+        return "\n".join(sections).strip() + "\n"
+
+    def _has_meaningful_data(self, value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(self._clean_text(value))
+        if isinstance(value, (int, float, bool)):
+            return True
+        if isinstance(value, list):
+            return any(self._has_meaningful_data(item) for item in value)
+        if isinstance(value, dict):
+            return any(self._has_meaningful_data(item) for item in value.values())
+        return bool(value)
+
+    def _standardize_report(self, db: Session, report: CareerReport) -> CareerReport:
+        if not report.content_json or report.status in {"edited", "polished"}:
+            return report
+
+        normalized_content = self._normalize_report_content(report.content_json)
+        normalized_markdown = self._build_standard_markdown(normalized_content)
+        if report.content_json != normalized_content or report.markdown_content != normalized_markdown:
+            report.content_json = normalized_content
+            report.markdown_content = normalized_markdown
+            db.commit()
+            db.refresh(report)
+        return report
 
     def _check_evidence_sufficiency(self, latest_ocr: dict, match_result: dict) -> list[str]:
         """Return list of missing evidence descriptions; empty means sufficient."""
@@ -231,8 +526,9 @@ class ReportService:
         report.profile_version_id = profile_version_id
         report.match_result_id = actual_match_result_id
         report.analysis_run_id = analysis_run_id
-        report.content_json = llm_result["content"]
-        report.markdown_content = llm_result["markdown_content"]
+        normalized_content = self._normalize_report_content(llm_result["content"])
+        report.content_json = normalized_content
+        report.markdown_content = self._build_standard_markdown(normalized_content)
         report.status = "generated"
 
         # If analysis_run_id provided, update AnalysisRun.report_id
@@ -251,7 +547,7 @@ class ReportService:
                 editor_notes="系统自动生成",
             )
         )
-        self._sync_growth_tasks(db, report.id, student_id, llm_result["content"])
+        self._sync_growth_tasks(db, report.id, student_id, report.content_json)
         db.commit()
         return {
             "report_id": report.id,
@@ -395,7 +691,7 @@ class ReportService:
         report = db.get(CareerReport, report_id)
         if not report:
             raise ValueError("报告不存在")
-        return report
+        return self._standardize_report(db, report)
 
     def save_report(self, db: Session, report_id: int, markdown_content: str) -> None:
         report = self.get_report(db, report_id)
@@ -448,7 +744,7 @@ class ReportService:
             missing = []
             for section in self.REQUIRED_SECTIONS:
                 section_data = report.content_json.get(section)
-                if not section_data or (isinstance(section_data, dict) and not section_data):
+                if not self._has_meaningful_data(section_data):
                     missing.append(section)
             suggestions = []
             if "matching_analysis" in missing:

@@ -428,6 +428,8 @@ class ErnieLLMProvider(BaseLLMProvider):
             "source_summary": str(parsed.get("source_summary", "ERNIE 生成画像")),
             "skills": [str(item) for item in parsed.get("skills", []) if item],
             "certificates": [str(item) for item in parsed.get("certificates", []) if item],
+            "projects": [str(item) for item in parsed.get("projects", []) if item],
+            "internships": [str(item) for item in parsed.get("internships", []) if item],
             "capability_scores": normalized_capabilities,
             "completeness_score": round(self._to_float(parsed.get("completeness_score"), 80.0), 2),
             "competitiveness_score": round(self._to_float(parsed.get("competitiveness_score"), 80.0), 2),
@@ -506,7 +508,7 @@ class ErnieLLMProvider(BaseLLMProvider):
         system_prompt = (
             "你是 CareerPilot 的学生就业能力画像专家。"
             "请根据输入材料生成学生画像，并且只返回 JSON。"
-            "JSON 字段必须包含：source_summary,skills,certificates,capability_scores,"
+            "JSON 字段必须包含：source_summary,skills,certificates,projects,internships,capability_scores,"
             "completeness_score,competitiveness_score,willingness,evidence。"
             "capability_scores 必须包含 innovation,learning,resilience,communication,internship 五项分数。"
             "evidence 必须是数组，每项包含 source,excerpt,confidence。"

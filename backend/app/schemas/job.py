@@ -43,6 +43,40 @@ class JobProfileOut(BaseModel):
     explanation_json: dict[str, Any]
 
 
+class JobProfileCreate(BaseModel):
+    """Admin create JobProfile — job_code and title required, rest optional."""
+    job_code: str = Field(..., min_length=1, max_length=80)
+    title: str = Field(..., min_length=1, max_length=120)
+    summary: str = ""
+    skill_requirements: list[str] = []
+    certificate_requirements: list[str] = []
+    innovation_requirements: str = ""
+    learning_requirements: str = ""
+    resilience_requirements: str = ""
+    communication_requirements: str = ""
+    internship_requirements: str = ""
+    capability_scores: dict[str, Any] = {}
+    dimension_weights: dict[str, Any] = {}
+    explanation_json: dict[str, Any] = {}
+
+
+class JobProfileUpdate(BaseModel):
+    """Admin update JobProfile — all fields optional."""
+    job_code: Optional[str] = Field(None, min_length=1, max_length=80)
+    title: Optional[str] = Field(None, min_length=1, max_length=120)
+    summary: Optional[str] = None
+    skill_requirements: Optional[list[str]] = None
+    certificate_requirements: Optional[list[str]] = None
+    innovation_requirements: Optional[str] = None
+    learning_requirements: Optional[str] = None
+    resilience_requirements: Optional[str] = None
+    communication_requirements: Optional[str] = None
+    internship_requirements: Optional[str] = None
+    capability_scores: Optional[dict[str, Any]] = None
+    dimension_weights: Optional[dict[str, Any]] = None
+    explanation_json: Optional[dict[str, Any]] = None
+
+
 class JobProfileGenerationRequest(BaseModel):
     job_codes: Optional[list[str]] = None
     title_keywords: Optional[list[str]] = None

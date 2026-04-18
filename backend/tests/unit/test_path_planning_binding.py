@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.models import AnalysisRun, MatchResult, PathRecommendation, ProfileVersion
 from app.schemas.profile import ManualStudentInput
 from app.services.bootstrap import create_service_container, initialize_demo_data
+from app.services.paths.career_path_service import clean_current_ability
 
 
 async def _setup(db_session):
@@ -28,6 +29,29 @@ async def _setup(db_session):
 
 
 # --- AC1: Content fields ---
+
+
+def test_current_ability_filters_unusable_structured_resume_items():
+    ability = clean_current_ability({
+        "skills": ["Python", "未知", "JavaScript"],
+        "certificates": ["暂无"],
+        "projects": [
+            "{'name': '项目A', 'description': '配套完成 API 调用脚本、配置向导、smoketest、优化工具，相关成果已合入', 'role': '负责人', 'actual_achievements': '提升项目效率与稳定性'}",
+            "{'name': '项目B', 'description': '全国大学生统计建模大赛项目', 'role': '负责人', 'actual_achievements': '成果获省级二等奖'}",
+        ],
+        "internships": [
+            "{'company': '未知', 'position': '实习生', 'duration': '未知', 'responsibilities': '由于信息不足，无法详细描述实习职责', 'gained_skills': '由于信息不足，无法详细列举'}",
+        ],
+        "matched_skills": ["JavaScript"],
+        "missing_skills": ["React"],
+    })
+
+    assert ability["skills"] == ["Python", "JavaScript"]
+    assert ability["certificates"] == []
+    assert len(ability["projects"]) == 2
+    assert "项目A：" in ability["projects"][0]
+    assert "{'name'" not in " ".join(ability["projects"])
+    assert ability["internships"] == []
 
 
 @pytest.mark.asyncio

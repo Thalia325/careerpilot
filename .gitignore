@@ -1,6 +1,9 @@
 .DS_Store
 .env
 .claude/
+.agents/
+.cursor/
+.playwright-mcp/
 .venv
 venv/
 backend/venv/
@@ -19,9 +22,15 @@ exports/*
 backend/careerpilot.db
 backend/careerpilot.db.*
 backend/careerpilot-*.db
+backend/career_pilot.db
 backend/*.db-shm
 backend/*.db-wal
 screenshots/
 run-logs/
 *.log
 *.tsbuildinfo
+
+# Local planning / agent scratch files
+requirement.md
+tasks/
+scripts/ralph/

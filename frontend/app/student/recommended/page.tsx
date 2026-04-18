@@ -77,7 +77,7 @@ export default function RecommendedJobsPage() {
   }, [jobs]);
 
   const topScore = sortedJobs[0]?.match_score ?? null;
-  const strongCount = jobs.filter((job) => (job.match_score ?? 0) >= 60).length;
+  const focusCount = jobs.filter((job) => (job.match_score ?? 0) >= 60).length;
   const avgScore = jobs.length
     ? Math.round(jobs.reduce((sum, job) => sum + (job.match_score ?? 0), 0) / jobs.length)
     : 0;
@@ -90,7 +90,7 @@ export default function RecommendedJobsPage() {
           推荐岗位
         </h1>
         <p style={{ fontSize: "0.875rem", color: "#666", margin: 0 }}>
-          系统基于 OCR 解析后的项目经历、实习经历和技能画像，只展示 60 分以上岗位
+          系统基于 OCR 解析后的项目经历、实习经历和技能画像，按匹配度展示重点候选与探索方向
         </p>
       </div>
 
@@ -130,8 +130,8 @@ export default function RecommendedJobsPage() {
           padding: "16px",
           textAlign: "center",
         }}>
-          <p style={{ fontSize: "0.75rem", color: "#666", margin: "0 0 8px" }}>60分以上</p>
-          <p style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0, color: "#1a73e8" }}>{strongCount} 个</p>
+          <p style={{ fontSize: "0.75rem", color: "#666", margin: "0 0 8px" }}>重点候选</p>
+          <p style={{ fontSize: "1.5rem", fontWeight: 700, margin: 0, color: "#1a73e8" }}>{focusCount} 个</p>
         </div>
         <div style={{
           background: "#fff",
@@ -490,7 +490,7 @@ export default function RecommendedJobsPage() {
           <EmptyState
             icon={<Icon name="briefcase" size={32} />}
             title="暂无推荐岗位"
-            description="当前没有 60 分以上岗位。请先上传或重新分析简历，系统会基于 OCR 项目/实习经历重新匹配。"
+            description="当前还没有可用岗位推荐。请先上传或重新分析简历，系统会基于 OCR 项目/实习经历重新匹配。"
             actionLabel="前往上传简历"
             actionHref="/student"
           />

@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_container, get_current_user, get_db_session
+from app.core.errors import raise_resource_forbidden, require_role
 from app.integrations.ocr.providers import OCRParseError, OCRServiceError, OCRNetworkError
 from app.models import Resume, UploadedFile, User
 from app.schemas.common import APIResponse
@@ -27,8 +28,13 @@ async def parse_document(
     db: Session = Depends(get_db_session),
 ) -> OCRParseResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    # Verify file ownership for student role when file_id is provided
+    if payload.uploaded_file_id and current_user.role == "student":
+        uploaded = db.get(UploadedFile, payload.uploaded_file_id)
+        if not uploaded or uploaded.owner_id != current_user.id:
+            raise_resource_forbidden()
 
     try:
         if payload.uploaded_file_id:
@@ -62,7 +68,7 @@ async def get_parse_result(
     if not uploaded:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文件不存在")
     if uploaded.owner_id != current_user.id and current_user.role not in ["admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权查看此文件")
+        raise_resource_forbidden()
     if uploaded.file_type != "resume":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="该文件不是简历类型")
 

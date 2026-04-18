@@ -6,6 +6,31 @@ const roleRoutes: Record<string, string> = {
   admin: "/admin"
 };
 
+/**
+ * Admin is allowed to visit these student/teacher sub-routes for review.
+ * All other student/teacher routes remain blocked for admin.
+ */
+const adminReviewAllowed = [
+  "/student/profile",
+  "/student/report",
+  "/student/matching",
+  "/student/path",
+  "/student/recommended",
+  "/student/info",
+  "/student/history",
+  "/student/dashboard",
+  "/teacher/overview",
+  "/teacher/reports",
+  "/teacher/advice",
+  "/teacher/info",
+];
+
+function isAdminReviewRoute(pathname: string): boolean {
+  return adminReviewAllowed.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -33,8 +58,16 @@ export function middleware(request: NextRequest) {
 
   if (userRole && roleRoutes[userRole]) {
     const allowedPrefix = roleRoutes[userRole];
+
+    // Admin can access explicitly listed student/teacher review routes
+    if (userRole === "admin" && isAdminReviewRoute(pathname)) {
+      return NextResponse.next();
+    }
+
     if (!pathname.startsWith(allowedPrefix) && !pathname.startsWith("/workspace")) {
-      return NextResponse.redirect(new URL(allowedPrefix, request.url));
+      const redirectUrl = new URL(allowedPrefix, request.url);
+      redirectUrl.searchParams.set("notice", "access_denied");
+      return NextResponse.redirect(redirectUrl);
     }
   }
 

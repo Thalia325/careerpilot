@@ -8,9 +8,14 @@ import {
   getTeacherStudentReports,
   getTeacherStudentReportList,
   getTeacherReportDetail,
+  createTeacherComment,
+  getTeacherComments,
+  updateTeacherComment,
+  deleteTeacherComment,
   type TeacherStudentReport,
   type TeacherStudentReportListItem,
   type TeacherReportDetail,
+  type TeacherCommentItem,
 } from "@/lib/api";
 
 const teacherNavItems = [
@@ -19,6 +24,24 @@ const teacherNavItems = [
   { href: "/teacher/reports", label: "学生报告查看", icon: <Icon name="clipboard" size={18} /> },
   { href: "/teacher/overview", label: "班级数据概览", icon: <Icon name="chart" size={18} /> },
   { href: "/teacher/advice", label: "指导建议", icon: <Icon name="chat" size={18} /> },
+  { href: "/teacher/roster", label: "花名册管理", icon: <Icon name="users" size={18} /> },
+];
+
+const followupStatusOptions = [
+  { key: "pending", label: "待跟进" },
+  { key: "in_progress", label: "跟进中" },
+  { key: "read", label: "已读" },
+  { key: "communicated", label: "已沟通" },
+  { key: "review", label: "需复盘" },
+  { key: "completed", label: "已完成" },
+  { key: "overdue", label: "已逾期" },
+];
+
+const priorityOptions = [
+  { key: "low", label: "低" },
+  { key: "normal", label: "普通" },
+  { key: "high", label: "高" },
+  { key: "urgent", label: "紧急" },
 ];
 
 export default function TeacherReportsPage() {
@@ -31,6 +54,21 @@ export default function TeacherReportsPage() {
   const [studentReportList, setStudentReportList] = useState<TeacherStudentReportListItem[]>([]);
   const [reportDetail, setReportDetail] = useState<TeacherReportDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Comment state
+  const [comments, setComments] = useState<TeacherCommentItem[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [newPriority, setNewPriority] = useState("normal");
+  const [newVisible, setNewVisible] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [editPriority, setEditPriority] = useState("normal");
+  const [editVisible, setEditVisible] = useState(true);
+  const [editFollowUpStatus, setEditFollowUpStatus] = useState("");
+  const [editFollowUpDate, setEditFollowUpDate] = useState("");
+  const [commentError, setCommentError] = useState("");
 
   const router = useRouter();
 
@@ -58,14 +96,92 @@ export default function TeacherReportsPage() {
 
   const handleSelectReport = async (reportId: number) => {
     setDetailLoading(true);
+    setCommentError("");
     try {
       const detail = await getTeacherReportDetail(reportId);
       setReportDetail(detail);
+      // Load comments for this report
+      setCommentsLoading(true);
+      try {
+        const commentList = await getTeacherComments(reportId);
+        setComments(commentList);
+      } catch (e) {
+        console.error("Failed to load comments:", e);
+        setComments([]);
+      } finally {
+        setCommentsLoading(false);
+      }
     } catch (e) {
       console.error("Failed to load report detail:", e);
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleCreateComment = async () => {
+    if (!reportDetail || !newComment.trim() || submitting) return;
+    setSubmitting(true);
+    setCommentError("");
+    try {
+      const created = await createTeacherComment(reportDetail.report_id, newComment.trim(), {
+        priority: newPriority,
+        visible_to_student: newVisible,
+      });
+      setComments((prev) => [created as TeacherCommentItem, ...prev]);
+      setNewComment("");
+      setNewPriority("normal");
+      setNewVisible(true);
+    } catch (e) {
+      setCommentError(e instanceof Error ? e.message : "提交点评失败");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: number) => {
+    if (!editCommentText.trim() || submitting) return;
+    setSubmitting(true);
+    setCommentError("");
+    try {
+      const updated = await updateTeacherComment(commentId, {
+        comment_text: editCommentText.trim(),
+        priority: editPriority,
+        visible_to_student: editVisible,
+        follow_up_status: editFollowUpStatus || undefined,
+        next_follow_up_date: editFollowUpDate || undefined,
+      });
+      setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...updated } as TeacherCommentItem : c)));
+      setEditingCommentId(null);
+    } catch (e) {
+      setCommentError(e instanceof Error ? e.message : "更新点评失败");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (submitting) return;
+    if (!confirm("确定删除此点评吗？")) return;
+    setSubmitting(true);
+    setCommentError("");
+    try {
+      await deleteTeacherComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      if (editingCommentId === commentId) setEditingCommentId(null);
+    } catch (e) {
+      setCommentError(e instanceof Error ? e.message : "删除点评失败");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const startEditComment = (c: TeacherCommentItem) => {
+    setEditingCommentId(c.id);
+    setEditCommentText(c.comment);
+    setEditPriority(c.priority);
+    setEditVisible(c.visible_to_student);
+    setEditFollowUpStatus(c.follow_up_status || "");
+    setEditFollowUpDate(c.next_follow_up_date ? c.next_follow_up_date.slice(0, 10) : "");
   };
 
   const handleBack = () => {
@@ -236,6 +352,225 @@ export default function TeacherReportsPage() {
             }}>
               {d.markdown_content || "暂无报告内容"}
             </div>
+          </div>
+
+          {/* Teacher comments section */}
+          <div className="teacher-dashboard__card">
+            <h3 style={{ margin: "0 0 12px" }}>教师点评与跟进</h3>
+
+            {commentError && (
+              <div style={{ padding: "8px 12px", borderRadius: 6, background: "#fef2f2", color: "#b91c1c", fontSize: "0.85rem", marginBottom: 12 }}>
+                {commentError}
+              </div>
+            )}
+
+            {/* New comment form */}
+            <div style={{ marginBottom: 16, padding: 16, background: "#f8fafc", borderRadius: 8 }}>
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="输入点评内容..."
+                disabled={submitting}
+                style={{
+                  width: "100%", minHeight: 80, padding: 10, borderRadius: 6,
+                  border: "1px solid #d1d5db", fontSize: "0.875rem", resize: "vertical",
+                  marginBottom: 10, fontFamily: "inherit",
+                }}
+              />
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <label style={{ fontSize: "0.8rem", color: "var(--subtle)" }}>优先级:</label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value)}
+                    disabled={submitting}
+                    style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: "0.8rem" }}
+                  >
+                    {priorityOptions.map((p) => (
+                      <option key={p.key} value={p.key}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.8rem", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={newVisible}
+                    onChange={(e) => setNewVisible(e.target.checked)}
+                    disabled={submitting}
+                  />
+                  对学生可见
+                </label>
+                <button
+                  className="btn-primary"
+                  onClick={handleCreateComment}
+                  disabled={!newComment.trim() || submitting}
+                  style={{ marginLeft: "auto", padding: "6px 16px", fontSize: "0.85rem" }}
+                >
+                  {submitting && editingCommentId === null ? "提交中..." : "提交点评"}
+                </button>
+              </div>
+            </div>
+
+            {/* Comments list */}
+            {commentsLoading ? (
+              <div style={{ textAlign: "center", padding: 20, color: "var(--subtle)", fontSize: "0.85rem" }}>加载点评中...</div>
+            ) : comments.length > 0 ? (
+              <div style={{ display: "grid", gap: 10 }}>
+                {comments.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8,
+                      padding: 14, background: "#fff",
+                    }}
+                  >
+                    {editingCommentId === c.id ? (
+                      /* Edit mode */
+                      <div>
+                        <textarea
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          style={{
+                            width: "100%", minHeight: 60, padding: 8, borderRadius: 6,
+                            border: "1px solid #d1d5db", fontSize: "0.85rem", resize: "vertical",
+                            marginBottom: 10, fontFamily: "inherit",
+                          }}
+                        />
+                        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <label style={{ fontSize: "0.8rem", color: "var(--subtle)" }}>优先级:</label>
+                            <select
+                              value={editPriority}
+                              onChange={(e) => setEditPriority(e.target.value)}
+                              style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: "0.8rem" }}
+                            >
+                              {priorityOptions.map((p) => (
+                                <option key={p.key} value={p.key}>{p.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.8rem", cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={editVisible}
+                              onChange={(e) => setEditVisible(e.target.checked)}
+                            />
+                            对学生可见
+                          </label>
+                        </div>
+                        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <label style={{ fontSize: "0.8rem", color: "var(--subtle)" }}>跟进状态:</label>
+                            <select
+                              value={editFollowUpStatus}
+                              onChange={(e) => setEditFollowUpStatus(e.target.value)}
+                              style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: "0.8rem" }}
+                            >
+                              <option value="">未设置</option>
+                              {followupStatusOptions.map((s) => (
+                                <option key={s.key} value={s.key}>{s.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <label style={{ fontSize: "0.8rem", color: "var(--subtle)" }}>下次跟进日期:</label>
+                            <input
+                              type="date"
+                              value={editFollowUpDate}
+                              onChange={(e) => setEditFollowUpDate(e.target.value)}
+                              style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db", fontSize: "0.8rem" }}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            className="btn-primary"
+                            onClick={() => handleUpdateComment(c.id)}
+                            disabled={!editCommentText.trim() || submitting}
+                            style={{ padding: "4px 14px", fontSize: "0.8rem" }}
+                          >
+                            {submitting ? "保存中..." : "保存"}
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            onClick={() => setEditingCommentId(null)}
+                            disabled={submitting}
+                            style={{ padding: "4px 14px", fontSize: "0.8rem" }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Display mode */
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{c.teacher_name}</span>
+                            <span style={{
+                              padding: "1px 8px", borderRadius: 10, fontSize: "0.7rem", fontWeight: 600,
+                              background: c.priority === "urgent" ? "rgba(239,68,68,0.1)" : c.priority === "high" ? "rgba(245,158,11,0.1)" : c.priority === "low" ? "rgba(107,114,128,0.1)" : "rgba(0,0,0,0.05)",
+                              color: c.priority === "urgent" ? "#ef4444" : c.priority === "high" ? "#f59e0b" : c.priority === "low" ? "#6b7280" : "#374151",
+                            }}>
+                              {priorityOptions.find((p) => p.key === c.priority)?.label || c.priority}
+                            </span>
+                            {!c.visible_to_student && (
+                              <span style={{ padding: "1px 8px", borderRadius: 10, fontSize: "0.7rem", fontWeight: 600, background: "rgba(107,114,128,0.1)", color: "#6b7280" }}>
+                                对学生隐藏
+                              </span>
+                            )}
+                            {c.visible_to_student && c.student_read_at && (
+                              <span style={{ padding: "1px 8px", borderRadius: 10, fontSize: "0.7rem", fontWeight: 600, background: "rgba(11,123,114,0.1)", color: "#0b7b72" }}>
+                                学生已读
+                              </span>
+                            )}
+                          </div>
+                          {c.created_at && (
+                            <span style={{ fontSize: "0.75rem", color: "var(--subtle)" }}>
+                              {new Date(c.created_at).toLocaleString("zh-CN")}
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: "0 0 8px", fontSize: "0.875rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{c.comment}</p>
+                        {(c.follow_up_status || c.next_follow_up_date) && (
+                          <div style={{ display: "flex", gap: 12, fontSize: "0.8rem", color: "var(--subtle)", marginBottom: 8 }}>
+                            {c.follow_up_status && (
+                              <span>跟进: {followupStatusOptions.find((s) => s.key === c.follow_up_status)?.label || c.follow_up_status}</span>
+                            )}
+                            {c.next_follow_up_date && (
+                              <span>下次跟进: {c.next_follow_up_date.slice(0, 10)}</span>
+                            )}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="btn-secondary"
+                            onClick={() => startEditComment(c)}
+                            disabled={submitting}
+                            style={{ padding: "3px 10px", fontSize: "0.75rem" }}
+                          >
+                            编辑
+                          </button>
+                          <button
+                            onClick={() => handleDeleteComment(c.id)}
+                            disabled={submitting}
+                            style={{
+                              padding: "3px 10px", fontSize: "0.75rem", borderRadius: 6,
+                              border: "1px solid #fca5a5", background: "#fff", color: "#ef4444",
+                              cursor: submitting ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: 20, color: "var(--subtle)", fontSize: "0.85rem" }}>暂无点评</div>
+            )}
           </div>
         </div>
       </>

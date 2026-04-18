@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from ast import literal_eval
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -86,6 +88,171 @@ def _job_info(title: str, profiles_by_title: dict[str, JobProfile]) -> dict:
         "description": profile.summary if profile and profile.summary else f"{title} 相关岗位，需结合业务场景持续积累项目经验。",
         "skills": (profile.skill_requirements if profile else [])[:6],
     }
+
+
+UNAVAILABLE_VALUES = {
+    "",
+    "无",
+    "暂无",
+    "未知",
+    "未填写",
+    "不详",
+    "没有",
+    "无证书",
+    "暂无证书",
+    "none",
+    "null",
+    "n/a",
+    "na",
+}
+
+UNAVAILABLE_PHRASES = (
+    "由于信息不足",
+    "信息不足",
+    "无法详细",
+    "无法列举",
+    "无法判断",
+    "无法识别",
+    "无法确定",
+    "不能确定",
+    "不可得",
+    "不明确",
+    "未提供",
+    "未提及",
+    "没有提及",
+    "可推测",
+    "推测",
+)
+
+GENERIC_STRUCTURED_VALUES = {"负责人", "实习生", "学生", "经历", "项目"}
+
+
+def _parse_object_string(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text or text[0] not in "[{" or text[-1] not in "]}":
+        return value
+    try:
+        return literal_eval(text)
+    except (ValueError, SyntaxError):
+        return value
+
+
+def _clean_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list, tuple, set)):
+        return ""
+    text = str(value).strip()
+    text = re.sub(r"\s+", " ", text)
+    text = text.strip(" \t\r\n,，;；、。")
+    if not text:
+        return ""
+    if (text.startswith("{") and text.endswith("}")) or (text.startswith("[") and text.endswith("]")):
+        return ""
+    if text in UNAVAILABLE_VALUES or text.lower() in UNAVAILABLE_VALUES:
+        return ""
+    if any(phrase in text for phrase in UNAVAILABLE_PHRASES):
+        return ""
+    return text
+
+
+def _clean_value(value: Any, *, limit: int = 4) -> str:
+    parsed = _parse_object_string(value)
+    if isinstance(parsed, dict):
+        parts = _clean_list(parsed.values(), limit=limit)
+        return "；".join(parts)
+    if isinstance(parsed, (list, tuple, set)):
+        parts = _clean_list(parsed, limit=limit)
+        return "、".join(parts)
+    return _clean_text(parsed)
+
+
+def _format_structured_item(item: dict[str, Any], keys: list[str]) -> str:
+    values: dict[str, str] = {}
+    for key in keys:
+        cleaned = _clean_value(item.get(key))
+        if cleaned:
+            values[key] = cleaned
+
+    title_keys = [key for key in ("name", "project_name", "company") if key in keys]
+    title = next((values.pop(key) for key in title_keys if values.get(key)), "")
+    if not title and "position" in values and values["position"] not in GENERIC_STRUCTURED_VALUES:
+        title = values.pop("position")
+
+    details = [value for value in values.values() if value not in GENERIC_STRUCTURED_VALUES]
+    if not title and not details:
+        return ""
+    if not details and title in GENERIC_STRUCTURED_VALUES:
+        return ""
+    if title and details:
+        return f"{title}：{'；'.join(details)}"
+    return title or "；".join(details)
+
+
+def _clean_list(values: Any, *, limit: int = 12, object_keys: list[str] | None = None) -> list[str]:
+    parsed = _parse_object_string(values)
+    if parsed is None:
+        return []
+    if isinstance(parsed, dict):
+        iterable: list[Any] = [parsed]
+    elif isinstance(parsed, (list, tuple, set)):
+        iterable = list(parsed)
+    else:
+        iterable = [parsed]
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in iterable:
+        parsed_item = _parse_object_string(item)
+        if isinstance(parsed_item, (list, tuple, set)):
+            candidates = _clean_list(parsed_item, limit=limit, object_keys=object_keys)
+        elif isinstance(parsed_item, dict):
+            if object_keys:
+                candidates = [_format_structured_item(parsed_item, object_keys)]
+            else:
+                candidates = _clean_list(parsed_item.values(), limit=limit)
+        else:
+            candidates = [_clean_text(parsed_item)]
+
+        for candidate in candidates:
+            cleaned = _clean_text(candidate)
+            if not cleaned or cleaned in GENERIC_STRUCTURED_VALUES:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(cleaned)
+            if len(result) >= limit:
+                return result
+    return result
+
+
+def clean_current_ability(current_ability: dict[str, Any] | None) -> dict[str, Any]:
+    """Normalize current ability content before storing or returning it."""
+    ability = dict(current_ability or {})
+    ability["skills"] = _clean_list(ability.get("skills"), limit=16)
+    ability["certificates"] = _clean_list(ability.get("certificates"), limit=8)
+    ability["projects"] = _clean_list(
+        ability.get("projects"),
+        limit=6,
+        object_keys=[
+            "name",
+            "project_name",
+            "description",
+            "actual_achievements",
+        ],
+    )
+    ability["internships"] = _clean_list(
+        ability.get("internships"),
+        limit=4,
+        object_keys=["company", "position", "duration", "responsibilities", "gained_skills"],
+    )
+    ability["matched_skills"] = _clean_list(ability.get("matched_skills"), limit=12)
+    ability["missing_skills"] = _clean_list(ability.get("missing_skills"), limit=12)
+    return ability
 
 
 class CareerPathService:
@@ -195,21 +362,22 @@ class CareerPathService:
 
     def _build_current_ability(self, student_profile: StudentProfile, job_profile: JobProfile) -> dict[str, Any]:
         """Build current ability starting point from student profile."""
-        student_skills = set(student_profile.skills_json or [])
-        job_skills = set(job_profile.skill_requirements or [])
+        student_skill_list = _clean_list(student_profile.skills_json or [], limit=16)
+        job_skill_list = _clean_list(job_profile.skill_requirements or [], limit=16)
+        student_skills = set(student_skill_list)
+        job_skills = set(job_skill_list)
         matched_skills = list(student_skills & job_skills)
         missing_skills = list(job_skills - student_skills)
-        student_certs = set(student_profile.certificates_json or [])
-        job_certs = set(job_profile.certificate_requirements or [])
-        return {
-            "skills": student_profile.skills_json or [],
+        student_certs = set(_clean_list(student_profile.certificates_json or [], limit=8))
+        return clean_current_ability({
+            "skills": student_skill_list,
             "certificates": list(student_certs),
             "projects": student_profile.projects_json or [],
             "internships": student_profile.internships_json or [],
             "capability_scores": student_profile.capability_scores or {},
             "matched_skills": matched_skills,
             "missing_skills": missing_skills,
-        }
+        })
 
     def _build_certificate_recommendations(self, student_profile: StudentProfile, job_profile: JobProfile) -> list[dict[str, Any]]:
         """Build certificate recommendations based on gap analysis."""

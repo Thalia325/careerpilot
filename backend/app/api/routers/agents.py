@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_container, get_current_user, get_db_session
+from app.core.errors import require_role
 from app.models import User
 from app.schemas.agent import AgentExecuteRequest, AgentExecuteResponse
 from app.services.bootstrap import ServiceContainer
@@ -17,8 +18,7 @@ async def execute_agent_workflow(
     db: Session = Depends(get_db_session),
 ) -> AgentExecuteResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
 
     result = await container.controller_agent.execute(db, payload.workflow, payload.payload)
     return AgentExecuteResponse(workflow=payload.workflow, state=result)

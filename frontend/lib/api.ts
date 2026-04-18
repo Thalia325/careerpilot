@@ -217,10 +217,11 @@ export async function getJobTemplates(): Promise<JobDetail[]> {
     const response = await request<{ data: JobDetail[] }>("/jobs/profiles/templates");
     return response.data;
   } catch (error) {
-    console.warn("[Fallback] Using demo data for job templates:", error instanceof Error ? error.message : error);
-    if (process.env.NODE_ENV === "development") {
+    if (error instanceof APIError && error.isNetworkError && process.env.NODE_ENV === "development") {
+      console.warn("[Fallback] Using demo data for job templates due to network error");
       return demoJobTemplates;
     }
+    console.error("[getJobTemplates] Failed to load job templates:", error instanceof Error ? error.message : error);
     throw error;
   }
 }
@@ -288,6 +289,10 @@ export async function generateReport(
 
 export async function getReport(reportId: number): Promise<ReportDraft> {
   return request<ReportDraft>(`/reports/${reportId}`);
+}
+
+export async function getLatestReport(): Promise<ReportDraft> {
+  return request<ReportDraft>("/reports/latest");
 }
 
 export type ReportCheckResult = {
@@ -453,7 +458,7 @@ export type UploadedFileInfo = {
 };
 
 export async function listFiles(): Promise<UploadedFileInfo[]> {
-  const res = await request<{ data: UploadedFileInfo[] }>("/files");
+  const res = await request<{ data: UploadedFileInfo[] }>("/files/");
   return res.data ?? [];
 }
 
@@ -485,6 +490,17 @@ export type AdminUser = {
   email: string;
   created_at: string | null;
   updated_at: string | null;
+  profile?: {
+    student_id?: number;
+    major?: string;
+    grade?: string;
+    career_goal?: string;
+    target_job_code?: string;
+    learning_preferences?: Record<string, unknown>;
+    teacher_id?: number;
+    department?: string;
+    title?: string;
+  };
 };
 
 export type AdminUserInput = {
@@ -495,8 +511,15 @@ export type AdminUserInput = {
   email: string;
 };
 
-export async function getAdminUsers(): Promise<{ total: number; items: AdminUser[] }> {
-  const res = await request<{ data: { total: number; items: AdminUser[] } }>("/admin/users");
+export async function getAdminUsers(params?: { keyword?: string; role?: string; skip?: number; limit?: number }): Promise<{ total: number; items: AdminUser[] }> {
+  const qs = new URLSearchParams();
+  if (params?.keyword) qs.set("keyword", params.keyword);
+  if (params?.role) qs.set("role", params.role);
+  if (params?.skip) qs.set("skip", String(params.skip));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  const path = `/admin/users${query ? `?${query}` : ""}`;
+  const res = await request<{ data: { total: number; items: AdminUser[] } }>(path);
   return res.data;
 }
 
@@ -525,10 +548,84 @@ export async function deleteAdminUser(userId: number): Promise<void> {
   await request(`/admin/users/${userId}`, { method: "DELETE" });
 }
 
+// --- Admin Position (JobProfile) CRUD ---
+
+export type AdminPosition = {
+  id: number;
+  job_code: string;
+  title: string;
+  summary: string;
+  skill_requirements: string[];
+  certificate_requirements: string[];
+  innovation_requirements: string;
+  learning_requirements: string;
+  resilience_requirements: string;
+  communication_requirements: string;
+  internship_requirements: string;
+  capability_scores: Record<string, number>;
+  dimension_weights: Record<string, number>;
+  explanation_json: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type AdminPositionInput = {
+  job_code: string;
+  title: string;
+  summary?: string;
+  skill_requirements?: string[];
+  certificate_requirements?: string[];
+  innovation_requirements?: string;
+  learning_requirements?: string;
+  resilience_requirements?: string;
+  communication_requirements?: string;
+  internship_requirements?: string;
+  capability_scores?: Record<string, number>;
+  dimension_weights?: Record<string, number>;
+  explanation_json?: Record<string, unknown>;
+};
+
+export async function getAdminPositions(params: { keyword?: string; skip?: number; limit?: number } = {}): Promise<{ total: number; items: AdminPosition[] }> {
+  const qs = new URLSearchParams();
+  if (params.keyword) qs.set("keyword", params.keyword);
+  if (params.skip !== undefined) qs.set("skip", String(params.skip));
+  if (params.limit !== undefined) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  const path = `/admin/positions${query ? `?${query}` : ""}`;
+  const res = await request<{ data: { total: number; items: AdminPosition[] } }>(path);
+  return res.data;
+}
+
+export async function getAdminPosition(positionId: number): Promise<AdminPosition> {
+  const res = await request<{ data: AdminPosition }>(`/admin/positions/${positionId}`);
+  return res.data;
+}
+
+export async function createAdminPosition(data: AdminPositionInput): Promise<AdminPosition> {
+  const res = await request<{ data: AdminPosition }>("/admin/positions", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function updateAdminPosition(positionId: number, data: Partial<AdminPositionInput>): Promise<AdminPosition> {
+  const res = await request<{ data: AdminPosition }>(`/admin/positions/${positionId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}
+
+export async function deleteAdminPosition(positionId: number): Promise<void> {
+  await request(`/admin/positions/${positionId}`, { method: "DELETE" });
+}
+
 export type AdminStatsOverview = {
   total_users: number;
-  total_jobs: number;
+  total_positions: number;
   total_reports: number;
+  total_matches: number;
   avg_match_score: number;
 };
 
@@ -774,6 +871,8 @@ export type TeacherCommentItem = {
   priority: string;
   visible_to_student: boolean;
   student_read_at: string | null;
+  follow_up_status: string | null;
+  next_follow_up_date: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -781,11 +880,16 @@ export type TeacherCommentItem = {
 export async function createTeacherComment(
   reportId: number,
   commentText: string,
-  priority: string = "normal",
-  visibleToStudent: boolean = true,
-): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; created_at: string | null }> {
-  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; created_at: string | null } }>(
-    `/teacher/reports/${reportId}/comments?comment_text=${encodeURIComponent(commentText)}&priority=${priority}&visible_to_student=${visibleToStudent}`,
+  options: { priority?: string; visible_to_student?: boolean; follow_up_status?: string; next_follow_up_date?: string } = {},
+): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; follow_up_status: string | null; next_follow_up_date: string | null; created_at: string | null }> {
+  const params = new URLSearchParams();
+  params.set("comment_text", commentText);
+  params.set("priority", options.priority || "normal");
+  params.set("visible_to_student", String(options.visible_to_student !== false));
+  if (options.follow_up_status) params.set("follow_up_status", options.follow_up_status);
+  if (options.next_follow_up_date) params.set("next_follow_up_date", options.next_follow_up_date);
+  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; follow_up_status: string | null; next_follow_up_date: string | null; created_at: string | null } }>(
+    `/teacher/reports/${reportId}/comments?${params.toString()}`,
     { method: "POST" },
   );
   return res.data;
@@ -798,13 +902,15 @@ export async function getTeacherComments(reportId: number): Promise<TeacherComme
 
 export async function updateTeacherComment(
   commentId: number,
-  data: { comment_text?: string; priority?: string; visible_to_student?: boolean },
-): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; updated_at: string | null }> {
+  data: { comment_text?: string; priority?: string; visible_to_student?: boolean; follow_up_status?: string; next_follow_up_date?: string },
+): Promise<{ id: number; comment: string; priority: string; visible_to_student: boolean; follow_up_status: string | null; next_follow_up_date: string | null; updated_at: string | null }> {
   const params = new URLSearchParams();
   if (data.comment_text !== undefined) params.set("comment_text", data.comment_text);
   if (data.priority !== undefined) params.set("priority", data.priority);
   if (data.visible_to_student !== undefined) params.set("visible_to_student", String(data.visible_to_student));
-  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; updated_at: string | null } }>(
+  if (data.follow_up_status !== undefined) params.set("follow_up_status", data.follow_up_status);
+  if (data.next_follow_up_date !== undefined) params.set("next_follow_up_date", data.next_follow_up_date);
+  const res = await request<{ data: { id: number; comment: string; priority: string; visible_to_student: boolean; follow_up_status: string | null; next_follow_up_date: string | null; updated_at: string | null } }>(
     `/teacher/comments/${commentId}?${params.toString()}`,
     { method: "PUT" },
   );
@@ -834,6 +940,48 @@ export async function getStudentTeacherFeedback(): Promise<TeacherFeedbackItem[]
 
 export async function markFeedbackRead(commentId: number): Promise<{ ok: boolean; read_at: string }> {
   return request(`/students/me/teacher-feedback/${commentId}/read`, { method: "POST" });
+}
+
+// --- Teacher Roster Management ---
+
+export type RosterCandidate = {
+  student_id: number;
+  user_id: number;
+  username: string;
+  full_name: string;
+  email: string;
+  major: string;
+  grade: string;
+  already_bound: boolean;
+};
+
+export type RosterAddResult = {
+  id: number;
+  teacher_id: number;
+  student_id: number;
+  group_name: string;
+  source: string;
+  status: string;
+  created_at: string | null;
+};
+
+export type RosterRemoveResult = {
+  removed: boolean;
+  student_id: number;
+};
+
+export async function searchRosterCandidates(keyword: string): Promise<RosterCandidate[]> {
+  const res = await request<{ data: RosterCandidate[] }>(`/teacher/roster/search?keyword=${encodeURIComponent(keyword)}`);
+  return res.data;
+}
+
+export async function addStudentToRoster(studentId: number, groupName?: string): Promise<RosterAddResult> {
+  const query = groupName ? `?group_name=${encodeURIComponent(groupName)}` : "";
+  return request(`/teacher/roster/${studentId}${query}`, { method: "POST" });
+}
+
+export async function removeStudentFromRoster(studentId: number): Promise<RosterRemoveResult> {
+  return request(`/teacher/roster/${studentId}`, { method: "DELETE" });
 }
 
 export type RecommendedJob = {
@@ -888,6 +1036,36 @@ export async function renameHistoryItem(recordType: string, refId: number, custo
     method: "PATCH",
     body: JSON.stringify({ record_type: recordType, ref_id: refId, custom_title: customTitle }),
   });
+}
+
+export type HistoryDetailPayload = {
+  type: string;
+  ref_id: number;
+  [key: string]: unknown;
+};
+
+export async function getHistoryDetail(recordType: string, refId: number): Promise<HistoryDetailPayload> {
+  const res = await request<HistoryDetailPayload>(
+    `/students/me/history/detail?type=${encodeURIComponent(recordType)}&ref_id=${refId}`
+  );
+  return res;
+}
+
+export type ChatHistoryMessage = {
+  id: number;
+  role: string;
+  content: string;
+  created_at: string;
+  has_context: boolean;
+};
+
+export type ChatHistoryResponse = {
+  messages: ChatHistoryMessage[];
+  target_message_id: number;
+};
+
+export async function getChatHistory(messageId: number): Promise<ChatHistoryResponse> {
+  return await request<ChatHistoryResponse>(`/chat/history/${messageId}`);
 }
 
 export type JobListItem = {
@@ -972,4 +1150,30 @@ export async function markAnalysisComplete(runId: number): Promise<AnalysisRunSt
 
 export async function resetAnalysisRun(runId: number): Promise<AnalysisRunState> {
   return request<AnalysisRunState>(`/analysis/${runId}/reset`, { method: "POST" });
+}
+
+// --- Password change (US-028) ---
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<{ message: string }> {
+  const res = await request<{ message: string }>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+  });
+  return res;
+}
+
+export async function adminResetPassword(userId: number, newPassword: string): Promise<{ message: string }> {
+  const res = await request<{ message: string }>(`/admin/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ password: newPassword }),
+  });
+  return res;
+}
+
+export async function teacherResetStudentPassword(studentUserId: number, newPassword: string): Promise<{ message: string }> {
+  const res = await request<{ message: string }>(`/teacher/students/${studentUserId}/reset-password`, {
+    method: "POST",
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  return res;
 }

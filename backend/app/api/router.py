@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routers import admin, agents, analysis, auth, career_paths, chat, files, graph, jobs, matching, ocr, reports, scheduler, student_profiles, students, teacher
 
-api_router = APIRouter()
+api_router = APIRouter(redirect_slashes=False)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(students.router, prefix="/students", tags=["students"])
 api_router.include_router(files.router, prefix="/files", tags=["files"])

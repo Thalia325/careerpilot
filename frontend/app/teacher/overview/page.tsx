@@ -13,6 +13,7 @@ const teacherNavItems = [
   { href: "/teacher/reports", label: "学生报告查看", icon: <Icon name="clipboard" size={18} /> },
   { href: "/teacher/overview", label: "班级数据概览", icon: <Icon name="chart" size={18} /> },
   { href: "/teacher/advice", label: "指导建议", icon: <Icon name="chat" size={18} /> },
+  { href: "/teacher/roster", label: "花名册管理", icon: <Icon name="users" size={18} /> },
 ];
 
 const COLORS = ["#173f8a", "#0f74da", "#12b3a6", "#f59e0b", "#ef4444", "#8b5cf6", "#6366f1", "#14b8a6"];

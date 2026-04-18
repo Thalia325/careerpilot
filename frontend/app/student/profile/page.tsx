@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SectionCard } from "@/components/SectionCard";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -16,6 +17,7 @@ import {
   type UploadedFileInfo,
 } from "@/lib/api";
 import { Icon } from "@/components/Icon";
+import { formatTime as formatTimeUtil } from "@/lib/format";
 
 const CAPABILITY_LABELS: Record<string, string> = {
   innovation: "创新能力",
@@ -26,9 +28,7 @@ const CAPABILITY_LABELS: Record<string, string> = {
 };
 
 function formatTime(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return formatTimeUtil(iso);
 }
 
 function CapabilityBar({ label, value }: { label: string; value: number }) {
@@ -51,6 +51,9 @@ function CapabilityBar({ label, value }: { label: string; value: number }) {
 }
 
 export default function StudentProfilePage() {
+  const searchParams = useSearchParams();
+  const versionParam = searchParams.get("version");
+  const isFromHistory = searchParams.get("source") === "history";
   const [profile, setProfile] = useState<StudentProfileType | null>(null);
   const [versions, setVersions] = useState<ProfileVersionItem[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<ProfileVersionItem | null>(null);
@@ -74,6 +77,23 @@ export default function StudentProfilePage() {
       setFiles(f);
       setProfile(p);
       setVersions(v);
+
+      // Auto-select version from URL param
+      if (versionParam) {
+        const vId = parseInt(versionParam, 10);
+        if (!isNaN(vId)) {
+          const found = v.find((item: ProfileVersionItem) => item.id === vId);
+          if (found) {
+            setSelectedVersion(found);
+          } else if (sess.student_id) {
+            // Version not in list, try fetching directly
+            try {
+              const detail = await getProfileVersionDetail(sess.student_id, vId);
+              setSelectedVersion(detail as unknown as ProfileVersionItem);
+            } catch { /* ignore */ }
+          }
+        }
+      }
     } catch {} finally { setLoading(false); }
   }, []);
 
@@ -107,7 +127,14 @@ export default function StudentProfilePage() {
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>我的能力分析</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>我的能力分析</h1>
+          {(selectedVersion || (versionParam && isFromHistory)) ? (
+            <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(180,83,9,0.1)", color: "#b45309", fontSize: "0.75rem", fontWeight: 600 }}>历史画像</span>
+          ) : hasCapabilities ? (
+            <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(34,197,94,0.1)", color: "#166534", fontSize: "0.75rem", fontWeight: 600 }}>当前最新</span>
+          ) : null}
+        </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <Link href="/student" className="btn-secondary" style={{ textDecoration: "none", padding: "10px 14px", fontSize: "0.875rem" }}>
             返回问答页

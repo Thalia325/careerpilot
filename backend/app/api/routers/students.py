@@ -4,6 +4,8 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.errors import require_role, raise_resource_forbidden
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -244,8 +246,7 @@ def update_current_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ):
-    if current_user.role != "student":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只有学生账号可以维护个人信息")
+    require_role(current_user.role, "student")
 
     student = db.scalar(select(Student).where(Student.user_id == current_user.id))
     if not student:
@@ -333,7 +334,8 @@ def get_recommended_jobs(
     }
     experience = extract_resume_experience_context(db, current_user.id, source_summary=student_profile.source_summary if student_profile else "")
     max_recommended = 30
-    min_score = 60.0
+    min_recommended = min(8, len(all_profiles))
+    quality_floor = 35.0
 
     if student_profile:
         scored_profiles = []
@@ -342,15 +344,24 @@ def get_recommended_jobs(
             posting = postings.get(jp.job_code)
             scoring = score_recommended_job(student_profile, jp, experience, posting)
             final_score = scoring["score"]
-            if final_score < min_score:
-                continue
             scored_profiles.append((final_score, scoring, jp, posting))
 
-        scored_profiles.sort(key=lambda item: item[0], reverse=True)
+        scored_profiles.sort(
+            key=lambda item: (
+                item[0],
+                item[1].get("skill_score", 0),
+                item[1].get("experience_score", 0),
+            ),
+            reverse=True,
+        )
+        qualified_profiles = [item for item in scored_profiles if item[0] >= quality_floor]
+        if len(qualified_profiles) < min_recommended:
+            qualified_profiles = scored_profiles[:min_recommended]
+
         diversified_profiles = []
         title_counts: dict[str, int] = {}
         max_per_title = 6
-        for item in scored_profiles:
+        for item in qualified_profiles:
             title = item[2].title
             if title_counts.get(title, 0) >= max_per_title:
                 continue
@@ -360,9 +371,9 @@ def get_recommended_jobs(
                 break
 
         logger.info(
-            "推荐岗位统计: 总岗位数=%s, 60分以上岗位数=%s, 多样化后=%s, 项目数=%s, 实习数=%s, 将返回=%s",
+            "推荐岗位统计: 总岗位数=%s, 质量线以上岗位数=%s, 多样化后=%s, 项目数=%s, 实习数=%s, 将返回=%s",
             len(all_profiles),
-            len(scored_profiles),
+            len([item for item in scored_profiles if item[0] >= quality_floor]),
             len(diversified_profiles),
             experience["project_count"],
             experience["internship_count"],
@@ -373,7 +384,11 @@ def get_recommended_jobs(
             company_name = posting.company_name if posting else "推荐岗位"
             salary_range = posting.salary_range if posting and posting.salary_range else ""
             skills = jp.skill_requirements[:5] if jp.skill_requirements else []
-            matched = list(dict.fromkeys(scoring["matched_skills"] + scoring["experience_tags"] + scoring["intent_tags"]))[:6]
+            matched = list(dict.fromkeys(
+                scoring["matched_skills"]
+                + scoring["experience_tags"]
+                + scoring["intent_tags"]
+            ))[:6]
             missing = scoring["missing_skills"][:4]
 
             reason = generate_recommendation_reason(
@@ -647,6 +662,113 @@ def rename_history_item(
     return {"ok": True}
 
 
+@router.get("/me/history/detail")
+def get_history_detail(
+    record_type: str = Query(..., alias="type"),
+    ref_id: int = Query(..., gt=0),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+):
+    """Return detail payload for a specific history record, scoped to the authenticated user.
+
+    Supported types: upload, profile, matching, path, report, feedback.
+    Chat is handled by the dedicated /chat/history/{message_id} endpoint.
+    """
+    student = db.scalar(select(Student).where(Student.user_id == current_user.id))
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="学生信息不存在")
+
+    if record_type == "upload":
+        f = db.get(UploadedFile, ref_id)
+        if not f or f.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="文件不存在")
+        return {
+            "type": "upload",
+            "ref_id": f.id,
+            "file_name": f.file_name,
+            "file_type": f.file_type,
+            "created_at": f.created_at.isoformat() if f.created_at else "",
+            "meta": f.meta_json or {},
+        }
+
+    elif record_type == "profile":
+        pv = db.get(ProfileVersion, ref_id)
+        if not pv or pv.student_id != student.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="画像版本不存在")
+        return {
+            "type": "profile",
+            "ref_id": pv.id,
+            "version_no": pv.version_no,
+            "snapshot": pv.snapshot_json,
+            "uploaded_file_ids": pv.uploaded_file_ids or [],
+            "created_at": pv.created_at.isoformat() if pv.created_at else "",
+        }
+
+    elif record_type == "matching":
+        m = db.get(MatchResult, ref_id)
+        if not m:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="匹配记录不存在")
+        # Verify ownership: match result must belong to this student's profile
+        sp = db.scalar(select(StudentProfile).where(StudentProfile.id == m.student_profile_id))
+        if not sp or sp.student_id != student.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="匹配记录不存在")
+        return {
+            "type": "matching",
+            "ref_id": m.id,
+            "total_score": m.total_score,
+            "summary": m.summary or "",
+            "strengths": m.strengths_json or [],
+            "gap_items": m.gaps_json or [],
+            "suggestions": m.suggestions_json or [],
+            "created_at": m.created_at.isoformat() if m.created_at else "",
+        }
+
+    elif record_type == "path":
+        p = db.get(PathRecommendation, ref_id)
+        if not p or p.student_id != student.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="路径规划记录不存在")
+        return {
+            "type": "path",
+            "ref_id": p.id,
+            "target_job_code": p.target_job_code,
+            "primary_path": p.primary_path_json or [],
+            "alternate_paths": p.alternate_paths_json or [],
+            "gaps": p.gaps_json or [],
+            "recommendations": p.recommendations_json or [],
+            "created_at": p.created_at.isoformat() if p.created_at else "",
+        }
+
+    elif record_type == "report":
+        r = db.get(CareerReport, ref_id)
+        if not r or r.student_id != student.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+        return {
+            "type": "report",
+            "ref_id": r.id,
+            "job_code": r.target_job_code,
+            "status": r.status,
+            "content": r.content_json,
+            "markdown_content": r.markdown_content,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        }
+
+    elif record_type == "feedback":
+        fb = db.get(FollowupRecord, ref_id)
+        if not fb or fb.student_id != student.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="反馈记录不存在")
+        return {
+            "type": "feedback",
+            "ref_id": fb.id,
+            "record_type": fb.record_type,
+            "content": fb.content,
+            "meta": fb.meta_json or {},
+            "created_at": fb.created_at.isoformat() if fb.created_at else "",
+        }
+
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"不支持的记录类型: {record_type}")
+
+
 # --- Teacher Feedback for Students ---
 
 @router.get("/me/teacher-feedback")
@@ -679,6 +801,8 @@ def get_teacher_feedback(
             "comment": c.comment,
             "priority": c.priority,
             "student_read_at": c.student_read_at.isoformat() if c.student_read_at else None,
+            "follow_up_status": c.follow_up_status,
+            "next_follow_up_date": c.next_follow_up_date.isoformat() if c.next_follow_up_date else None,
             "created_at": c.created_at.isoformat() if c.created_at else None,
         })
 
@@ -700,8 +824,7 @@ def mark_feedback_read(
 
     student = db.scalar(select(Student).where(Student.user_id == current_user.id))
     if not student or comment.student_id != student.id:
-        from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+        raise_resource_forbidden()
 
     comment.student_read_at = datetime.now(timezone.utc)
     db.commit()

@@ -81,6 +81,9 @@ class StudentProfileService:
                 uploaded_files = [uploaded_files[0]]
         # mode == "merged_materials": use all provided files
 
+        processed_any_file = False
+        file_errors: list[str] = []
+
         for uploaded in uploaded_files:
             try:
                 ocr = uploaded.meta_json.get("ocr") if uploaded.meta_json else None
@@ -88,6 +91,7 @@ class StudentProfileService:
                     document_type = "resume" if uploaded.file_type == "resume" else uploaded.file_type
                     ocr = await self.file_service.parse_uploaded_file(db, uploaded.id, document_type)
                 structured = ocr["structured_json"]
+                processed_any_file = True
                 # 优先使用OCR解析的专业信息，覆盖学生基本信息中的专业
                 if structured.get("major"):
                     merged["major"] = structured.get("major")
@@ -121,8 +125,13 @@ class StudentProfileService:
                 for skill in structured.get("skills", []):
                     evidence_items.append({"source": uploaded.file_name, "excerpt": f"OCR 提取技能：{skill}", "confidence": 0.9})
             except Exception as e:
-                logger.error(f"Failed to process uploaded file {uploaded_file_id}: {str(e)}")
+                logger.error("Failed to process uploaded file %s: %s", uploaded.id, str(e))
+                file_errors.append(f"{uploaded.file_name}: {str(e)}")
                 continue
+
+        if uploaded_files and not processed_any_file and not manual_input:
+            detail = "；".join(file_errors) if file_errors else "未能从上传材料中提取有效内容"
+            raise ValueError(f"上传材料解析失败：{detail}")
 
         # 如果OCR没有解析到专业信息，才使用学生基本信息中的专业
         if not merged["major"] and student.major:

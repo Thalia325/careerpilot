@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_container, get_current_user, get_db_session
+from app.api.deps import ensure_student_owns_resource, get_container, get_current_user, get_db_session
 from app.api.routers.students import resolve_target_job
+from app.core.errors import raise_resource_forbidden, require_role
 from app.models import AnalysisRun, PathRecommendation, Student, User
 from app.schemas.common import APIResponse
 from app.services.bootstrap import ServiceContainer
+from app.services.paths.career_path_service import clean_current_ability
 
 router = APIRouter()
 
@@ -30,8 +32,9 @@ async def plan_career_path(
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    ensure_student_owns_resource(current_user, db, payload.student_id)
 
     job_code = payload.job_code
     if not job_code:
@@ -112,7 +115,7 @@ def _path_to_dict(path_result: PathRecommendation) -> dict[str, Any]:
         "gaps": path_result.gaps_json or [],
         "recommendations": path_result.recommendations_json or [],
         "rationale": "基于岗位图谱的晋升链路和转岗链路，结合学生当前技能覆盖情况生成主路径与备选路径。",
-        "current_ability": path_result.current_ability_json or {},
+        "current_ability": clean_current_ability(path_result.current_ability_json or {}),
         "certificate_recommendations": path_result.certificate_recommendations_json or [],
         "learning_resources": path_result.learning_resources_json or [],
         "evaluation_metrics": path_result.evaluation_metrics_json or [],
@@ -141,9 +144,8 @@ def get_path_result(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="学生信息不存在")
 
     if current_user.role == "student" and student.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问此记录")
+        raise_resource_forbidden()
 
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
 
     return APIResponse(data=_path_to_dict(path_result))

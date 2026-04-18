@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     ernie_access_token_encrypted: str = ""
     ernie_aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3"
     ernie_model: str = "ernie-5.0-thinking-preview"
-    paddle_ocr_service_url: str = "https://68s1bc8ea6pdwew2.aistudio-app.com/layout-parsing"
+    paddle_ocr_service_url: str = "https://rdj6r9sbc98duaa1.aistudio-app.com/layout-parsing"
     paddle_ocr_api_key_encrypted: str = ""
     ragflow_base_url: str = ""
     ragflow_api_key: str = ""

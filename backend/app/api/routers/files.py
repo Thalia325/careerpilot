@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_container, get_current_user, get_db_session
+from app.core.errors import raise_resource_forbidden
 from app.models import User
 from app.schemas.common import APIResponse
 from app.services.bootstrap import ServiceContainer
@@ -55,7 +56,7 @@ async def upload_file(
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
     if current_user.id != owner_id and current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权上传文件")
+        raise_resource_forbidden()
 
     if file_type not in VALID_FILE_TYPES:
         raise HTTPException(

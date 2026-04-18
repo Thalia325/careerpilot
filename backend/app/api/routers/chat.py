@@ -1,11 +1,13 @@
 import json
 import logging
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db_session
+from app.core.errors import raise_resource_forbidden
 from app.models import ChatMessageRecord, MatchDimensionScore, MatchResult, PathRecommendation, Student, StudentProfile, UploadedFile, User
 from app.schemas.chat import ChatRequest, ChatResponse, GreetingResponse
 from app.services.bootstrap import get_user_llm_provider
@@ -179,32 +181,43 @@ def _build_user_context(db: Session, user_id: int) -> str:
     )
 
 
+def _fallback_greeting(db: Session, user_id: int) -> tuple[str, str]:
+    """Return a (greeting, subline) tuple based on basic student info, no LLM call."""
+    student = db.scalar(select(Student).where(Student.user_id == user_id))
+    greeting = "你好，想了解什么职业方向？"
+    subline = "输入你感兴趣的岗位方向或上传简历，AI 帮你分析"
+    if student and student.career_goal:
+        greeting = f"你好！来聊聊{student.career_goal}方向？"
+        subline = "上传简历或直接提问，AI 帮你深入分析"
+    elif student and student.major:
+        greeting = f"你好，{student.major}同学！想了解什么职业方向？"
+        subline = "上传简历或直接提问，AI 帮你规划职业路径"
+    return greeting, subline
+
+
 @router.get("/greeting", response_model=GreetingResponse)
 def greeting(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> GreetingResponse:
-    user_ctx = _build_user_context(db, current_user.id)
+    fallback_greeting, fallback_subline = _fallback_greeting(db, current_user.id)
 
-    recent = db.scalars(
-        select(ChatMessageRecord)
-        .where(ChatMessageRecord.user_id == current_user.id, ChatMessageRecord.role == "user")
-        .order_by(ChatMessageRecord.created_at.desc())
-        .limit(10)
-    ).all()
-    history_lines = [f"- {m.content[:80]}" for m in reversed(recent)] if recent else []
+    try:
+        user_ctx = _build_user_context(db, current_user.id)
+    except Exception:
+        logger.warning("Failed to build user context for greeting, user_id=%s", current_user.id, exc_info=True)
+        return GreetingResponse(greeting=fallback_greeting, subline=fallback_subline)
 
-    student = db.scalar(select(Student).where(Student.user_id == current_user.id))
-
-    fallback_greeting = "你好，想了解什么职业方向？"
-    fallback_subline = "输入你感兴趣的岗位方向或上传简历，AI 帮你分析"
-
-    if student and student.career_goal:
-        fallback_greeting = f"你好！来聊聊{student.career_goal}方向？"
-        fallback_subline = "上传简历或直接提问，AI 帮你深入分析"
-    elif student and student.major:
-        fallback_greeting = f"你好，{student.major}同学！想了解什么职业方向？"
-        fallback_subline = "上传简历或直接提问，AI 帮你规划职业路径"
+    try:
+        recent = db.scalars(
+            select(ChatMessageRecord)
+            .where(ChatMessageRecord.user_id == current_user.id, ChatMessageRecord.role == "user")
+            .order_by(ChatMessageRecord.created_at.desc())
+            .limit(10)
+        ).all()
+        history_lines = [f"- {m.content[:80]}" for m in reversed(recent)] if recent else []
+    except Exception:
+        history_lines = []
 
     if not user_ctx and not history_lines:
         return GreetingResponse(greeting=fallback_greeting, subline=fallback_subline)
@@ -228,8 +241,8 @@ def greeting(
         '{"greeting": "问候语", "subline": "副标题"}'
     )
 
-    provider = get_user_llm_provider(None, current_user.id)
     try:
+        provider = get_user_llm_provider(None, current_user.id)
         raw = provider._chat(system_prompt, context_block or "新用户，暂无背景信息")
         parsed = json.loads(raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip())
         greeting_text = parsed.get("greeting", fallback_greeting)
@@ -296,3 +309,52 @@ def chat(
     except Exception as exc:
         logger.warning("Chat failed for user %s: %s", current_user.id, exc)
         return ChatResponse(reply=f"AI 模型调用失败：{exc}。请稍后再试。")
+
+
+@router.get("/history/{message_id}")
+def get_chat_history(
+    message_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+):
+    """Fetch a specific chat message and its surrounding conversation for history replay.
+
+    Returns messages within a ±5-minute window of the target message,
+    scoped to the authenticated user.
+    """
+    msg = db.get(ChatMessageRecord, message_id)
+    if not msg:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="聊天记录不存在")
+
+    # Ownership check: only the message owner can view
+    if msg.user_id != current_user.id:
+        raise_resource_forbidden()
+
+    # Fetch messages in a ±5-minute window around the target message
+    target_time: datetime = msg.created_at
+    window_start = target_time - timedelta(minutes=5)
+    window_end = target_time + timedelta(minutes=5)
+
+    messages = list(db.scalars(
+        select(ChatMessageRecord)
+        .where(
+            ChatMessageRecord.user_id == current_user.id,
+            ChatMessageRecord.created_at >= window_start,
+            ChatMessageRecord.created_at <= window_end,
+        )
+        .order_by(ChatMessageRecord.created_at.asc())
+    ).all())
+
+    return {
+        "messages": [
+            {
+                "id": m.id,
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at.isoformat() if m.created_at else "",
+                "has_context": m.has_context,
+            }
+            for m in messages
+        ],
+        "target_message_id": message_id,
+    }

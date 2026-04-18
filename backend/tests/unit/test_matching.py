@@ -1,7 +1,19 @@
 import pytest
 
 from app.schemas.profile import ManualStudentInput
+from app.services.matching.scoring import score_professional_skills
 from app.services.bootstrap import create_service_container, initialize_demo_data
+
+
+def test_professional_skills_scores_related_skill_families():
+    score, evidence = score_professional_skills(
+        {"skills": ["PyTorch", "深度学习", "SQL"]},
+        {"skill_requirements": ["TensorFlow", "机器学习", "数据分析"]},
+    )
+
+    assert score >= 50
+    assert evidence["related_skills"]
+    assert "TensorFlow" in evidence["missing_skills"]
 
 
 @pytest.mark.asyncio

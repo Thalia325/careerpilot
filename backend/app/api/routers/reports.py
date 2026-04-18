@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_container, get_current_user, get_db_session
+from app.api.deps import ensure_student_owns_resource, get_container, get_current_user, get_db_session
 from app.api.routers.students import resolve_target_job
-from app.models import Student, UploadedFile, User
+from app.core.errors import require_role
+from app.models import CareerReport, Student, UploadedFile, User
 from app.schemas.report import (
     ReportCheckRequest,
     ReportCheckResponse,
@@ -20,6 +21,60 @@ from app.services.bootstrap import ServiceContainer
 router = APIRouter()
 
 
+@router.get("/latest", response_model=ReportResponse)
+def get_latest_report(
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+) -> ReportResponse:
+    """Return the most recent report for the authenticated student."""
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    student = db.scalar(select(Student).where(Student.user_id == current_user.id))
+    if not student:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="学生信息不存在")
+
+    report = db.scalar(
+        select(CareerReport)
+        .where(CareerReport.student_id == student.id)
+        .order_by(CareerReport.id.desc())
+        .limit(1)
+    )
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="暂无报告，请先完成分析")
+
+    if not report.content_json or not report.markdown_content:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告尚未生成")
+
+    report = container.report_service._standardize_report(db, report)
+
+    # Check source files status
+    source_files_deleted = False
+    if report.profile_version_id:
+        from app.models import ProfileVersion
+        pv = db.scalar(select(ProfileVersion).where(ProfileVersion.id == report.profile_version_id))
+        if pv and pv.uploaded_file_ids:
+            existing_count = db.scalar(
+                select(func.count(UploadedFile.id)).where(UploadedFile.id.in_(pv.uploaded_file_ids))
+            )
+            if existing_count < len(pv.uploaded_file_ids):
+                source_files_deleted = True
+
+    return ReportResponse(
+        report_id=report.id,
+        student_id=report.student_id,
+        job_code=report.target_job_code,
+        content=report.content_json,
+        markdown_content=report.markdown_content,
+        status=report.status,
+        path_recommendation_id=report.path_recommendation_id,
+        profile_version_id=report.profile_version_id,
+        match_result_id=report.match_result_id,
+        analysis_run_id=report.analysis_run_id,
+        source_files_deleted=source_files_deleted,
+    )
+
+
 @router.get("/{report_id}", response_model=ReportResponse)
 def get_report(
     report_id: int,
@@ -27,13 +82,15 @@ def get_report(
     container: ServiceContainer = Depends(get_container),
     db: Session = Depends(get_db_session),
 ) -> ReportResponse:
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
 
     try:
         report = container.report_service.get_report(db, report_id)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+
+    ensure_student_owns_resource(current_user, db, report.student_id)
+
     if not report.content_json or not report.markdown_content:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告尚未生成")
 
@@ -49,7 +106,6 @@ def get_report(
             if existing_count < len(pv.uploaded_file_ids):
                 source_files_deleted = True
 
-    from sqlalchemy import func
     return ReportResponse(
         report_id=report.id,
         student_id=report.student_id,
@@ -73,8 +129,9 @@ async def generate_report(
     db: Session = Depends(get_db_session),
 ) -> ReportResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    ensure_student_owns_resource(current_user, db, payload.student_id)
 
     job_code = payload.job_code
     if not job_code:
@@ -104,8 +161,12 @@ async def polish_report(
     db: Session = Depends(get_db_session),
 ) -> ReportResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    report = db.scalar(select(CareerReport).where(CareerReport.id == payload.report_id))
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+    ensure_student_owns_resource(current_user, db, report.student_id)
 
     result = await container.report_service.polish_report(db, payload.report_id, payload.markdown_content)
     return ReportResponse(**result)
@@ -119,8 +180,12 @@ def check_report(
     db: Session = Depends(get_db_session),
 ) -> ReportCheckResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    report = db.scalar(select(CareerReport).where(CareerReport.id == payload.report_id))
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+    ensure_student_owns_resource(current_user, db, report.student_id)
 
     return ReportCheckResponse(**container.report_service.check_completeness(db, payload.report_id))
 
@@ -133,8 +198,12 @@ def export_report(
     db: Session = Depends(get_db_session),
 ) -> ReportExportResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    report = db.scalar(select(CareerReport).where(CareerReport.id == payload.report_id))
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+    ensure_student_owns_resource(current_user, db, report.student_id)
 
     try:
         exported = container.report_service.export_report(db, payload.report_id, payload.format)
@@ -150,8 +219,12 @@ def save_report(
     container: ServiceContainer = Depends(get_container),
     db: Session = Depends(get_db_session),
 ):
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    report = db.scalar(select(CareerReport).where(CareerReport.id == payload.report_id))
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
+    ensure_student_owns_resource(current_user, db, report.student_id)
 
     try:
         container.report_service.save_report(db, payload.report_id, payload.markdown_content)

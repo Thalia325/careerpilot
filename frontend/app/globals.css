@@ -167,6 +167,30 @@ button:disabled {
   transform: scale(0.95);
 }
 
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 18px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-md);
+  font-size: var(--text-btn-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background: rgba(15, 116, 218, 0.04);
+  border-color: rgba(15, 116, 218, 0.2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
 .btn-loading {
   pointer-events: none;
   opacity: 0.7;
@@ -1716,7 +1740,9 @@ a[aria-label] {
   flex: 1;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .student-main {
@@ -1726,7 +1752,8 @@ a[aria-label] {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .student-main.is-upload-dragging::after {
@@ -2086,6 +2113,49 @@ a[aria-label] {
   margin: 8px 0 0;
 }
 
+.student-main__upload-card.is-uploaded {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  cursor: default;
+}
+
+.student-main__upload-card.is-uploaded:hover {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  box-shadow: none;
+}
+
+.student-main__upload-card-text--done {
+  color: #16a34a;
+}
+
+.student-main__step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.student-main__step-indicator--done {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+.student-main__step-indicator-file {
+  font-size: 0.8125rem;
+  color: #666;
+  font-weight: 400;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .student-main__file-list {
   margin-top: 14px;
   width: 100%;
@@ -2172,8 +2242,88 @@ a[aria-label] {
 }
 
 .student-main__pipeline-wrap {
-  max-width: 720px;
+  max-width: 768px;
   margin: 0 auto 16px;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.student-main__pipeline-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-top: 12px;
+}
+
+.student-main__pipeline-error-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.student-main__pipeline-error-banner-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.student-main__pipeline-error-banner-detail {
+  font-size: 0.8125rem;
+  color: #991b1b;
+  margin: 0 0 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.student-main__pipeline-error-banner-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.student-main__pipeline-error-retry-btn {
+  min-height: 36px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-main__pipeline-error-retry-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.student-main__pipeline-error-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.student-main__pipeline-error-restart-btn {
+  min-height: 36px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-main__pipeline-error-restart-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  color: #374151;
+}
+
+.student-main__pipeline-error-restart-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .student-main__result-area {
@@ -2429,6 +2579,170 @@ a[aria-label] {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* =========================== Teacher Roster Styles =========================== */
+
+.roster-error-banner,
+.roster-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: 16px;
+  font-size: 0.875rem;
+}
+
+.roster-error-banner {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.roster-success-banner {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.roster-banner-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  opacity: 0.6;
+  color: inherit;
+  padding: 0 4px;
+}
+
+.roster-banner-close:hover {
+  opacity: 1;
+}
+
+.roster-loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--subtle, #888);
+}
+
+.roster-empty {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--subtle, #888);
+}
+
+.roster-empty p {
+  margin: 4px 0;
+}
+
+.roster-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.roster-search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.roster-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.roster-search-btn {
+  padding: 10px 20px;
+  white-space: nowrap;
+}
+
+.roster-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.roster-badge-bound {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.roster-badge-available {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.roster-add-action {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.roster-group-input {
+  width: 100px;
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.roster-group-input:focus {
+  border-color: #3b82f6;
+}
+
+.roster-btn-remove {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.roster-btn-remove:hover {
+  background: #fef2f2;
+}
+
+.roster-btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.roster-btn-danger:hover {
+  background: #b91c1c;
+}
+
+.roster-confirm-remove {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: #991b1b;
+}
+
+@media (max-width: 640px) {
+  .roster-search-bar {
+    flex-direction: column;
+  }
+
+  .roster-add-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .roster-group-input {
+    width: 100%;
+  }
+
+  .roster-confirm-remove {
+    flex-direction: column;
+    gap: 4px;
+  }
 }
 
 /* ===========================
@@ -3149,6 +3463,200 @@ a[aria-label] {
   font-size: 0.75rem;
   color: #999;
   flex-shrink: 0;
+}
+
+/* ===========================
+   STUDENT ONBOARDING GUIDE
+   =========================== */
+.student-onboarding-guide {
+  max-width: 768px;
+  margin: 12px auto 8px;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.student-onboarding-guide__inner {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.student-onboarding-guide__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+}
+
+.student-onboarding-guide__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.student-onboarding-guide__toggle {
+  font-size: 0.75rem;
+  color: var(--subtle);
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 2px 10px;
+  min-height: 26px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.student-onboarding-guide__toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+
+.student-onboarding-guide__steps {
+  padding: 0 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-onboarding-guide__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.student-onboarding-guide__step:hover {
+  background: rgba(15, 116, 218, 0.03);
+}
+
+.student-onboarding-guide__step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.student-onboarding-guide__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.student-onboarding-guide__step-body strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.student-onboarding-guide__step-body span {
+  font-size: 0.75rem;
+  color: var(--subtle);
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .student-main__pipeline-wrap {
+    padding: 0 12px;
+  }
+
+  .student-onboarding-guide {
+    padding: 0 12px;
+    margin: 8px auto 6px;
+  }
+
+  .student-onboarding-guide__step-body strong {
+    font-size: 0.75rem;
+  }
+
+  .student-onboarding-guide__step-body span {
+    font-size: 0.6875rem;
+  }
+
+  .student-onboarding-guide__step-num {
+    width: 22px;
+    height: 22px;
+    font-size: 0.6875rem;
+  }
+}
+
+/* ===========================
+   TEACHER BINDING NOTICE (unbound student)
+   =========================== */
+.student-teacher-binding-notice {
+  max-width: 768px;
+  margin: 0 auto 16px;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.student-teacher-binding-notice__inner {
+  background: var(--panel);
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.student-teacher-binding-notice__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #92400e;
+  font-size: 0.9375rem;
+}
+
+.student-teacher-binding-notice__desc {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.student-teacher-binding-notice__features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-teacher-binding-notice__features li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.student-teacher-binding-notice__action {
+  display: inline-block;
+  font-size: 0.8125rem;
+  padding: 6px 16px;
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .student-teacher-binding-notice {
+    padding: 0 12px;
+  }
 }
 
 /* ===========================

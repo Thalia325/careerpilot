@@ -37,6 +37,8 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [teacherCode, setTeacherCode] = useState("");
@@ -194,26 +196,50 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password">密码</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="至少6位，需包含英文和数字"
-                required
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="至少6位，需包含英文和数字"
+                  required
+                  style={{ width: "100%", paddingRight: 44, boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: "0.8rem", padding: "2px 6px" }}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                >
+                  {showPassword ? "隐藏" : "显示"}
+                </button>
+              </div>
             </div>
 
             <div>
               <label htmlFor="confirmPassword">确认密码</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="再次输入密码"
-                required
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="再次输入密码"
+                  required
+                  style={{ width: "100%", paddingRight: 44, boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: "0.8rem", padding: "2px 6px" }}
+                  tabIndex={-1}
+                  aria-label={showConfirmPassword ? "隐藏密码" : "显示密码"}
+                >
+                  {showConfirmPassword ? "隐藏" : "显示"}
+                </button>
+              </div>
             </div>
 
             <button

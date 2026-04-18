@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.errors import require_role
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db_session
@@ -42,8 +44,9 @@ class AdminUserUpdate(BaseModel):
     email: str | None = None
 
 
-def _serialize_user(user: User) -> dict:
-    return {
+def _serialize_user(user: User, db: Session, include_profile: bool = False) -> dict:
+    """Serialize user to dict, optionally including role-specific profile fields."""
+    data = {
         "id": user.id,
         "username": user.username,
         "full_name": user.full_name,
@@ -52,6 +55,28 @@ def _serialize_user(user: User) -> dict:
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
+    if include_profile:
+        if user.role == "student":
+            student = db.scalar(select(Student).where(Student.user_id == user.id))
+            if student:
+                data["profile"] = {
+                    "student_id": student.id,
+                    "major": student.major,
+                    "grade": student.grade,
+                    "career_goal": student.career_goal,
+                    "target_job_code": student.target_job_code,
+                    "target_job_title": student.target_job_title,
+                    "learning_preferences": student.learning_preferences,
+                }
+        elif user.role == "teacher":
+            teacher = db.scalar(select(Teacher).where(Teacher.user_id == user.id))
+            if teacher:
+                data["profile"] = {
+                    "teacher_id": teacher.id,
+                    "department": teacher.department,
+                    "title": teacher.title,
+                }
+    return data
 
 
 def _ensure_role_profile(db: Session, user: User) -> None:
@@ -65,18 +90,36 @@ def _ensure_role_profile(db: Session, user: User) -> None:
 def list_users(
     skip: int = 0,
     limit: int = 50,
+    keyword: str = Query("", description="搜索关键词，匹配 username/email/full_name"),
+    role: str = Query("", description="按角色过滤：student/teacher/admin"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="只有管理员可以查看用户列表")
+    require_role(current_user.role, "admin")
 
-    total = db.query(User).count()
-    rows = db.scalars(select(User).order_by(User.id).offset(skip).limit(limit)).all()
+    query = select(User).order_by(User.id)
+    count_query = select(func.count(User.id))
+
+    if keyword:
+        pattern = f"%{keyword}%"
+        filter_cond = or_(
+            User.username.ilike(pattern),
+            User.email.ilike(pattern),
+            User.full_name.ilike(pattern),
+        )
+        query = query.where(filter_cond)
+        count_query = count_query.where(filter_cond)
+
+    if role and role in VALID_USER_ROLES:
+        query = query.where(User.role == role)
+        count_query = count_query.where(User.role == role)
+
+    total = db.scalar(count_query)
+    rows = db.scalars(query.offset(skip).limit(limit)).all()
 
     return APIResponse(data={
         "total": total,
-        "items": [_serialize_user(u) for u in rows],
+        "items": [_serialize_user(u, db) for u in rows],
     })
 
 
@@ -88,8 +131,7 @@ def create_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
     if payload.role not in VALID_USER_ROLES:
         raise HTTPException(status_code=400, detail=f"无效角色，允许值：{', '.join(sorted(VALID_USER_ROLES))}")
     if db.scalar(select(User).where(User.username == payload.username)):
@@ -112,7 +154,7 @@ def create_user(
         db.rollback()
         raise HTTPException(status_code=400, detail="用户创建失败，请检查用户名或关联数据是否重复") from exc
     db.refresh(user)
-    return APIResponse(data=_serialize_user(user))
+    return APIResponse(data=_serialize_user(user, db, include_profile=True))
 
 
 @router.get("/users/{user_id}", response_model=APIResponse)
@@ -121,14 +163,13 @@ def get_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    return APIResponse(data=_serialize_user(user))
+    return APIResponse(data=_serialize_user(user, db, include_profile=True))
 
 
 @router.put("/users/{user_id}", response_model=APIResponse)
@@ -138,8 +179,7 @@ def update_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
@@ -171,7 +211,7 @@ def update_user(
         raise HTTPException(status_code=400, detail="用户更新失败，请检查数据是否重复") from exc
     db.refresh(user)
 
-    return APIResponse(data=_serialize_user(user))
+    return APIResponse(data=_serialize_user(user, db, include_profile=True))
 
 
 @router.delete("/users/{user_id}", response_model=APIResponse)
@@ -180,8 +220,7 @@ def delete_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
@@ -223,8 +262,7 @@ def toggle_user_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
@@ -248,24 +286,33 @@ def stats_overview(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
-    total_users = db.query(User).count()
-    total_jobs = db.query(JobPosting).count()
-    total_reports = db.query(CareerReport).count()
+    total_users = db.scalar(select(func.count(User.id))) or 0
+    total_positions = db.scalar(select(func.count(JobProfile.id))) or 0
+    total_reports = db.scalar(select(func.count(CareerReport.id))) or 0
 
-    avg_score_row = db.scalar(
-        select(func.avg(MatchResult.total_score))
-    )
+    avg_score_row = db.scalar(select(func.avg(MatchResult.total_score)))
     avg_match_score = round(float(avg_score_row), 1) if avg_score_row else 0.0
+
+    total_matches = db.scalar(select(func.count(MatchResult.id))) or 0
 
     return APIResponse(data={
         "total_users": total_users,
-        "total_jobs": total_jobs,
+        "total_positions": total_positions,
         "total_reports": total_reports,
+        "total_matches": total_matches,
         "avg_match_score": avg_match_score,
     })
+
+
+def _app_tz_offset_hours() -> int:
+    """Return the UTC offset in hours for the application timezone (Asia/Shanghai = +8)."""
+    from app.core.config import get_settings
+    tz_name = get_settings().scheduler_timezone or "Asia/Shanghai"
+    from zoneinfo import ZoneInfo
+    now_local = datetime.now(ZoneInfo(tz_name))
+    return int(now_local.utcoffset().total_seconds() / 3600) if now_local.utcoffset() else 8
 
 
 @router.get("/stats/trends", response_model=APIResponse)
@@ -274,13 +321,14 @@ def stats_trends(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
+    offset_h = _app_tz_offset_hours()
     since = datetime.now(timezone.utc) - timedelta(days=days)
+    # Convert UTC to local timezone before grouping by date so dates match user expectations
     rows = db.execute(
-        text("""
-            SELECT DATE(created_at) AS d,
+        text(f"""
+            SELECT DATE(created_at, '+{offset_h} hours') AS d,
                    SUM(CASE WHEN :reports_table = 1 THEN 1 ELSE 0 END) AS reports,
                    SUM(CASE WHEN :users_table = 1 THEN 1 ELSE 0 END) AS users
             FROM (
@@ -288,7 +336,7 @@ def stats_trends(
                 UNION ALL
                 SELECT created_at, 0, 1 FROM users WHERE created_at >= :since
             ) sub
-            GROUP BY DATE(created_at)
+            GROUP BY DATE(created_at, '+{offset_h} hours')
             ORDER BY d
         """),
         {"since": since, "reports_table": 1, "users_table": 1},
@@ -312,14 +360,14 @@ def stats_weekly(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
+    offset_h = _app_tz_offset_hours()
     since = datetime.now(timezone.utc) - timedelta(weeks=weeks)
 
     report_rows = db.execute(
-        text("""
-            SELECT strftime('%Y-W%W', created_at) AS week_label,
+        text(f"""
+            SELECT strftime('%Y-W%W', created_at, '+{offset_h} hours') AS week_label,
                    COUNT(*) AS cnt
             FROM career_reports
             WHERE created_at >= :since
@@ -331,8 +379,8 @@ def stats_weekly(
     report_map = {r[0]: int(r[1]) for r in report_rows}
 
     match_rows = db.execute(
-        text("""
-            SELECT strftime('%Y-W%W', created_at) AS week_label,
+        text(f"""
+            SELECT strftime('%Y-W%W', created_at, '+{offset_h} hours') AS week_label,
                    COUNT(*) AS cnt
             FROM match_results
             WHERE created_at >= :since
@@ -360,8 +408,7 @@ def system_health(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     start = datetime.now(timezone.utc)
     try:
@@ -391,8 +438,7 @@ def list_links(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     query = select(TeacherStudentLink).order_by(TeacherStudentLink.id)
     if teacher_id:
@@ -436,8 +482,7 @@ def create_link(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     teacher = db.scalar(select(Teacher).where(Teacher.id == teacher_id))
     if not teacher:
@@ -481,8 +526,7 @@ def update_link(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     link = db.scalar(select(TeacherStudentLink).where(TeacherStudentLink.id == link_id))
     if not link:
@@ -506,8 +550,7 @@ def delete_link(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     link = db.scalar(select(TeacherStudentLink).where(TeacherStudentLink.id == link_id))
     if not link:
@@ -526,8 +569,7 @@ def batch_import_links(
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
     """Batch import teacher-student links."""
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     created = 0
     skipped = 0
@@ -574,8 +616,7 @@ def list_students(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     query = select(Student).order_by(Student.id)
     if major:
@@ -607,8 +648,7 @@ def create_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
@@ -631,8 +671,7 @@ def update_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     student = db.scalar(select(Student).where(Student.id == student_id))
     if not student:
@@ -652,8 +691,7 @@ def delete_student(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     student = db.scalar(select(Student).where(Student.id == student_id))
     if not student:
@@ -673,8 +711,7 @@ def list_teachers(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     total = db.scalar(select(func.count(Teacher.id))) or 0
     rows = db.scalars(select(Teacher).order_by(Teacher.id).offset(skip).limit(limit)).all()
@@ -704,8 +741,7 @@ def create_teacher(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     user = db.scalar(select(User).where(User.id == user_id))
     if not user:
@@ -724,8 +760,7 @@ def delete_teacher(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     teacher = db.scalar(select(Teacher).where(Teacher.id == teacher_id))
     if not teacher:
@@ -749,8 +784,7 @@ def create_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     job = JobPosting(job_code=job_code, title=title, company_name=company_name,
                      city=city, salary=salary, industry=industry)
@@ -766,8 +800,7 @@ def delete_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     job = db.scalar(select(JobPosting).where(JobPosting.id == job_id))
     if not job:
@@ -787,8 +820,7 @@ def list_reports(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     total = db.scalar(select(func.count(CareerReport.id))) or 0
     rows = db.scalars(
@@ -818,8 +850,7 @@ def update_report_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     report = db.scalar(select(CareerReport).where(CareerReport.id == report_id))
     if not report:
@@ -836,8 +867,7 @@ def delete_report(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     report = db.scalar(select(CareerReport).where(CareerReport.id == report_id))
     if not report:
@@ -855,8 +885,7 @@ def list_configs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "admin")
 
     from app.models import SystemConfig
     configs = db.scalars(select(SystemConfig)).all()
@@ -877,8 +906,7 @@ def update_config(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
+    require_role(current_user.role, "admin")
 
     from app.models import SystemConfig
     config = db.scalar(select(SystemConfig).where(SystemConfig.key == config_key))
@@ -889,3 +917,199 @@ def update_config(
         db.add(config)
     db.commit()
     return APIResponse(data={"key": config_key, "value": value})
+
+
+# --- Position (JobProfile) CRUD (US-023) ---
+
+def _serialize_position(p: "JobProfile") -> dict:
+    return {
+        "id": p.id,
+        "job_code": p.job_code,
+        "title": p.title,
+        "summary": p.summary or "",
+        "skill_requirements": p.skill_requirements or [],
+        "certificate_requirements": p.certificate_requirements or [],
+        "innovation_requirements": p.innovation_requirements or "",
+        "learning_requirements": p.learning_requirements or "",
+        "resilience_requirements": p.resilience_requirements or "",
+        "communication_requirements": p.communication_requirements or "",
+        "internship_requirements": p.internship_requirements or "",
+        "capability_scores": p.capability_scores or {},
+        "dimension_weights": p.dimension_weights or {},
+        "explanation_json": p.explanation_json or {},
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+        "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+
+@router.get("/positions", response_model=APIResponse)
+def list_positions(
+    keyword: str = "",
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    """搜索职位画像列表，支持按 job_code/title 关键词过滤。"""
+    require_role(current_user.role, "admin")
+
+    stmt = select(JobProfile).order_by(JobProfile.id.desc())
+    if keyword.strip():
+        pattern = f"%{keyword.strip()}%"
+        stmt = stmt.where(
+            or_(
+                JobProfile.job_code.ilike(pattern),
+                JobProfile.title.ilike(pattern),
+            )
+        )
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    items = db.scalars(stmt.offset(skip).limit(limit)).all()
+    return APIResponse(data={"total": total, "items": [_serialize_position(p) for p in items]})
+
+
+@router.post("/positions", response_model=APIResponse)
+def create_position(
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    """创建新的职位画像。"""
+    require_role(current_user.role, "admin")
+
+    job_code = (body.get("job_code") or "").strip()
+    title = (body.get("title") or "").strip()
+    if not job_code:
+        raise HTTPException(status_code=400, detail="job_code 不能为空")
+    if not title:
+        raise HTTPException(status_code=400, detail="title 不能为空")
+
+    # 手动检查 job_code 唯一性（模型层无唯一约束）
+    existing = db.scalar(select(JobProfile).where(JobProfile.job_code == job_code))
+    if existing:
+        raise HTTPException(status_code=400, detail=f"job_code '{job_code}' 已存在")
+
+    position = JobProfile(
+        job_code=job_code,
+        title=title,
+        summary=body.get("summary", ""),
+        skill_requirements=body.get("skill_requirements", []),
+        certificate_requirements=body.get("certificate_requirements", []),
+        innovation_requirements=body.get("innovation_requirements", ""),
+        learning_requirements=body.get("learning_requirements", ""),
+        resilience_requirements=body.get("resilience_requirements", ""),
+        communication_requirements=body.get("communication_requirements", ""),
+        internship_requirements=body.get("internship_requirements", ""),
+        capability_scores=body.get("capability_scores", {}),
+        dimension_weights=body.get("dimension_weights", {}),
+        explanation_json=body.get("explanation_json", {}),
+    )
+    try:
+        db.add(position)
+        db.commit()
+        db.refresh(position)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"job_code '{job_code}' 已存在或数据冲突")
+
+    return APIResponse(data=_serialize_position(position))
+
+
+@router.get("/positions/{position_id}", response_model=APIResponse)
+def get_position(
+    position_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    """获取单个职位画像详情。"""
+    require_role(current_user.role, "admin")
+
+    position = db.scalar(select(JobProfile).where(JobProfile.id == position_id))
+    if not position:
+        raise HTTPException(status_code=404, detail="职位画像不存在")
+    return APIResponse(data=_serialize_position(position))
+
+
+@router.put("/positions/{position_id}", response_model=APIResponse)
+def update_position(
+    position_id: int,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    """更新职位画像字段。"""
+    require_role(current_user.role, "admin")
+
+    position = db.scalar(select(JobProfile).where(JobProfile.id == position_id))
+    if not position:
+        raise HTTPException(status_code=404, detail="职位画像不存在")
+
+    updatable = {
+        "job_code", "title", "summary",
+        "skill_requirements", "certificate_requirements",
+        "innovation_requirements", "learning_requirements",
+        "resilience_requirements", "communication_requirements",
+        "internship_requirements",
+        "capability_scores", "dimension_weights", "explanation_json",
+    }
+    for field in updatable:
+        if field in body:
+            setattr(position, field, body[field])
+
+    if "job_code" in body and not (body["job_code"] or "").strip():
+        raise HTTPException(status_code=400, detail="job_code 不能为空")
+
+    # 检查 job_code 唯一性（排除自身）
+    if "job_code" in body and body["job_code"]:
+        dup = db.scalar(
+            select(JobProfile).where(
+                JobProfile.job_code == body["job_code"],
+                JobProfile.id != position_id,
+            )
+        )
+        if dup:
+            raise HTTPException(status_code=400, detail="job_code 已存在")
+
+    try:
+        db.commit()
+        db.refresh(position)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="job_code 已存在或数据冲突")
+
+    return APIResponse(data=_serialize_position(position))
+
+
+@router.delete("/positions/{position_id}", response_model=APIResponse)
+def delete_position(
+    position_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    """删除职位画像，同时清理关联的 certificates_required 记录。"""
+    require_role(current_user.role, "admin")
+
+    position = db.scalar(select(JobProfile).where(JobProfile.id == position_id))
+    if not position:
+        raise HTTPException(status_code=404, detail="职位画像不存在")
+
+    # 检查是否有关联的 MatchResult 引用
+    from app.models import MatchResult as MR
+    ref_count = db.scalar(
+        select(func.count()).select_from(
+            select(MR).where(MR.job_profile_id == position_id).subquery()
+        )
+    )
+    if ref_count and ref_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"该职位画像有 {ref_count} 条关联的匹配结果，无法删除",
+        )
+
+    # 删除关联的证书记录
+    from app.models import CertificateRequired as CR
+    certs = db.scalars(select(CR).where(CR.job_profile_id == position_id)).all()
+    for c in certs:
+        db.delete(c)
+    db.delete(position)
+    db.commit()
+    return APIResponse(data={"deleted": True, "id": position_id})

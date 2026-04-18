@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { SidebarDrawer } from "@/components/SidebarDrawer";
 import { Icon } from "@/components/Icon";
+import { AccessDeniedNotice } from "@/components/AccessDeniedNotice";
 
 const studentNavItems = [
   { href: "/student", label: "首页", icon: <Icon name="home" size={18} /> },
@@ -93,6 +94,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
       </div>
 
       <div className="student-layout__body">
+        <AccessDeniedNotice />
         {children}
       </div>
     </div>

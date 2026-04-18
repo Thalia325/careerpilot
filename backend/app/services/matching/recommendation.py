@@ -20,6 +20,16 @@ EXPERIENCE_KEYWORDS = [
     "产品", "需求", "原型", "可视化", "统计", "项目", "实习",
 ]
 
+TRACK_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "AI算法": ("ai", "人工智能", "算法", "机器学习", "深度学习", "pytorch", "tensorflow", "模型", "建模"),
+    "数据": ("数据", "统计", "sql", "mysql", "pandas", "numpy", "分析", "可视化"),
+    "后端": ("后端", "api", "接口", "java", "fastapi", "spring", "mysql", "linux"),
+    "前端": ("前端", "javascript", "typescript", "react", "vue", "html", "css"),
+    "测试": ("测试", "自动化", "postman", "selenium", "smoketest"),
+    "运维": ("运维", "linux", "docker", "kubernetes", "shell", "ci/cd"),
+    "产品": ("产品", "需求", "原型", "用户研究", "项目管理", "商业分析"),
+}
+
 
 def safe_list(value: object) -> list[str]:
     return [str(item).strip() for item in value or [] if str(item).strip()]
@@ -174,6 +184,36 @@ def score_target_intent(experience: dict, job_profile: JobProfile) -> dict:
     return {"score": min(10.0, 5.0 + len(matched) * 3.0), "tags": matched[:4]}
 
 
+def _track_tags(text: str) -> list[str]:
+    normalized = _normalize_for_match(text)
+    tags: list[str] = []
+    for track, keywords in TRACK_KEYWORDS.items():
+        if any(_normalize_for_match(keyword) in normalized for keyword in keywords):
+            tags.append(track)
+    return tags
+
+
+def score_career_track_alignment(student_profile: StudentProfile, experience: dict, job_profile: JobProfile) -> dict:
+    student_text = " ".join([
+        " ".join(safe_list(student_profile.skills_json)),
+        " ".join(safe_list(student_profile.projects_json)),
+        " ".join(safe_list(student_profile.internships_json)),
+        " ".join(safe_list(experience.get("target_jobs"))),
+        str(experience.get("text") or "")[:2000],
+    ])
+    job_text = " ".join([
+        job_profile.title or "",
+        job_profile.summary or "",
+        " ".join(safe_list(job_profile.skill_requirements)),
+    ])
+    student_tags = _track_tags(student_text)
+    job_tags = _track_tags(job_text)
+    matched = [tag for tag in job_tags if tag in student_tags]
+    if not matched:
+        return {"score": 0.0, "tags": []}
+    return {"score": min(8.0, 4.0 + len(matched) * 2.0), "tags": matched[:4]}
+
+
 def score_recommended_job(
     student_profile: StudentProfile,
     job_profile: JobProfile,
@@ -212,8 +252,9 @@ def score_recommended_job(
     )
     experience_result = score_experience_context(experience or {}, job_profile, posting)
     intent_result = score_target_intent(experience or {}, job_profile)
+    track_result = score_career_track_alignment(student_profile, experience or {}, job_profile)
     final_score = round(
-        min(100.0, base_score + experience_result["score"] * 0.28 + intent_result["score"]),
+        min(100.0, base_score + experience_result["score"] * 0.24 + intent_result["score"] + track_result["score"]),
         1,
     )
     return {
@@ -224,7 +265,10 @@ def score_recommended_job(
         "experience_reason": experience_result["reason"],
         "intent_bonus": intent_result["score"],
         "intent_tags": intent_result["tags"],
+        "track_bonus": track_result["score"],
+        "track_tags": track_result["tags"],
         "matched_skills": skill_evidence.get("matched_skills", []),
+        "related_skills": skill_evidence.get("related_skills", []),
         "missing_skills": skill_evidence.get("missing_skills", []),
         "matched_certificates": basic_evidence.get("matched_certificates", []),
         "missing_certificates": basic_evidence.get("missing_certificates", []),
@@ -259,6 +303,7 @@ def generate_recommendation_reason(
     matched_certs = scoring.get("matched_certificates", [])
     experience_tags = scoring.get("experience_tags", [])
     intent_tags = scoring.get("intent_tags", [])
+    track_tags = scoring.get("track_tags", [])
 
     # 1. Professional background (major)
     major = (student_info or {}).get("major", "")
@@ -291,6 +336,9 @@ def generate_recommendation_reason(
     if intent_tags:
         intent_str = "、".join(intent_tags)
         parts.append(f"意向岗位【{intent_str}】与推荐岗位方向一致")
+    elif track_tags:
+        track_str = "、".join(track_tags)
+        parts.append(f"能力轨道与【{track_str}】方向相关")
 
     # 5. Certificate evidence
     if matched_certs:

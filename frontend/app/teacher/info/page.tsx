@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SidebarDrawer } from "@/components/SidebarDrawer";
 import { Icon } from "@/components/Icon";
-import { getTeacherInfo, updateTeacherInfo, type TeacherInfo, type TeacherInfoInput } from "@/lib/api";
+import { getTeacherInfo, updateTeacherInfo, changePassword, type TeacherInfo, type TeacherInfoInput } from "@/lib/api";
 
 const teacherNavItems = [
   { href: "/teacher", label: "首页", icon: <Icon name="home" size={18} /> },
@@ -12,6 +12,7 @@ const teacherNavItems = [
   { href: "/teacher/reports", label: "学生报告查看", icon: <Icon name="clipboard" size={18} /> },
   { href: "/teacher/overview", label: "班级数据概览", icon: <Icon name="chart" size={18} /> },
   { href: "/teacher/advice", label: "指导建议", icon: <Icon name="chat" size={18} /> },
+  { href: "/teacher/roster", label: "花名册管理", icon: <Icon name="users" size={18} /> },
 ];
 
 const emptyForm: TeacherInfoInput = {
@@ -29,6 +30,10 @@ export default function TeacherInfoPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pwForm, setPwForm] = useState({ old_password: "", new_password: "", confirm: "" });
+  const [pwMessage, setPwMessage] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -179,6 +184,48 @@ export default function TeacherInfoPage() {
                   </button>
                 </div>
               </form>
+
+              {/* Change Password */}
+              <div style={{ marginTop: 32, borderTop: "1px solid #e5e7eb", paddingTop: 24 }}>
+                <h2 style={{ fontSize: "1rem", fontWeight: 600, margin: "0 0 12px" }}>修改密码</h2>
+                {pwMessage && <div className="student-info-alert student-info-alert--success">{pwMessage}</div>}
+                {pwError && <div className="student-info-alert student-info-alert--error">{pwError}</div>}
+                <form className="student-info-form" onSubmit={async (e) => {
+                  e.preventDefault();
+                  setPwMessage("");
+                  setPwError("");
+                  if (pwForm.new_password.length < 6) { setPwError("新密码至少6位"); return; }
+                  if (pwForm.new_password !== pwForm.confirm) { setPwError("两次输入的新密码不一致"); return; }
+                  setPwSaving(true);
+                  try {
+                    await changePassword(pwForm.old_password, pwForm.new_password);
+                    setPwMessage("密码修改成功，下次登录请使用新密码。");
+                    setPwForm({ old_password: "", new_password: "", confirm: "" });
+                  } catch (err) {
+                    setPwError(err instanceof Error ? err.message : "修改密码失败");
+                  } finally {
+                    setPwSaving(false);
+                  }
+                }}>
+                  <label>
+                    <span>旧密码</span>
+                    <input type="password" value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder="输入当前密码" required />
+                  </label>
+                  <label>
+                    <span>新密码</span>
+                    <input type="password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder="至少6位" required />
+                  </label>
+                  <label>
+                    <span>确认新密码</span>
+                    <input type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="再次输入新密码" required />
+                  </label>
+                  <div className="student-info-actions">
+                    <button className="btn-primary" type="submit" disabled={pwSaving}>
+                      {pwSaving ? "修改中..." : "修改密码"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </>
           )}
         </section>

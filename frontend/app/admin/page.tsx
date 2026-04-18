@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SidebarDrawer } from "@/components/SidebarDrawer";
 import { Icon } from "@/components/Icon";
+import { AccessDeniedNotice } from "@/components/AccessDeniedNotice";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import {
   getAdminUsers,
@@ -99,6 +100,7 @@ export default function AdminPage() {
       </div>
 
       <div className="admin-dashboard">
+        <AccessDeniedNotice />
         {loading ? (
           <div style={{ textAlign: "center", padding: 48, color: "var(--subtle)" }}>加载中...</div>
         ) : (
@@ -111,7 +113,7 @@ export default function AdminPage() {
               </div>
               <div className="admin-stat-card">
                 <span className="admin-stat-card__label">岗位数据</span>
-                <div className="admin-stat-card__value">{stats?.total_jobs ?? 0}</div>
+                <div className="admin-stat-card__value">{stats?.total_positions ?? 0}</div>
                 <span className="admin-stat-card__change">已入库岗位</span>
               </div>
               <div className="admin-stat-card">
@@ -131,7 +133,7 @@ export default function AdminPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16 }}>
                   <h2 style={{ margin: 0 }}>用户管理</h2>
                   <button type="button" className="admin-action-button" onClick={() => router.push("/admin/users")}>
-                    进入增删改查
+                    修改
                   </button>
                 </div>
                 <table className="admin-user-table">

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import base64
 from io import BytesIO
 from abc import ABC, abstractmethod
 from typing import Any, Optional
@@ -357,9 +358,56 @@ class MockOCRProvider(BaseOCRProvider):
 
 
 class PaddleOCRProvider(BaseOCRProvider):
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"}
+
     def __init__(self, service_url: str, api_key: str = "") -> None:
         self.service_url = service_url.rstrip("/")
         self.api_key = api_key
+
+    @classmethod
+    def _file_type(cls, file_name: str) -> int:
+        lowered = file_name.lower()
+        return 1 if any(lowered.endswith(ext) for ext in cls.IMAGE_EXTENSIONS) else 0
+
+    async def _normalize_layout_parsing_result(
+        self,
+        file_name: str,
+        content_bytes: bytes,
+        document_type: str,
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        if result.get("raw_text") is not None and result.get("structured_json") is not None:
+            return result
+
+        payload = result.get("result") if isinstance(result.get("result"), dict) else result
+        layout_results = payload.get("layoutParsingResults") if isinstance(payload, dict) else None
+        if not isinstance(layout_results, list):
+            raise OCRParseError("OCR 服务返回格式异常，未找到 layoutParsingResults。")
+
+        texts: list[str] = []
+        layout_blocks: list[dict[str, Any]] = []
+        for index, item in enumerate(layout_results, start=1):
+            if not isinstance(item, dict):
+                continue
+            markdown = item.get("markdown") if isinstance(item.get("markdown"), dict) else {}
+            text = markdown.get("text") or item.get("text") or item.get("markdownText")
+            if text:
+                text_value = str(text).strip()
+                texts.append(text_value)
+                layout_blocks.append({"section": f"page_{index}", "text": text_value})
+
+        raw_text = "\n\n".join(texts).strip()
+        if not raw_text:
+            raise OCRParseError("OCR 服务未返回可用文字，请确认文件内容清晰且格式受支持。")
+
+        parsed = await MockOCRProvider().parse_document(
+            file_name,
+            content_bytes,
+            document_type=document_type,
+            raw_text=raw_text,
+        )
+        parsed["layout_blocks"] = layout_blocks or parsed.get("layout_blocks", [])
+        return parsed
 
     async def parse_document(
         self,
@@ -373,22 +421,28 @@ class PaddleOCRProvider(BaseOCRProvider):
             logger.info("Using local text extraction before PaddleOCR: file=%s", file_name)
             return await MockOCRProvider().parse_document(file_name, content_bytes, document_type, raw_text=local_text)
 
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            headers["Authorization"] = f"token {self.api_key}"
+        payload = {
+            "file": base64.b64encode(content_bytes).decode("ascii"),
+            "fileType": self._file_type(file_name),
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useChartRecognition": False,
+        }
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 logger.info("PaddleOCR request: POST %s file=%s", self.service_url, file_name)
                 response = await client.post(
-                    f"{self.service_url}",
-                    files={"file": (file_name, content_bytes)},
-                    data={"document_type": document_type, "raw_text": raw_text or ""},
+                    self.service_url,
+                    json=payload,
                     headers=headers,
                 )
                 response.raise_for_status()
                 result = response.json()
                 logger.info("PaddleOCR success: file=%s status=%d", file_name, response.status_code)
-                return result
+                return await self._normalize_layout_parsing_result(file_name, content_bytes, document_type, result)
         except httpx.HTTPStatusError as e:
             logger.error(
                 "PaddleOCR HTTP error: file=%s status=%d body=%s",

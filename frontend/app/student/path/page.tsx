@@ -36,6 +36,17 @@ export default function StudentPathPage() {
   useEffect(() => {
     (async () => {
       try {
+        // Load specific path result from active run via path_id param
+        const pathIdParam = searchParams.get("path_id");
+        if (pathIdParam) {
+          const pathId = parseInt(pathIdParam, 10);
+          if (!Number.isNaN(pathId)) {
+            setPlan(await getPathResult(pathId));
+            setLoading(false);
+            return;
+          }
+        }
+
         if (historyId && historyId.startsWith("path-")) {
           const pathId = parseInt(historyId.replace("path-", ""), 10);
           if (!Number.isNaN(pathId)) {
@@ -58,10 +69,18 @@ export default function StudentPathPage() {
         setLoading(false);
       }
     })();
-  }, [historyId]);
+  }, [historyId, searchParams]);
 
   const verticalNodes = (plan?.vertical_graph?.nodes ?? []) as VerticalNode[];
   const transitionRoles = (plan?.transition_graph?.role_paths ?? []) as TransitionRole[];
+  const currentAbility = (plan?.current_ability ?? {}) as Partial<PathPlan["current_ability"]>;
+  const abilitySkills = currentAbility.skills ?? [];
+  const matchedSkills = currentAbility.matched_skills ?? [];
+  const missingSkills = currentAbility.missing_skills ?? [];
+  const certificates = currentAbility.certificates ?? [];
+  const projects = currentAbility.projects ?? [];
+  const internships = currentAbility.internships ?? [];
+  const hasEvidence = certificates.length > 0 || projects.length > 0 || internships.length > 0;
   const pathTheme = {
     primary: "#0f74da",
     primaryDark: "#0f4f9a",
@@ -76,13 +95,17 @@ export default function StudentPathPage() {
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>职业路径规划</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>职业路径规划</h1>
+            {isHistoricalView ? (
+              <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(180,83,9,0.1)", color: "#b45309", fontSize: "0.75rem", fontWeight: 600 }}>历史数据</span>
+            ) : plan ? (
+              <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(34,197,94,0.1)", color: "#166534", fontSize: "0.75rem", fontWeight: 600 }}>当前最新</span>
+            ) : null}
+          </div>
           <p style={{ margin: "6px 0 0", color: "var(--subtle)", fontSize: "0.875rem" }}>
             垂直晋升路径与相关岗位换岗路径图谱
           </p>
-          {isHistoricalView && (
-            <p style={{ fontSize: "0.875rem", color: "#b45309", margin: "4px 0 0" }}>正在查看历史数据</p>
-          )}
         </div>
         <Link href="/student" className="btn-secondary" style={{ textDecoration: "none", padding: "10px 14px", fontSize: "0.875rem" }}>
           返回问答页
@@ -108,11 +131,11 @@ export default function StudentPathPage() {
               <div>
                 <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>已掌握技能</h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {(plan.current_ability?.skills ?? []).map((skill: string) => (
+                  {abilitySkills.map((skill: string) => (
                     <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#eef6ff", color: "#0f4f9a", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
                   ))}
                 </div>
-                {(plan.current_ability?.skills?.length ?? 0) === 0 && (
+                {abilitySkills.length === 0 && (
                   <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无技能数据</span>
                 )}
               </div>
@@ -120,31 +143,45 @@ export default function StudentPathPage() {
               <div>
                 <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>技能差距</h4>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {(plan.current_ability?.matched_skills ?? []).map((skill: string) => (
+                  {matchedSkills.map((skill: string) => (
                     <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#f0fdf4", color: "#166534", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
                   ))}
-                  {(plan.current_ability?.missing_skills ?? []).map((skill: string) => (
+                  {missingSkills.map((skill: string) => (
                     <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#fef2f2", color: "#991b1b", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
                   ))}
                 </div>
-                {(plan.current_ability?.matched_skills?.length ?? 0) === 0 && (plan.current_ability?.missing_skills?.length ?? 0) === 0 && (
+                {matchedSkills.length === 0 && missingSkills.length === 0 && (
                   <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无匹配数据</span>
                 )}
               </div>
               {/* 证书 & 项目 & 实习 */}
               <div>
                 <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>证书 / 项目 / 实习</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: "0.8125rem", color: "var(--ink)" }}>
-                  {(plan.current_ability?.certificates ?? []).length > 0 && (
-                    <p style={{ margin: 0 }}><span style={{ color: "var(--subtle)" }}>证书：</span>{(plan.current_ability?.certificates ?? []).join("、")}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.8125rem", color: "var(--ink)", lineHeight: 1.6 }}>
+                  {certificates.length > 0 && (
+                    <p style={{ margin: 0 }}><span style={{ color: "var(--subtle)" }}>证书：</span>{certificates.join("、")}</p>
                   )}
-                  {(plan.current_ability?.projects ?? []).length > 0 && (
-                    <p style={{ margin: 0 }}><span style={{ color: "var(--subtle)" }}>项目：</span>{(plan.current_ability?.projects ?? []).join("、")}</p>
+                  {projects.length > 0 && (
+                    <div>
+                      <span style={{ color: "var(--subtle)" }}>项目：</span>
+                      <div style={{ display: "grid", gap: 4, marginTop: 2 }}>
+                        {projects.map((project: string) => (
+                          <span key={project}>{project}</span>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {(plan.current_ability?.internships ?? []).length > 0 && (
-                    <p style={{ margin: 0 }}><span style={{ color: "var(--subtle)" }}>实习：</span>{(plan.current_ability?.internships ?? []).join("、")}</p>
+                  {internships.length > 0 && (
+                    <div>
+                      <span style={{ color: "var(--subtle)" }}>实习：</span>
+                      <div style={{ display: "grid", gap: 4, marginTop: 2 }}>
+                        {internships.map((internship: string) => (
+                          <span key={internship}>{internship}</span>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {!(plan.current_ability?.certificates ?? []).length && !(plan.current_ability?.projects ?? []).length && !(plan.current_ability?.internships ?? []).length && (
+                  {!hasEvidence && (
                     <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无数据</span>
                   )}
                 </div>

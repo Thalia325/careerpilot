@@ -273,6 +273,34 @@ class TestRecommendedJobsAPI:
         assert len(all_reasons) > 10, "Reasons are too short to contain real evidence"
 
     @pytest.mark.asyncio
+    async def test_recommended_jobs_returns_ranked_candidates_below_old_threshold(self, client, db_session):
+        """Recommendations should not be truncated to only 60+ scores."""
+        container = create_service_container()
+        await initialize_demo_data(db_session, container)
+
+        await container.student_profile_service.generate_profile(
+            db_session,
+            student_id=1,
+            uploaded_file_ids=[],
+            manual_input=ManualStudentInput(
+                target_job="算法研发工程师",
+                self_introduction="软件工程专业，做过 API 调用脚本、统计建模和深度学习项目",
+                skills=["Python", "PyTorch", "深度学习", "SQL", "Java", "JavaScript", "Linux"],
+                certificates=[],
+                projects=["统计建模比赛", "深度学习模型项目", "API 调用脚本"],
+                internships=[],
+            ),
+        )
+
+        resp = client.get("/api/v1/students/me/recommended-jobs", headers=_auth_headers())
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+
+        assert len(items) >= 3
+        assert items == sorted(items, key=lambda item: item["match_score"], reverse=True)
+        assert any(item["match_score"] < 60 for item in items)
+
+    @pytest.mark.asyncio
     async def test_recommended_jobs_empty_without_profile(self, client, db_session):
         """Without a student profile, returns empty items."""
         container = create_service_container()

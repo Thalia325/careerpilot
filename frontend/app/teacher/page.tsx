@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { SidebarDrawer } from "@/components/SidebarDrawer";
 import { Icon } from "@/components/Icon";
+import { AccessDeniedNotice } from "@/components/AccessDeniedNotice";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   getTeacherStudentReports,
@@ -21,6 +22,7 @@ const teacherNavItems = [
   { href: "/teacher/reports", label: "学生报告查看", icon: <Icon name="clipboard" size={18} /> },
   { href: "/teacher/overview", label: "班级数据概览", icon: <Icon name="chart" size={18} /> },
   { href: "/teacher/advice", label: "指导建议", icon: <Icon name="chat" size={18} /> },
+  { href: "/teacher/roster", label: "花名册管理", icon: <Icon name="users" size={18} /> },
 ];
 
 const metricCards = [
@@ -150,6 +152,7 @@ export default function TeacherPage() {
       </div>
 
       <div className="teacher-dashboard">
+        <AccessDeniedNotice />
         {loading ? (
           <div style={{ textAlign: "center", padding: 48, color: "var(--subtle)" }}>加载中...</div>
         ) : (

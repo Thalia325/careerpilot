@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_container, get_current_user, get_db_session
+from app.api.deps import ensure_student_owns_resource, get_container, get_current_user, get_db_session
 from app.api.routers.students import resolve_target_job
+from app.core.errors import raise_resource_forbidden, require_role
 from app.models import MatchDimensionScore, MatchResult, Student, User
 from app.schemas.matching import MatchingRequest, MatchingResponse
 from app.services.bootstrap import ServiceContainer
@@ -19,8 +20,9 @@ def analyze_matching(
     db: Session = Depends(get_db_session),
 ) -> MatchingResponse:
     # Verify user has access
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
+
+    ensure_student_owns_resource(current_user, db, payload.student_id)
 
     job_code = payload.job_code
     if not job_code:
@@ -59,13 +61,12 @@ def get_match_result(
     # Permission check: student can only see own results
     if current_user.role == "student":
         if not match_result.student_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问此记录")
+            raise_resource_forbidden()
         student = db.get(Student, match_result.student_id)
         if not student or student.user_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问此记录")
+            raise_resource_forbidden()
 
-    if current_user.role not in ["student", "admin", "teacher"]:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权访问")
+    require_role(current_user.role, "student", "admin", "teacher")
 
     # Load dimension scores from MatchDimensionScore table
     dim_rows = db.scalars(

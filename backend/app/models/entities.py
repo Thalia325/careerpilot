@@ -421,6 +421,8 @@ class TeacherComment(TimestampMixin, Base):
     priority: Mapped[str] = mapped_column(String(20), default="normal")
     visible_to_student: Mapped[bool] = mapped_column(Boolean, default=True)
     student_read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    follow_up_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, default=None)
+    next_follow_up_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, default=None)
 
 
 class TeacherStudentLink(TimestampMixin, Base):
