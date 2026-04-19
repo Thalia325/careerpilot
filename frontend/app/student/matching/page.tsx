@@ -108,19 +108,17 @@ export default function StudentMatchingPage() {
   const hasAnalysis = dimensions.length > 0;
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>匹配分析</h1>
-              {isHistoricalView ? (
-                <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(180,83,9,0.1)", color: "#b45309", fontSize: "0.75rem", fontWeight: 600 }}>历史数据</span>
-              ) : hasAnalysis ? (
-                <span style={{ padding: "2px 10px", borderRadius: 6, background: "rgba(34,197,94,0.1)", color: "#166534", fontSize: "0.75rem", fontWeight: 600 }}>当前最新</span>
-              ) : null}
-            </div>
+    <div className="matching-page">
+        <div className="matching-page__header">
+          <div className="matching-page__title">
+            <h1>匹配分析</h1>
+            {isHistoricalView ? (
+              <span className="matching-page__status matching-page__status--history">历史数据</span>
+            ) : hasAnalysis ? (
+              <span className="matching-page__status matching-page__status--current">当前最新</span>
+            ) : null}
           </div>
-          <Link href="/student" className="btn-secondary" style={{ textDecoration: "none", padding: "10px 14px", fontSize: "0.875rem" }}>
+          <Link href="/student" className="matching-page__back">
             返回问答页
           </Link>
         </div>
@@ -140,22 +138,21 @@ export default function StudentMatchingPage() {
           <>
             {/* Total Score */}
             <SectionCard title="综合匹配得分">
-              <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-                <ScoreRing score={totalScore} />
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <p style={{ margin: "0 0 8px", fontSize: "0.95rem", color: "#555" }}>
+              <div className="matching-score-card">
+                <div className="matching-score-card__ring">
+                  <ScoreRing score={totalScore} />
+                </div>
+                <div className="matching-score-card__content">
+                  <p>
                     {totalScore >= 80
                       ? "你与目标岗位整体契合度较高，建议继续巩固优势并补齐短板。"
                       : totalScore >= 60
                         ? "你与目标岗位有一定差距，建议参照下方差距项和提升建议有针对性地补强。"
                         : "你与目标岗位差距较大，建议重新审视目标或系统性地提升相关能力。"}
                   </p>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <div className="matching-score-card__chips">
                     {dimensions.map((d) => (
-                      <span key={d.dimension} style={{
-                        padding: "4px 10px", borderRadius: 12, fontSize: "0.8rem",
-                        background: "#f5f5f5", color: dimensionColor(d.score), fontWeight: 600
-                      }}>
+                      <span key={d.dimension} className="matching-score-chip" style={{ color: dimensionColor(d.score) }}>
                         {d.dimension} {d.score}
                       </span>
                     ))}
@@ -164,7 +161,7 @@ export default function StudentMatchingPage() {
               </div>
             </SectionCard>
 
-            <div className="comparison-grid">
+            <div className="matching-section-grid">
               {/* Four-dimension scores */}
               <SectionCard title="四维评分详情">
                 <table className="comparison-table" aria-label="四维评分对比表">
@@ -196,10 +193,10 @@ export default function StudentMatchingPage() {
                 {strengths.length === 0 ? (
                   <p className="empty-message">暂无契合点数据</p>
                 ) : (
-                  <ul className="plain-list">
+                  <ul className="matching-list matching-list--strengths">
                     {strengths.map((s, i) => (
-                      <li key={i} style={{ marginBottom: 6 }}>
-                        <span style={{ color: "#43a047", marginRight: 6 }}>&#10003;</span>
+                      <li key={i}>
+                        <span>&#10003;</span>
                         {s}
                       </li>
                     ))}
@@ -208,17 +205,17 @@ export default function StudentMatchingPage() {
               </SectionCard>
             </div>
 
-            <div className="comparison-grid">
+            <div className="matching-section-grid">
               {/* Gap items */}
               <SectionCard title="差距项">
                 {gapItems.length === 0 ? (
                   <p className="empty-message">完美匹配！</p>
                 ) : (
-                  <ul className="plain-list">
+                  <ul className="matching-list matching-list--gap">
                     {gapItems.map((gap) => (
-                      <li key={gap.name} style={{ marginBottom: 6 }}>
-                        <strong style={{ color: "#e53935" }}>{gap.name}</strong>
-                        <p style={{ margin: "2px 0 0", color: "#666", fontSize: "0.9rem" }}>{gap.suggestion}</p>
+                      <li key={gap.name}>
+                        <strong>{gap.name}</strong>
+                        <p>{gap.suggestion}</p>
                       </li>
                     ))}
                   </ul>
@@ -230,10 +227,10 @@ export default function StudentMatchingPage() {
                 {suggestions.length === 0 ? (
                   <p className="empty-message">暂无提升建议</p>
                 ) : (
-                  <ul className="plain-list">
+                  <ul className="matching-list matching-list--suggestions">
                     {suggestions.map((s, i) => (
-                      <li key={i} style={{ marginBottom: 6 }}>
-                        <span style={{ color: "#1976d2", marginRight: 6, fontWeight: 700 }}>{i + 1}.</span>
+                      <li key={i}>
+                        <span>{i + 1}</span>
                         {s}
                       </li>
                     ))}
@@ -243,7 +240,7 @@ export default function StudentMatchingPage() {
             </div>
 
             <SectionCard title="综合结论">
-              <p>{summary}</p>
+              <p className="matching-summary">{summary}</p>
             </SectionCard>
           </>
         )}

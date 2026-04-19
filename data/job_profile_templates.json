@@ -3,8 +3,18 @@
     "job_code": "J-FE-001",
     "title": "前端开发工程师",
     "summary": "负责 Web 前端界面开发、交互实现与性能优化，强调工程质量、跨团队协作与用户体验意识。",
-    "skills": ["JavaScript", "TypeScript", "React", "Next.js", "HTML", "CSS", "接口联调"],
-    "certificates": ["前端开发专项证书"],
+    "skills": [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Next.js",
+      "HTML",
+      "CSS",
+      "接口联调"
+    ],
+    "certificates": [
+      "前端开发专项证书"
+    ],
     "capabilities": {
       "innovation": 78,
       "learning": 82,
@@ -32,8 +42,18 @@
     "job_code": "J-BE-001",
     "title": "后端开发工程师",
     "summary": "负责服务端接口、数据建模、性能治理与稳定性建设，强调业务抽象和系统设计能力。",
-    "skills": ["Python", "FastAPI", "SQL", "PostgreSQL", "Redis", "系统设计", "接口设计"],
-    "certificates": ["软件设计师"],
+    "skills": [
+      "Python",
+      "FastAPI",
+      "SQL",
+      "PostgreSQL",
+      "Redis",
+      "系统设计",
+      "接口设计"
+    ],
+    "certificates": [
+      "软件设计师"
+    ],
     "capabilities": {
       "innovation": 74,
       "learning": 80,
@@ -61,8 +81,18 @@
     "job_code": "J-FS-001",
     "title": "全栈工程师",
     "summary": "同时负责前后端交付，要求较强的问题解决能力、业务理解能力和工程完整性。",
-    "skills": ["JavaScript", "TypeScript", "React", "Node.js", "Python", "数据库设计", "部署运维"],
-    "certificates": ["全栈开发专项证书"],
+    "skills": [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Node.js",
+      "Python",
+      "数据库设计",
+      "部署运维"
+    ],
+    "certificates": [
+      "全栈开发专项证书"
+    ],
     "capabilities": {
       "innovation": 80,
       "learning": 85,
@@ -90,8 +120,17 @@
     "job_code": "J-QA-001",
     "title": "测试工程师",
     "summary": "负责测试计划、功能回归、缺陷跟踪和质量保障，强调细致性与流程意识。",
-    "skills": ["测试用例设计", "接口测试", "缺陷管理", "SQL", "自动化测试基础", "质量分析"],
-    "certificates": ["软件测试工程师"],
+    "skills": [
+      "测试用例设计",
+      "接口测试",
+      "缺陷管理",
+      "SQL",
+      "自动化测试基础",
+      "质量分析"
+    ],
+    "certificates": [
+      "软件测试工程师"
+    ],
     "capabilities": {
       "innovation": 68,
       "learning": 76,
@@ -119,8 +158,17 @@
     "job_code": "J-QD-001",
     "title": "测试开发工程师",
     "summary": "通过自动化平台和脚本能力提升测试效率，要求质量意识与开发能力并重。",
-    "skills": ["Python", "自动化测试", "接口测试", "CI/CD", "质量平台", "脚本开发"],
-    "certificates": ["自动化测试专项证书"],
+    "skills": [
+      "Python",
+      "自动化测试",
+      "接口测试",
+      "CI/CD",
+      "质量平台",
+      "脚本开发"
+    ],
+    "certificates": [
+      "自动化测试专项证书"
+    ],
     "capabilities": {
       "innovation": 72,
       "learning": 80,
@@ -148,8 +196,18 @@
     "job_code": "J-DA-001",
     "title": "数据分析师",
     "summary": "通过数据清洗、分析建模和业务洞察支持决策，强调分析能力、表达能力和业务理解。",
-    "skills": ["SQL", "Python", "Excel", "数据可视化", "统计分析", "业务分析", "A/B 测试"],
-    "certificates": ["数据分析师证书"],
+    "skills": [
+      "SQL",
+      "Python",
+      "Excel",
+      "数据可视化",
+      "统计分析",
+      "业务分析",
+      "A/B 测试"
+    ],
+    "certificates": [
+      "数据分析师证书"
+    ],
     "capabilities": {
       "innovation": 74,
       "learning": 82,
@@ -177,8 +235,18 @@
     "job_code": "J-DE-001",
     "title": "数据工程师",
     "summary": "负责数据管道、数仓建模和数据基础设施建设，强调工程能力与稳定性意识。",
-    "skills": ["Python", "SQL", "ETL", "Airflow", "数据仓库", "Spark", "数据治理"],
-    "certificates": ["大数据工程师"],
+    "skills": [
+      "Python",
+      "SQL",
+      "ETL",
+      "Airflow",
+      "数据仓库",
+      "Spark",
+      "数据治理"
+    ],
+    "certificates": [
+      "大数据工程师"
+    ],
     "capabilities": {
       "innovation": 72,
       "learning": 80,
@@ -206,8 +274,17 @@
     "job_code": "J-DPM-001",
     "title": "数据产品经理",
     "summary": "负责数据产品方案设计与落地，强调业务理解、跨团队推动和数据思维。",
-    "skills": ["需求分析", "数据指标体系", "原型设计", "SQL", "项目推进", "产品文档"],
-    "certificates": ["产品经理证书"],
+    "skills": [
+      "需求分析",
+      "数据指标体系",
+      "原型设计",
+      "SQL",
+      "项目推进",
+      "产品文档"
+    ],
+    "certificates": [
+      "产品经理证书"
+    ],
     "capabilities": {
       "innovation": 82,
       "learning": 80,
@@ -235,8 +312,18 @@
     "job_code": "J-AI-001",
     "title": "AI 算法工程师",
     "summary": "负责模型训练、评估与算法优化，强调数学基础、工程实现与问题抽象能力。",
-    "skills": ["Python", "机器学习", "深度学习", "PyTorch", "数据处理", "模型评估", "算法优化"],
-    "certificates": ["人工智能工程师"],
+    "skills": [
+      "Python",
+      "机器学习",
+      "深度学习",
+      "PyTorch",
+      "数据处理",
+      "模型评估",
+      "算法优化"
+    ],
+    "certificates": [
+      "人工智能工程师"
+    ],
     "capabilities": {
       "innovation": 86,
       "learning": 88,
@@ -264,8 +351,18 @@
     "job_code": "J-OPS-001",
     "title": "运维工程师",
     "summary": "保障系统稳定运行、发布部署和监控告警，强调可靠性意识与应急响应能力。",
-    "skills": ["Linux", "Docker", "CI/CD", "监控告警", "网络基础", "故障排查", "自动化运维"],
-    "certificates": ["运维工程师认证"],
+    "skills": [
+      "Linux",
+      "Docker",
+      "CI/CD",
+      "监控告警",
+      "网络基础",
+      "故障排查",
+      "自动化运维"
+    ],
+    "certificates": [
+      "运维工程师认证"
+    ],
     "capabilities": {
       "innovation": 68,
       "learning": 78,
@@ -293,8 +390,18 @@
     "job_code": "J-UI-001",
     "title": "UI/UX 设计师",
     "summary": "负责产品视觉设计与用户体验优化，强调设计表达、用户洞察和协作落地能力。",
-    "skills": ["Figma", "视觉设计", "交互设计", "用户研究", "原型设计", "设计规范", "可用性分析"],
-    "certificates": ["UI 设计师认证"],
+    "skills": [
+      "Figma",
+      "视觉设计",
+      "交互设计",
+      "用户研究",
+      "原型设计",
+      "设计规范",
+      "可用性分析"
+    ],
+    "certificates": [
+      "UI 设计师认证"
+    ],
     "capabilities": {
       "innovation": 88,
       "learning": 78,
@@ -322,8 +429,18 @@
     "job_code": "J-PM-001",
     "title": "产品经理",
     "summary": "负责需求洞察、方案设计和项目推进，强调系统思考、协作推进与商业敏感度。",
-    "skills": ["需求分析", "产品规划", "原型设计", "项目管理", "数据分析", "竞品分析", "PRD"],
-    "certificates": ["NPDP"],
+    "skills": [
+      "需求分析",
+      "产品规划",
+      "原型设计",
+      "项目管理",
+      "数据分析",
+      "竞品分析",
+      "PRD"
+    ],
+    "certificates": [
+      "NPDP"
+    ],
     "capabilities": {
       "innovation": 84,
       "learning": 82,
@@ -346,6 +463,4082 @@
       "沟通能力": "沟通协调是产品经理核心能力。",
       "实习能力": "真实需求落地经验远比口头理解更重要。 "
     }
+  },
+  {
+    "job_code": "J-FIN-001",
+    "title": "金融分析师",
+    "summary": "负责行业研究、公司财务分析、投资估值建模与研究报告撰写，强调数据敏感度、逻辑思维与风险意识。",
+    "skills": [
+      "财务建模",
+      "行业研究",
+      "Excel",
+      "Python",
+      "估值分析",
+      " Wind/iFinD",
+      "数据可视化"
+    ],
+    "certificates": [
+      "CFA Level I",
+      "证券从业资格"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 84,
+      "resilience": 74,
+      "communication": 80,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "金融分析岗位需要扎实的财务建模与估值能力，直接决定研究质量。",
+      "证书要求": "CFA 和证券从业资格是行业基本门槛与专业能力佐证。",
+      "创新能力": "需要在传统分析框架外挖掘新的投资逻辑和行业机会。",
+      "学习能力": "金融市场变化快，需持续学习新法规、新工具和新行业知识。",
+      "抗压能力": "市场波动和项目节点需要稳定判断与快速响应。",
+      "沟通能力": "研究报告需要向投资委员会和客户清晰传递观点。",
+      "实习能力": "券商或基金实习经验能显著缩短上手周期。"
+    }
+  },
+  {
+    "job_code": "J-ACC-001",
+    "title": "财务会计",
+    "summary": "负责日常账务处理、财务报表编制、税务申报与成本核算，强调准确性、合规意识与财务分析能力。",
+    "skills": [
+      "会计准则",
+      "财务报表",
+      "税务申报",
+      "ERP系统",
+      "成本核算",
+      "Excel",
+      "财务分析"
+    ],
+    "certificates": [
+      "初级会计师",
+      "CPA（在考）"
+    ],
+    "capabilities": {
+      "innovation": 62,
+      "learning": 74,
+      "resilience": 76,
+      "communication": 70,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "会计岗位对准则理解、报表编制和税务处理的准确性要求极高。",
+      "证书要求": "会计职称和 CPA 是职业晋升的核心凭证。",
+      "创新能力": "需在合规框架下优化财务流程和成本结构。",
+      "学习能力": "会计准则和税法持续更新，需保持学习跟进。",
+      "抗压能力": "月末年末结账和审计期间工作强度大。",
+      "沟通能力": "需要与业务部门、税务机关和审计师有效沟通。",
+      "实习能力": "事务所或企业财务部实习经验是重要加分项。"
+    }
+  },
+  {
+    "job_code": "J-AUD-001",
+    "title": "审计专员",
+    "summary": "执行审计程序、评估内部控制、识别财务风险并撰写审计报告，强调职业判断、细致性与合规意识。",
+    "skills": [
+      "审计程序",
+      "内控评估",
+      "财务报表分析",
+      "风险评估",
+      "Excel",
+      "审计软件",
+      "合规法规"
+    ],
+    "certificates": [
+      "CPA（在考）",
+      "审计师"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 78,
+      "resilience": 80,
+      "communication": 74,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "审计岗位要求熟练掌握审计准则和程序，准确识别财务风险。",
+      "证书要求": "CPA 是审计行业的核心资质，审计师职称是基础门槛。",
+      "创新能力": "需要在复杂业务场景中设计有效的审计方案。",
+      "学习能力": "法规准则不断更新，需持续学习以保持专业判断力。",
+      "抗压能力": "年报审计期间工作强度大，需保持准确性。",
+      "沟通能力": "需要与被审计单位有效沟通，推动问题整改。",
+      "实习能力": "会计师事务所实习经验能快速建立实务能力。"
+    }
+  },
+  {
+    "job_code": "J-LAW-001",
+    "title": "法务专员",
+    "summary": "负责合同审查、法律风险评估、合规管理与法律咨询，强调法律专业能力、风险意识与沟通协调能力。",
+    "skills": [
+      "合同审查",
+      "法律法规",
+      "合规管理",
+      "法律文书",
+      "风险评估",
+      "劳动法",
+      "知识产权"
+    ],
+    "certificates": [
+      "法律职业资格",
+      "企业合规师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 84,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.24,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "法务岗位要求对法律法规的准确理解和实务应用能力。",
+      "证书要求": "法律职业资格证书是进入法务岗位的基本门槛。",
+      "创新能力": "需在法律框架内为企业找到创新的合规解决方案。",
+      "学习能力": "法律法规频繁更新，需持续跟踪学习新法规。",
+      "抗压能力": "面对诉讼和合规风险时需保持冷静判断。",
+      "沟通能力": "需要与业务部门、外部律师和监管机构高效沟通。",
+      "实习能力": "律所或企业法务部实习能快速积累实务经验。"
+    }
+  },
+  {
+    "job_code": "J-EDU-001",
+    "title": "培训讲师",
+    "summary": "负责课程设计、教学实施、学习效果评估与教材开发，强调表达能力、互动设计和学员引导能力。",
+    "skills": [
+      "课程设计",
+      "教学方法",
+      "PPT制作",
+      "学员评估",
+      "互动教学",
+      "教育心理学",
+      "在线教学工具"
+    ],
+    "certificates": [
+      "教师资格证",
+      "培训师认证"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 80,
+      "resilience": 72,
+      "communication": 90,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "培训岗位要求课程设计和教学实施的综合能力。",
+      "证书要求": "教师资格证和培训师认证是专业能力的基本证明。",
+      "创新能力": "需要不断创新教学方法和课程形式以提升学习效果。",
+      "学习能力": "教育技术和教学方法不断演进，需持续学习。",
+      "抗压能力": "面对不同学员群体和突发教学状况需保持灵活。",
+      "沟通能力": "表达能力是培训讲师的核心竞争力。",
+      "实习能力": "教学实习和培训实践能快速提升授课技巧。"
+    }
+  },
+  {
+    "job_code": "J-MKT-001",
+    "title": "市场营销专员",
+    "summary": "负责市场调研、营销方案策划、品牌推广与活动执行，强调市场洞察、创意策划与数据分析能力。",
+    "skills": [
+      "市场调研",
+      "营销策划",
+      "品牌推广",
+      "数据分析",
+      "活动执行",
+      "竞品分析",
+      "社交媒体营销"
+    ],
+    "certificates": [
+      "市场营销师",
+      "Google Analytics认证"
+    ],
+    "capabilities": {
+      "innovation": 84,
+      "learning": 80,
+      "resilience": 72,
+      "communication": 86,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "市场营销需要调研分析、策略制定和执行落地的完整能力链。",
+      "证书要求": "营销类证书可补充证明方法论基础和工具使用能力。",
+      "创新能力": "需要不断提出新的营销创意和增长策略。",
+      "学习能力": "消费者行为和营销渠道变化快，需持续更新知识。",
+      "抗压能力": "营销活动和项目节点对执行效率要求高。",
+      "沟通能力": "需要协调设计、销售、渠道等多方资源。",
+      "实习能力": "品牌或代理商实习经验能快速建立市场感觉。"
+    }
+  },
+  {
+    "job_code": "J-NMD-001",
+    "title": "新媒体运营",
+    "summary": "负责社交平台运营、内容策划、用户增长与数据分析，强调内容敏感度、平台运营和用户洞察能力。",
+    "skills": [
+      "内容策划",
+      "短视频制作",
+      "数据分析",
+      "用户增长",
+      "平台运营",
+      "文案写作",
+      "热点追踪"
+    ],
+    "certificates": [
+      "新媒体运营师",
+      "短视频运营认证"
+    ],
+    "capabilities": {
+      "innovation": 86,
+      "learning": 82,
+      "resilience": 70,
+      "communication": 82,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "新媒体运营需要内容创作、平台规则和数据驱动的综合能力。",
+      "证书要求": "运营类证书可证明平台运营方法论基础。",
+      "创新能力": "需要持续产出有创意的内容和运营活动。",
+      "学习能力": "平台算法和用户偏好变化快，需快速适应。",
+      "抗压能力": "热点追赶和内容产出节奏要求持续高强度输出。",
+      "沟通能力": "需要与用户、KOL和内部团队高效互动。",
+      "实习能力": "自媒体运营或MCN实习经验是强加分项。"
+    }
+  },
+  {
+    "job_code": "J-ADV-001",
+    "title": "广告策划",
+    "summary": "负责广告创意策划、投放策略制定、媒介资源整合与效果评估，强调创意能力、策略思维与数据敏感度。",
+    "skills": [
+      "创意策划",
+      "媒介策划",
+      "文案撰写",
+      "效果分析",
+      "品牌策略",
+      "提案能力",
+      "消费者洞察"
+    ],
+    "certificates": [
+      "广告师",
+      "Google Ads认证"
+    ],
+    "capabilities": {
+      "innovation": 90,
+      "learning": 78,
+      "resilience": 72,
+      "communication": 86,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "广告策划需要创意、策略与媒介知识的深度融合。",
+      "证书要求": "广告和投放平台认证可补充专业度。",
+      "创新能力": "创意是广告策划的核心竞争力。",
+      "学习能力": "广告形式和投放技术迭代快，需持续跟进。",
+      "抗压能力": "比稿和项目节点对创意产出速度要求高。",
+      "沟通能力": "需要向客户清晰阐述创意策略和价值。",
+      "实习能力": "4A或本土广告公司实习能快速积累实战经验。"
+    }
+  },
+  {
+    "job_code": "J-ECM-001",
+    "title": "电商运营",
+    "summary": "负责电商平台店铺运营、商品管理、活动策划与流量转化，强调平台规则理解、数据分析与促销策划能力。",
+    "skills": [
+      "平台运营",
+      "数据分析",
+      "活动策划",
+      "商品管理",
+      "流量优化",
+      "供应链协同",
+      "客服管理"
+    ],
+    "certificates": [
+      "电商运营师",
+      "阿里巴巴运营认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 80,
+      "resilience": 76,
+      "communication": 76,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "电商运营需要从选品到转化的全链路运营能力。",
+      "证书要求": "平台运营认证可证明对电商体系的理解。",
+      "创新能力": "需要在促销活动和内容营销上持续创新。",
+      "学习能力": "平台规则和流量机制频繁调整，需快速适应。",
+      "抗压能力": "大促期间（双11、618）工作强度极大。",
+      "沟通能力": "需要协调供应链、客服、设计等多团队。",
+      "实习能力": "电商平台实习或自主开店经验是重要加分项。"
+    }
+  },
+  {
+    "job_code": "J-SAL-001",
+    "title": "销售代表",
+    "summary": "负责客户开发、销售谈判、合同签订与客户关系维护，强调沟通能力、目标导向与抗压能力。",
+    "skills": [
+      "客户开发",
+      "销售谈判",
+      "CRM系统",
+      "客户关系管理",
+      "市场分析",
+      "方案撰写",
+      "商务礼仪"
+    ],
+    "certificates": [
+      "销售管理师",
+      "CRM认证"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 74,
+      "resilience": 86,
+      "communication": 88,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "销售岗位需要从线索开发到签约回款的完整能力。",
+      "证书要求": "销售和 CRM 认证可补充专业方法论基础。",
+      "创新能力": "需要在竞争环境中创新客户触达和成单方式。",
+      "学习能力": "产品知识和行业动态需持续更新。",
+      "抗压能力": "面对业绩目标和客户拒绝需要强韧心态。",
+      "沟通能力": "沟通表达和关系维护是销售岗位的核心能力。",
+      "实习能力": "销售实习能快速积累客户沟通和谈判经验。"
+    }
+  },
+  {
+    "job_code": "J-HR-001",
+    "title": "人力资源专员",
+    "summary": "负责招聘管理、培训组织、绩效考核与员工关系维护，强调人际沟通、组织协调与制度执行能力。",
+    "skills": [
+      "招聘管理",
+      "绩效考核",
+      "员工关系",
+      "培训组织",
+      "HR系统",
+      "劳动法规",
+      "薪酬福利"
+    ],
+    "certificates": [
+      "人力资源管理师",
+      "心理咨询师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 78,
+      "resilience": 76,
+      "communication": 88,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "人力资源需要在招聘、绩效、培训等模块形成完整能力。",
+      "证书要求": "人力资源管理师证书是职业发展的基础凭证。",
+      "创新能力": "需要设计更有效的激励方案和人才发展路径。",
+      "学习能力": "劳动法规和 HR 工具持续更新，需跟进学习。",
+      "抗压能力": "招聘季和绩效考核期工作量大，需保持稳定。",
+      "沟通能力": "沟通协调是人力资源岗位的核心竞争力。",
+      "实习能力": "企业 HR 部门实习能快速积累实务经验。"
+    }
+  },
+  {
+    "job_code": "J-ADM-001",
+    "title": "行政专员",
+    "summary": "负责行政事务管理、办公协调、后勤保障与会议组织，强调细致性、服务意识与多任务处理能力。",
+    "skills": [
+      "办公软件",
+      "会议管理",
+      "档案管理",
+      "采购管理",
+      "接待礼仪",
+      "流程优化",
+      "跨部门协调"
+    ],
+    "certificates": [
+      "行政管理师",
+      "办公自动化认证"
+    ],
+    "capabilities": {
+      "innovation": 60,
+      "learning": 70,
+      "resilience": 76,
+      "communication": 82,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.32,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "行政管理需要办公协调、后勤保障和流程管理的综合能力。",
+      "证书要求": "行政管理类证书可补充基础能力证明。",
+      "创新能力": "需要在日常行政工作中优化流程提升效率。",
+      "学习能力": "办公工具和管理方法持续更新，需跟进学习。",
+      "抗压能力": "面对多线并行和紧急事务需保持条理。",
+      "沟通能力": "跨部门协调和对外沟通是日常核心工作。",
+      "实习能力": "企业行政实习能快速熟悉办公管理实务。"
+    }
+  },
+  {
+    "job_code": "J-MECH-001",
+    "title": "机械工程师",
+    "summary": "负责机械产品设计、工艺优化、技术文档编写与生产技术支持，强调空间想象力、工程计算与动手能力。",
+    "skills": [
+      "AutoCAD",
+      "SolidWorks",
+      "机械设计",
+      "材料力学",
+      "工艺优化",
+      "GD&T",
+      "有限元分析"
+    ],
+    "certificates": [
+      "机械工程师",
+      "SolidWorks认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 76,
+      "resilience": 76,
+      "communication": 68,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "机械工程师需要从设计到制造的完整工程能力。",
+      "证书要求": "机械工程师职称和 CAD 认证是行业基本门槛。",
+      "创新能力": "需要在新产品开发和工艺改进中提出创新方案。",
+      "学习能力": "制造技术和设计工具持续升级，需持续学习。",
+      "抗压能力": "项目节点和产线问题需要快速响应解决。",
+      "沟通能力": "需要与生产、采购和质量部门密切协作。",
+      "实习能力": "制造企业实习能快速建立工程实践能力。"
+    }
+  },
+  {
+    "job_code": "J-CIV-001",
+    "title": "土木工程师",
+    "summary": "负责工程设计、施工管理、质量监控与工程量核算，强调空间思维、规范意识和现场管理能力。",
+    "skills": [
+      "AutoCAD",
+      "结构设计",
+      "施工管理",
+      "工程测量",
+      "BIM",
+      "质量验收",
+      "工程概预算"
+    ],
+    "certificates": [
+      "建造师",
+      "结构工程师"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 74,
+      "resilience": 82,
+      "communication": 72,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "土木工程需要从设计到施工的完整专业技术能力。",
+      "证书要求": "建造师和结构工程师证书是职业发展的关键资质。",
+      "创新能力": "需要在工程方案中平衡安全、成本和效率。",
+      "学习能力": "建筑规范和施工技术持续更新，需跟进学习。",
+      "抗压能力": "施工现场环境和工期压力需要强韧体魄和心态。",
+      "沟通能力": "需要协调设计、施工、监理等多方关系。",
+      "实习能力": "施工现场实习能快速积累工程管理经验。"
+    }
+  },
+  {
+    "job_code": "J-ARC-001",
+    "title": "建筑设计师",
+    "summary": "负责建筑方案设计、施工图绘制、项目协调与规范审查，强调设计表达、空间思维与审美能力。",
+    "skills": [
+      "AutoCAD",
+      "SketchUp",
+      "Revit",
+      "建筑规范",
+      "方案设计",
+      "施工图",
+      "效果图渲染"
+    ],
+    "certificates": [
+      "注册建筑师",
+      "BIM工程师"
+    ],
+    "capabilities": {
+      "innovation": 88,
+      "learning": 78,
+      "resilience": 74,
+      "communication": 76,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "建筑设计需要方案创意和技术落地的双重能力。",
+      "证书要求": "注册建筑师证书是行业核心执业资格。",
+      "创新能力": "需要在功能和审美之间找到创新的设计方案。",
+      "学习能力": "建筑技术和设计规范持续演进，需持续学习。",
+      "抗压能力": "方案修改和项目节点对设计产出速度要求高。",
+      "沟通能力": "需要向甲方和施工方清晰传达设计意图。",
+      "实习能力": "设计院实习能快速积累项目经验和设计能力。"
+    }
+  },
+  {
+    "job_code": "J-ELE-001",
+    "title": "电气工程师",
+    "summary": "负责电气系统设计、设备选型、自动化控制与现场调试，强调电路分析、系统思维与安全意识。",
+    "skills": [
+      "电气设计",
+      "PLC编程",
+      "电路分析",
+      "AutoCAD Electrical",
+      "控制系统",
+      "电力电子",
+      "设备调试"
+    ],
+    "certificates": [
+      "电气工程师",
+      "电工证"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 78,
+      "resilience": 78,
+      "communication": 70,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "电气工程师需要从设计到调试的完整电气系统能力。",
+      "证书要求": "电气工程师职称和电工证是行业基本资质。",
+      "创新能力": "需要在自动化和节能方面提出创新方案。",
+      "学习能力": "电气技术和自动化设备迭代快，需持续学习。",
+      "抗压能力": "现场调试和设备故障需要快速响应。",
+      "沟通能力": "需要与机械、工艺和施工团队紧密配合。",
+      "实习能力": "制造企业电气部门实习能快速积累实战经验。"
+    }
+  },
+  {
+    "job_code": "J-PHA-001",
+    "title": "医药代表",
+    "summary": "负责药品学术推广、医学信息传递与客户关系维护，强调专业医学知识、沟通能力和目标管理。",
+    "skills": [
+      "医学知识",
+      "学术推广",
+      "客户管理",
+      "演讲能力",
+      "CRM系统",
+      "市场分析",
+      "合规意识"
+    ],
+    "certificates": [
+      "医药代表认证",
+      "GSP认证"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 80,
+      "resilience": 84,
+      "communication": 90,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "医药代表需要扎实的医学专业知识和学术推广能力。",
+      "证书要求": "医药代表认证是合规从业的基本要求。",
+      "创新能力": "需要在学术推广和客户服务上持续创新。",
+      "学习能力": "药品知识和临床指南持续更新，需跟进学习。",
+      "抗压能力": "业绩目标和频繁出差需要强韧体力和心态。",
+      "沟通能力": "学术演讲和客户沟通是岗位核心能力。",
+      "实习能力": "药企实习或医院轮转经验是重要加分项。"
+    }
+  },
+  {
+    "job_code": "J-SPL-001",
+    "title": "供应链专员",
+    "summary": "负责采购管理、物流协调、库存优化与供应商管理，强调计划能力、成本意识和跨部门协调能力。",
+    "skills": [
+      "采购管理",
+      "库存管理",
+      "物流协调",
+      "供应商评估",
+      "ERP系统",
+      "成本分析",
+      "数据统计"
+    ],
+    "certificates": [
+      "供应链管理师",
+      "采购师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 78,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "供应链管理需要从采购到交付的全链路管理能力。",
+      "证书要求": "供应链和采购类证书可补充专业方法论基础。",
+      "创新能力": "需要在降本增效和供应链优化上提出创新方案。",
+      "学习能力": "供应链工具和管理方法持续更新，需跟进。",
+      "抗压能力": "供应中断和交付压力需要快速应变能力。",
+      "沟通能力": "需要协调供应商、生产和销售多部门。",
+      "实习能力": "制造或物流企业供应链实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-JOU-001",
+    "title": "记者/编辑",
+    "summary": "负责新闻采编、内容创作、选题策划与舆情监测，强调新闻敏感度、写作能力与信息整合能力。",
+    "skills": [
+      "新闻采写",
+      "内容编辑",
+      "选题策划",
+      "舆情分析",
+      "摄影摄像",
+      "排版设计",
+      "新媒体发布"
+    ],
+    "certificates": [
+      "记者证",
+      "编辑资格证"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 82,
+      "resilience": 74,
+      "communication": 84,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.26,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "记者编辑需要从选题到发布的完整内容生产能力。",
+      "证书要求": "记者证和编辑资格证是行业基本执业要求。",
+      "创新能力": "需要在新媒体环境下创新内容形式和传播方式。",
+      "学习能力": "媒体形态和技术工具快速变化，需持续学习。",
+      "抗压能力": "截稿压力和突发事件需要快速响应。",
+      "沟通能力": "采访和编辑协调需要出色的沟通能力。",
+      "实习能力": "媒体实习能快速积累采编经验和作品集。"
+    }
+  },
+  {
+    "job_code": "J-PJT-001",
+    "title": "项目管理",
+    "summary": "负责项目规划、进度管理、风险控制与跨团队协调，强调系统思维、沟通推动与目标管理能力。",
+    "skills": [
+      "项目规划",
+      "进度管理",
+      "风险管理",
+      "PMP方法论",
+      "跨团队协调",
+      "预算控制",
+      "汇报沟通"
+    ],
+    "certificates": [
+      "PMP",
+      "PRINCE2"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 78,
+      "resilience": 80,
+      "communication": 88,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "项目管理需要规划、执行和监控的完整方法论能力。",
+      "证书要求": "PMP 和 PRINCE2 是项目管理领域权威认证。",
+      "创新能力": "需要在不同项目中灵活调整管理方法。",
+      "学习能力": "项目管理方法论和工具持续演进，需跟进。",
+      "抗压能力": "项目风险和多方期望管理需要稳定的心理素质。",
+      "沟通能力": "跨团队协调和向上汇报是项目管理的核心工作。",
+      "实习能力": "参与项目实践能快速积累管理经验和方法论。"
+    }
+  },
+  {
+    "job_code": "J-INV-001",
+    "title": "投资顾问",
+    "summary": "负责客户资产配置建议、理财产品推荐与投资组合管理，强调金融产品理解、客户需求分析与风险管理意识。",
+    "skills": [
+      "资产配置",
+      "理财产品",
+      "风险评估",
+      "客户分析",
+      "基金分析",
+      "税务规划",
+      "财富管理"
+    ],
+    "certificates": [
+      "基金从业资格",
+      "AFP/CFP"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 88,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "投资顾问需要深入理解金融产品并能为客户量身定制方案。",
+      "证书要求": "基金从业和 AFP/CFP 是行业核心资质。",
+      "创新能力": "需根据市场变化创新资产配置策略。",
+      "学习能力": "金融市场产品和监管政策持续变化，需持续学习。",
+      "抗压能力": "市场波动时需帮助客户保持理性判断。",
+      "沟通能力": "客户信任建立和需求挖掘是核心能力。",
+      "实习能力": "券商或银行理财部门实习经验是重要加分项。"
+    }
+  },
+  {
+    "job_code": "J-RSK-001",
+    "title": "风险控制专员",
+    "summary": "负责风险评估模型搭建、信用分析、合规检查与风险报告撰写，强调数据敏感度、逻辑分析与审慎判断能力。",
+    "skills": [
+      "风险建模",
+      "信用评估",
+      "数据分析",
+      "合规管理",
+      "Python",
+      "监管法规",
+      "压力测试"
+    ],
+    "certificates": [
+      "FRM",
+      "风险管理师"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 82,
+      "resilience": 78,
+      "communication": 72,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "风控岗位需要量化建模和定性分析的双重能力。",
+      "证书要求": "FRM 是风控领域全球权威认证。",
+      "创新能力": "需要在风控模型和预警机制上持续优化。",
+      "学习能力": "监管法规和风控技术持续更新。",
+      "抗压能力": "风险事件需要快速判断和冷静处理。",
+      "沟通能力": "需向管理层和业务团队清晰传达风险状况。",
+      "实习能力": "银行或保险风控部门实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-IBK-001",
+    "title": "银行柜员/客户经理",
+    "summary": "负责银行业务办理、客户咨询、产品销售与账户管理，强调服务意识、业务准确度与合规操作能力。",
+    "skills": [
+      "银行业务",
+      "产品销售",
+      "客户服务",
+      "反洗钱",
+      "合规操作",
+      "金融产品知识",
+      "点钞/结算"
+    ],
+    "certificates": [
+      "银行从业资格",
+      "基金从业资格"
+    ],
+    "capabilities": {
+      "innovation": 58,
+      "learning": 74,
+      "resilience": 80,
+      "communication": 84,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "银行柜员需要熟练掌握各类业务操作流程和金融产品。",
+      "证书要求": "银行和基金从业资格是入行基本门槛。",
+      "创新能力": "需要在客户服务和交叉销售上持续改进。",
+      "学习能力": "金融产品和合规要求持续更新。",
+      "抗压能力": "高峰期业务量大，需要保持准确和高效。",
+      "沟通能力": "客户服务是柜员岗位的核心要求。",
+      "实习能力": "银行网点实习能快速熟悉业务流程。"
+    }
+  },
+  {
+    "job_code": "J-INS-001",
+    "title": "保险精算师",
+    "summary": "负责保险产品定价、准备金评估、偿付能力分析与精算模型搭建，强调数学建模、统计分析和审慎判断能力。",
+    "skills": [
+      "精算建模",
+      "概率统计",
+      "Excel/VBA",
+      "Python",
+      "寿险精算",
+      "产险精算",
+      "偿付能力管理"
+    ],
+    "certificates": [
+      "精算师（中国/北美）",
+      "FRM"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 86,
+      "resilience": 74,
+      "communication": 66,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.5,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "精算师需要扎实的数学基础和精算建模能力。",
+      "证书要求": "精算师资格是行业最核心的专业认证。",
+      "创新能力": "需要在产品设计和定价模型上持续创新。",
+      "学习能力": "精算方法和监管要求持续更新。",
+      "抗压能力": "定价决策影响重大，需保持严谨。",
+      "沟通能力": "需要向管理层解释精算模型和定价逻辑。",
+      "实习能力": "保险公司精算部门实习是入行重要途径。"
+    }
+  },
+  {
+    "job_code": "J-TAX-001",
+    "title": "税务专员",
+    "summary": "负责税务申报、税务筹划、发票管理与税收政策研究，强调税务法规理解、合规意识和筹划能力。",
+    "skills": [
+      "税法法规",
+      "税务申报",
+      "税务筹划",
+      "发票管理",
+      "ERP系统",
+      "财务分析",
+      "跨境税务"
+    ],
+    "certificates": [
+      "税务师",
+      "CPA（在考）"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 78,
+      "resilience": 76,
+      "communication": 72,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "税务专员需要精通各类税种的申报和筹划。",
+      "证书要求": "税务师和 CPA 是核心职业资质。",
+      "创新能力": "需在合规框架内创新税务筹划方案。",
+      "学习能力": "税收政策频繁调整，需持续跟进。",
+      "抗压能力": "申报截止期和税务检查期间工作强度大。",
+      "沟通能力": "需与税务机关和业务部门有效沟通。",
+      "实习能力": "税务师事务所或企业税务部实习经验很重要。"
+    }
+  },
+  {
+    "job_code": "J-COS-001",
+    "title": "成本会计",
+    "summary": "负责成本核算、费用分摊、成本分析与控制建议，强调数据准确性、成本意识与分析能力。",
+    "skills": [
+      "成本核算",
+      "费用分析",
+      "ERP系统",
+      "标准成本",
+      "差异分析",
+      "Excel",
+      "预算管理"
+    ],
+    "certificates": [
+      "中级会计师",
+      "CMA"
+    ],
+    "capabilities": {
+      "innovation": 62,
+      "learning": 74,
+      "resilience": 76,
+      "communication": 68,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.18,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "成本会计需要精确的核算能力和深入的成本分析能力。",
+      "证书要求": "CMA 和中级会计师是成本管理方向的核心认证。",
+      "创新能力": "需要在成本控制和流程优化上提出改进方案。",
+      "学习能力": "ERP 系统和管理会计方法持续演进。",
+      "抗压能力": "月末结账和成本分析报告需要高准确性。",
+      "沟通能力": "需向管理层和业务部门传达成本控制建议。",
+      "实习能力": "制造业财务部门实习能快速积累成本核算经验。"
+    }
+  },
+  {
+    "job_code": "J-IPR-001",
+    "title": "知识产权专员",
+    "summary": "负责专利/商标申请与维护、知识产权风险评估与侵权维权，强调专利分析能力、法律素养和跨部门协作。",
+    "skills": [
+      "专利检索",
+      "商标管理",
+      "知识产权法",
+      "侵权分析",
+      "技术交底书",
+      "专利撰写",
+      "知识产权战略"
+    ],
+    "certificates": [
+      "专利代理师",
+      "法律职业资格"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 82,
+      "resilience": 72,
+      "communication": 76,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "知识产权专员需要法律和技术理解的交叉能力。",
+      "证书要求": "专利代理师是行业核心执业资格。",
+      "创新能力": "需要在知识产权布局和保护策略上创新。",
+      "学习能力": "技术领域和法律判例持续更新。",
+      "抗压能力": "侵权诉讼和审查答辩需要严谨应对。",
+      "沟通能力": "需与研发团队和外部代理机构高效沟通。",
+      "实习能力": "专利代理机构或企业知识产权部实习经验重要。"
+    }
+  },
+  {
+    "job_code": "J-CMP-001",
+    "title": "合规专员",
+    "summary": "负责企业合规体系建设、监管政策解读、合规培训与违规调查，强调法规理解、流程执行与职业道德。",
+    "skills": [
+      "合规管理",
+      "监管政策",
+      "内部审计",
+      "合规培训",
+      "风险评估",
+      "数据隐私",
+      "反腐败"
+    ],
+    "certificates": [
+      "企业合规师",
+      "法律职业资格"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 78,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.24,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "合规专员需要系统掌握企业合规管理框架和监管要求。",
+      "证书要求": "企业合规师和法律职业资格是核心资质。",
+      "创新能力": "需在合规体系数字化和自动化上探索创新。",
+      "学习能力": "监管政策频繁更新，需持续学习。",
+      "抗压能力": "合规事件和监管检查需要快速响应。",
+      "沟通能力": "需推动业务部门理解和执行合规要求。",
+      "实习能力": "金融机构或上市公司合规部门实习经验很有价值。"
+    }
+  },
+  {
+    "job_code": "J-IDS-001",
+    "title": "教学设计师",
+    "summary": "负责在线课程体系设计、学习路径规划与教学效果评估，强调教育理论应用、内容规划和学习体验设计能力。",
+    "skills": [
+      "教学设计",
+      "学习理论",
+      "课程体系规划",
+      "故事板设计",
+      "评估设计",
+      "在线教育平台",
+      "用户研究"
+    ],
+    "certificates": [
+      "教学设计师认证",
+      "教育技术资格"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 80,
+      "resilience": 70,
+      "communication": 80,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.22,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "教学设计师需要将教育理论转化为有效的学习体验。",
+      "证书要求": "教学设计师认证可补充专业方法论基础。",
+      "创新能力": "需要持续创新在线学习模式和互动体验。",
+      "学习能力": "教育技术和学习科学持续演进。",
+      "抗压能力": "项目节点和效果优化需要迭代推进。",
+      "沟通能力": "需与内容专家、开发团队和用户多方协调。",
+      "实习能力": "在线教育企业实习能快速积累课程设计经验。"
+    }
+  },
+  {
+    "job_code": "J-RES-001",
+    "title": "教育研究员",
+    "summary": "负责教育政策研究、教学效果评估、课程标准设计与教育数据分析，强调研究方法、数据分析与教育理论功底。",
+    "skills": [
+      "教育研究方法",
+      "统计分析",
+      "SPSS",
+      "教育评估",
+      "课程理论",
+      "学术论文写作",
+      "政策分析"
+    ],
+    "certificates": [
+      "教育学学位",
+      "研究方法认证"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 84,
+      "resilience": 72,
+      "communication": 76,
+      "internship": 70
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.24,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "教育研究员需要扎实的研究方法和统计分析能力。",
+      "证书要求": "教育学相关学位和研究方法训练是基本要求。",
+      "创新能力": "需要提出创新的教育评估框架和研究方案。",
+      "学习能力": "教育政策和研究方法持续演进。",
+      "抗压能力": "研究周期长，需保持耐心和严谨。",
+      "沟通能力": "需将研究成果转化为可执行的教育建议。",
+      "实习能力": "教育研究机构或高校研究助理经验很有价值。"
+    }
+  },
+  {
+    "job_code": "J-COA-001",
+    "title": "留学顾问",
+    "summary": "负责留学方案规划、院校申请指导、文书润色与签证办理，强调跨文化沟通、信息整合与规划能力。",
+    "skills": [
+      "留学规划",
+      "院校申请",
+      "文书指导",
+      "签证办理",
+      "跨文化沟通",
+      "英语能力",
+      "客户管理"
+    ],
+    "certificates": [
+      "留学顾问认证",
+      "雅思/托福"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 88,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "留学顾问需要精通各国院校申请流程和要求。",
+      "证书要求": "留学顾问认证和语言成绩是基本要求。",
+      "创新能力": "需根据学生背景定制个性化申请策略。",
+      "学习能力": "院校政策和签证要求持续变化。",
+      "抗压能力": "申请季工作量大，需要高效多线并行。",
+      "沟通能力": "与学生和家长深度沟通是核心工作。",
+      "实习能力": "留学机构实习或海外学习经历是重要加分项。"
+    }
+  },
+  {
+    "job_code": "J-BRD-001",
+    "title": "品牌策划",
+    "summary": "负责品牌定位、视觉体系建设、品牌传播方案与品牌资产管理，强调创意思维、审美能力和品牌战略思维。",
+    "skills": [
+      "品牌定位",
+      "品牌传播",
+      "视觉设计基础",
+      "市场调研",
+      "品牌故事",
+      "消费者洞察",
+      "整合营销"
+    ],
+    "certificates": [
+      "品牌管理师",
+      "Google Analytics认证"
+    ],
+    "capabilities": {
+      "innovation": 90,
+      "learning": 78,
+      "resilience": 72,
+      "communication": 84,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "品牌策划需要从战略定位到传播落地的完整能力。",
+      "证书要求": "品牌管理类证书可补充方法论基础。",
+      "创新能力": "品牌差异化和创意表达是核心竞争力。",
+      "学习能力": "消费者行为和传播渠道持续变化。",
+      "抗压能力": "品牌事件和传播节奏需要快速响应。",
+      "沟通能力": "需要协调设计、媒介和销售多方资源。",
+      "实习能力": "品牌代理公司或企业品牌部实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-PR-001",
+    "title": "公关专员",
+    "summary": "负责企业公共关系维护、媒体沟通、危机公关处理与舆情管理，强调媒体资源、应变能力和文字功底。",
+    "skills": [
+      "媒体关系",
+      "危机公关",
+      "新闻稿撰写",
+      "舆情监测",
+      "活动策划",
+      "社交媒体管理",
+      "品牌传播"
+    ],
+    "certificates": [
+      "公关师",
+      "新闻采编资格"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 78,
+      "resilience": 80,
+      "communication": 90,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "公关需要媒体关系管理和危机处理的综合能力。",
+      "证书要求": "公关师和新闻类证书可补充专业度。",
+      "创新能力": "需要在品牌传播和议题设置上持续创新。",
+      "学习能力": "媒体生态和传播方式快速变化。",
+      "抗压能力": "危机公关需要冷静快速的反应能力。",
+      "沟通能力": "媒体沟通和各方协调是公关的核心。",
+      "实习能力": "公关公司或企业公关部实习是入行重要途径。"
+    }
+  },
+  {
+    "job_code": "J-EVT-001",
+    "title": "活动策划执行",
+    "summary": "负责线下/线上活动策划、供应商管理、现场执行与效果复盘，强调创意策划、项目管理与现场协调能力。",
+    "skills": [
+      "活动策划",
+      "项目管理",
+      "供应商管理",
+      "预算控制",
+      "现场执行",
+      "活动推广",
+      "效果分析"
+    ],
+    "certificates": [
+      "活动策划师",
+      "项目管理认证"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 74,
+      "resilience": 82,
+      "communication": 84,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "活动策划需要从创意到执行的完整活动管理能力。",
+      "证书要求": "活动策划和项目管理类证书可补充专业度。",
+      "创新能力": "需要在活动形式和体验上持续创新。",
+      "学习能力": "活动技术和互动形式持续演进。",
+      "抗压能力": "活动现场需要快速应变和解决问题。",
+      "沟通能力": "供应商、嘉宾和内部团队的协调是核心工作。",
+      "实习能力": "活动公司或企业市场部实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-CNT-001",
+    "title": "内容运营",
+    "summary": "负责内容策略制定、内容生产管理、分发渠道运营与内容数据分析，强调内容敏感度、数据驱动和用户洞察。",
+    "skills": [
+      "内容策略",
+      "数据分析",
+      "用户画像",
+      "SEO/SEM",
+      "内容分发",
+      "A/B测试",
+      "社区运营"
+    ],
+    "certificates": [
+      "内容运营认证",
+      "Google Analytics认证"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 80,
+      "resilience": 72,
+      "communication": 78,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "内容运营需要从策略到分发的全链路内容管理能力。",
+      "证书要求": "运营和数据分析类证书可补充方法论。",
+      "创新能力": "需要在内容形式和分发策略上持续创新。",
+      "学习能力": "平台算法和用户行为持续变化。",
+      "抗压能力": "内容产出节奏和热点响应要求持续输出。",
+      "沟通能力": "需与创作团队和平台方高效协作。",
+      "实习能力": "互联网公司内容运营实习是入行的重要途径。"
+    }
+  },
+  {
+    "job_code": "J-VID-001",
+    "title": "视频制作/剪辑",
+    "summary": "负责短视频/长视频拍摄、后期剪辑、特效制作与视频账号运营，强调视觉审美、技术熟练度和创意表达。",
+    "skills": [
+      "Premiere/Final Cut",
+      "After Effects",
+      "拍摄技巧",
+      "调色",
+      "脚本撰写",
+      "短视频运营",
+      "音频处理"
+    ],
+    "certificates": [
+      "Adobe认证",
+      "影视后期认证"
+    ],
+    "capabilities": {
+      "innovation": 86,
+      "learning": 78,
+      "resilience": 72,
+      "communication": 72,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "视频制作需要从拍摄到后期的完整技术能力。",
+      "证书要求": "Adobe 和影视后期类认证可证明工具熟练度。",
+      "创新能力": "视觉表达和叙事方式需要持续创新。",
+      "学习能力": "制作工具和视频形式快速迭代。",
+      "抗压能力": "项目节点和客户反馈需要高效迭代。",
+      "沟通能力": "需与编导、客户和运营团队密切配合。",
+      "实习能力": "MCN或影视公司实习能快速积累作品集。"
+    }
+  },
+  {
+    "job_code": "J-COP-001",
+    "title": "文案策划",
+    "summary": "负责品牌文案撰写、广告语创意、社交媒体内容创作与内容风格把控，强调文字功底、创意表达和品牌调性理解。",
+    "skills": [
+      "文案撰写",
+      "创意策划",
+      "品牌调性",
+      "社交媒体写作",
+      "SEO写作",
+      "故事叙述",
+      "内容审核"
+    ],
+    "certificates": [
+      "文案策划师",
+      "广告师"
+    ],
+    "capabilities": {
+      "innovation": 88,
+      "learning": 76,
+      "resilience": 72,
+      "communication": 82,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.26,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "文案策划需要文字表达和品牌策略的双重能力。",
+      "证书要求": "文案和广告类证书可补充方法论基础。",
+      "创新能力": "创意表达和文字创新是核心竞争力。",
+      "学习能力": "传播形式和用户偏好持续变化。",
+      "抗压能力": "比稿和修改迭代需要快速产出。",
+      "沟通能力": "需理解客户需求并准确传达创意意图。",
+      "实习能力": "广告公司或品牌部实习能快速积累作品集。"
+    }
+  },
+  {
+    "job_code": "J-KAM-001",
+    "title": "大客户经理",
+    "summary": "负责大客户关系维护、销售方案定制、合同谈判与续约管理，强调客户洞察、商务谈判和长期关系管理能力。",
+    "skills": [
+      "客户关系管理",
+      "商务谈判",
+      "方案设计",
+      "CRM系统",
+      "行业洞察",
+      "合同管理",
+      "跨部门协调"
+    ],
+    "certificates": [
+      "大客户管理认证",
+      "销售管理师"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 78,
+      "resilience": 82,
+      "communication": 90,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "大客户经理需要深入理解客户需求并提供定制方案。",
+      "证书要求": "大客户管理和销售类认证可补充方法论。",
+      "创新能力": "需在客户服务和方案设计上持续创新。",
+      "学习能力": "客户行业动态和产品知识需持续更新。",
+      "抗压能力": "业绩目标和客户维护需要长期坚持。",
+      "沟通能力": "高层对话和跨部门协调是核心工作。",
+      "实习能力": "B2B销售实习能快速积累客户管理经验。"
+    }
+  },
+  {
+    "job_code": "J-BIZ-001",
+    "title": "商务拓展(BD)",
+    "summary": "负责合作伙伴开拓、商务谈判、合作方案设计与合作项目落地，强调市场敏锐度、谈判能力和资源整合能力。",
+    "skills": [
+      "商务谈判",
+      "合作伙伴管理",
+      "市场分析",
+      "合作方案设计",
+      "项目管理",
+      "行业研究",
+      "合同审核"
+    ],
+    "certificates": [
+      "商务管理认证",
+      "项目管理认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 80,
+      "resilience": 80,
+      "communication": 88,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "BD需要从市场洞察到合作落地的完整商务能力。",
+      "证书要求": "商务和项目管理类认证可补充专业度。",
+      "创新能力": "需要创新合作模式和商业机会。",
+      "学习能力": "行业格局和合作形式持续变化。",
+      "抗压能力": "商务推进和目标压力需要持久耐力。",
+      "沟通能力": "外部合作和内部协调都需要出色的沟通。",
+      "实习能力": "互联网公司BD实习能快速积累商务经验。"
+    }
+  },
+  {
+    "job_code": "J-TEL-001",
+    "title": "电话销售/网络销售",
+    "summary": "负责通过电话/网络渠道进行客户触达、产品推荐、需求挖掘与成单转化，强调沟通技巧、目标导向和快速学习能力。",
+    "skills": [
+      "电话销售技巧",
+      "客户筛选",
+      "CRM系统",
+      "产品知识",
+      "异议处理",
+      "成单技巧",
+      "客户跟进"
+    ],
+    "certificates": [
+      "销售技巧认证"
+    ],
+    "capabilities": {
+      "innovation": 60,
+      "learning": 72,
+      "resilience": 88,
+      "communication": 86,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.32,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "电话/网络销售需要高效沟通和快速成单的技巧。",
+      "证书要求": "销售技巧类认证可补充方法论基础。",
+      "创新能力": "需要在触达方式和话术上持续优化。",
+      "学习能力": "产品知识和客户画像需快速掌握。",
+      "抗压能力": "高频拒绝和业绩目标是最大挑战。",
+      "沟通能力": "电话沟通和快速建立信任是核心能力。",
+      "实习能力": "销售实习能快速锻炼沟通和抗压能力。"
+    }
+  },
+  {
+    "job_code": "J-REC-001",
+    "title": "招聘专员",
+    "summary": "负责岗位需求分析、渠道管理、简历筛选、面试安排与候选人体验管理，强调沟通能力、判断力和人才敏锐度。",
+    "skills": [
+      "招聘渠道管理",
+      "面试技巧",
+      "简历筛选",
+      "候选人管理",
+      "雇主品牌",
+      "ATS系统",
+      "人才画像"
+    ],
+    "certificates": [
+      "招聘管理师",
+      "人力资源管理师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 88,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "招聘专员需要从需求分析到入职跟进的完整招聘能力。",
+      "证书要求": "人力资源和招聘管理类证书是基础资质。",
+      "创新能力": "需要在招聘渠道和候选人体验上持续创新。",
+      "学习能力": "行业人才动态和招聘工具持续变化。",
+      "抗压能力": "招聘季和紧急岗位需要高效产出。",
+      "沟通能力": "候选人沟通和面试官协调是日常工作核心。",
+      "实习能力": "HR部门或猎头公司实习能快速积累招聘经验。"
+    }
+  },
+  {
+    "job_code": "J-COM-001",
+    "title": "薪酬绩效专员",
+    "summary": "负责薪酬体系设计、绩效考核管理、社保公积金办理与人力成本分析，强调数据分析、制度设计和公平意识。",
+    "skills": [
+      "薪酬设计",
+      "绩效管理",
+      "社保公积金",
+      "Excel/数据分析",
+      "薪酬调研",
+      "OKR/KPI",
+      "人力资源系统"
+    ],
+    "certificates": [
+      "人力资源管理师",
+      "薪酬管理师"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 78,
+      "resilience": 76,
+      "communication": 74,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "薪酬绩效需要数据分析和制度设计的综合能力。",
+      "证书要求": "人力资源和薪酬管理类证书是核心资质。",
+      "创新能力": "需在激励方案和绩效体系上持续优化。",
+      "学习能力": "薪酬法规和管理工具持续更新。",
+      "抗压能力": "薪酬核算周期和绩效季需要高准确性。",
+      "沟通能力": "需要向员工和管理层清晰解释薪酬政策。",
+      "实习能力": "企业HR薪酬模块实习能快速积累实务经验。"
+    }
+  },
+  {
+    "job_code": "J-OFM-001",
+    "title": "前台/文秘",
+    "summary": "负责前台接待、电话转接、文书处理、会议安排与来访登记，强调服务意识、形象礼仪和办公技能。",
+    "skills": [
+      "前台接待",
+      "电话礼仪",
+      "文书处理",
+      "会议安排",
+      "办公软件",
+      "访客管理",
+      "邮件处理"
+    ],
+    "certificates": [
+      "秘书资格证",
+      "办公自动化认证"
+    ],
+    "capabilities": {
+      "innovation": 54,
+      "learning": 66,
+      "resilience": 72,
+      "communication": 82,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.24,
+      "professional_skills": 0.3,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "前台文秘需要基本的办公技能和礼仪知识。",
+      "证书要求": "秘书和办公自动化类证书可补充基础能力证明。",
+      "创新能力": "可在服务流程和办公效率上寻求改进。",
+      "学习能力": "办公工具和公司流程需要快速掌握。",
+      "抗压能力": "多线并行和突发接待需要灵活应对。",
+      "沟通能力": "接待和转接是日常核心工作。",
+      "实习能力": "企业前台实习能快速熟悉工作流程。"
+    }
+  },
+  {
+    "job_code": "J-CHM-001",
+    "title": "化工工程师",
+    "summary": "负责化工工艺设计、反应过程优化、安全评估与环保合规，强调化学原理应用、安全意识和工艺计算能力。",
+    "skills": [
+      "化工工艺",
+      "反应工程",
+      "流程模拟",
+      "安全评估",
+      "AutoCAD",
+      "环保法规",
+      "实验设计"
+    ],
+    "certificates": [
+      "化工工程师",
+      "注册安全工程师"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 78,
+      "resilience": 78,
+      "communication": 68,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "化工工程师需要从工艺设计到安全评估的完整能力。",
+      "证书要求": "化工工程师和注册安全工程师是行业核心资质。",
+      "创新能力": "需要在工艺优化和节能减排上持续创新。",
+      "学习能力": "环保法规和工艺技术持续更新。",
+      "抗压能力": "化工生产安全和环保压力需要高度警觉。",
+      "沟通能力": "需与生产、设备和安全部门紧密协作。",
+      "实习能力": "化工企业实习能快速积累工艺和安全经验。"
+    }
+  },
+  {
+    "job_code": "J-ENV-001",
+    "title": "环境工程师",
+    "summary": "负责环保方案设计、环境影响评估、污染治理与环境监测，强调环保法规理解、工程设计和数据分析能力。",
+    "skills": [
+      "环境影响评估",
+      "污染治理",
+      "环境监测",
+      "AutoCAD",
+      "环保法规",
+      "废水/废气处理",
+      "数据分析"
+    ],
+    "certificates": [
+      "环境工程师",
+      "环评工程师"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 76,
+      "resilience": 76,
+      "communication": 72,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "环境工程师需要从评估到治理的完整环保工程能力。",
+      "证书要求": "环评工程师和环境工程师是行业核心资质。",
+      "创新能力": "需在污染治理技术和绿色工艺上持续创新。",
+      "学习能力": "环保法规和治理技术持续更新。",
+      "抗压能力": "环保检查和治理项目需要严谨执行。",
+      "沟通能力": "需与政府监管部门和企业多方沟通。",
+      "实习能力": "环保企业或环评机构实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-QLE-001",
+    "title": "质量工程师",
+    "summary": "负责质量体系管理、过程质量控制、不合格品分析与改进推动，强调质量管理方法论、数据分析与标准意识。",
+    "skills": [
+      "质量管理体系",
+      "SPC",
+      "六西格玛",
+      "FMEA",
+      "质量工具",
+      "数据统计",
+      "供应商质量"
+    ],
+    "certificates": [
+      "质量工程师",
+      "六西格玛绿带"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 78,
+      "resilience": 78,
+      "communication": 74,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.18,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "质量工程师需要系统掌握质量管理工具和方法论。",
+      "证书要求": "质量工程师和六西格玛是行业权威认证。",
+      "创新能力": "需要在质量改进和流程优化上持续推动。",
+      "学习能力": "质量管理方法和行业标准持续演进。",
+      "抗压能力": "质量问题和客户审核需要快速响应。",
+      "沟通能力": "需推动生产、工程和管理层持续改进。",
+      "实习能力": "制造企业质量部门实习能快速建立质量意识。"
+    }
+  },
+  {
+    "job_code": "J-IND-001",
+    "title": "工业工程师",
+    "summary": "负责生产流程优化、工位设计、产能分析与精益生产推进，强调系统思维、数据分析和持续改善意识。",
+    "skills": [
+      "精益生产",
+      "流程优化",
+      "产能分析",
+      "IE七大手法",
+      "AutoCAD",
+      "数据分析",
+      "工时研究"
+    ],
+    "certificates": [
+      "工业工程师",
+      "精益生产认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 78,
+      "resilience": 76,
+      "communication": 74,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "工业工程师需要从流程分析到改善落地的系统能力。",
+      "证书要求": "工业工程师和精益生产认证是核心资质。",
+      "创新能力": "需要在生产效率和质量改善上持续创新。",
+      "学习能力": "精益方法和自动化技术持续演进。",
+      "抗压能力": "产能目标和改善项目需要持续推进。",
+      "沟通能力": "需推动跨部门协作实现流程优化。",
+      "实习能力": "制造企业IE部门实习能快速积累改善经验。"
+    }
+  },
+  {
+    "job_code": "J-STR-001",
+    "title": "结构工程师",
+    "summary": "负责建筑/产品结构设计、受力分析、材料选型与结构优化，强调力学计算、设计规范和空间思维能力。",
+    "skills": [
+      "结构设计",
+      "力学计算",
+      "AutoCAD",
+      "PKPM/YJK",
+      "有限元分析",
+      "抗震设计",
+      "材料力学"
+    ],
+    "certificates": [
+      "结构工程师",
+      "建造师"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 68,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.14,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "结构工程师需要精确的力学计算和结构设计能力。",
+      "证书要求": "注册结构工程师是行业核心执业资格。",
+      "创新能力": "需在结构安全和材料效率上持续优化。",
+      "学习能力": "设计规范和计算软件持续更新。",
+      "抗压能力": "结构安全责任重大，需要高度严谨。",
+      "沟通能力": "需与建筑师、施工方协调设计方案。",
+      "实习能力": "设计院结构所实习能快速积累设计经验。"
+    }
+  },
+  {
+    "job_code": "J-CRA-001",
+    "title": "临床监查员(CRA)",
+    "summary": "负责临床试验监查、数据质量保障、中心管理与合规审核，强调GCP法规理解、细致性和沟通协调能力。",
+    "skills": [
+      "GCP法规",
+      "临床试验流程",
+      "数据监查",
+      "中心管理",
+      "知情同意",
+      "病例报告表",
+      "稽查配合"
+    ],
+    "certificates": [
+      "GCP证书",
+      "CRA认证"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 82,
+      "resilience": 80,
+      "communication": 80,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "CRA需要精通临床试验流程和GCP法规。",
+      "证书要求": "GCP证书是入行必备，CRA认证是加分项。",
+      "创新能力": "需在监查流程和中心管理上持续改进。",
+      "学习能力": "法规和试验设计方法持续更新。",
+      "抗压能力": "出差频繁和稽查压力需要良好的体力和心态。",
+      "沟通能力": "与研究者和申办方的沟通协调是核心。",
+      "实习能力": "CRO或药企临床部门实习是重要入行途径。"
+    }
+  },
+  {
+    "job_code": "J-BIO-001",
+    "title": "生物技术研发员",
+    "summary": "负责生物实验设计、细胞/分子操作、实验数据分析与研发报告撰写，强调实验技能、科学思维和严谨态度。",
+    "skills": [
+      "分子生物学",
+      "细胞培养",
+      "PCR/ELISA",
+      "实验设计",
+      "数据分析",
+      "文献检索",
+      "实验室管理"
+    ],
+    "certificates": [
+      "生物安全证书",
+      "实验室认证"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 86,
+      "resilience": 78,
+      "communication": 68,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "生物研发需要扎实的实验操作和科学分析能力。",
+      "证书要求": "生物安全和实验室认证是基本资质。",
+      "创新能力": "实验方案设计和优化需要创新思维。",
+      "学习能力": "生物技术和分析方法快速迭代。",
+      "抗压能力": "实验失败率高，需要坚持和耐心。",
+      "沟通能力": "需与团队成员分享实验结果和进展。",
+      "实习能力": "实验室研究经历是入行的关键。"
+    }
+  },
+  {
+    "job_code": "J-DGS-001",
+    "title": "医学影像技师",
+    "summary": "负责医学影像设备操作、图像采集与质量控制，强调设备操作规范性、影像解剖知识和患者沟通能力。",
+    "skills": [
+      "影像设备操作",
+      "放射防护",
+      "影像解剖",
+      "图像质量控制",
+      "PACS系统",
+      "患者沟通",
+      "设备维护"
+    ],
+    "certificates": [
+      "放射技师证",
+      "医学影像资格"
+    ],
+    "capabilities": {
+      "innovation": 62,
+      "learning": 78,
+      "resilience": 78,
+      "communication": 76,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.18,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "医学影像需要精准的设备操作和图像质量把控能力。",
+      "证书要求": "放射技师证是法规要求的必备资质。",
+      "创新能力": "需在图像采集技术和流程优化上持续改进。",
+      "学习能力": "影像设备和诊断技术持续升级。",
+      "抗压能力": "工作节奏快，需要保持操作准确性。",
+      "沟通能力": "患者安抚和医技配合是日常工作。",
+      "实习能力": "医院影像科实习是培养操作技能的关键。"
+    }
+  },
+  {
+    "job_code": "J-LOG-001",
+    "title": "物流管理",
+    "summary": "负责仓储管理、运输调度、配送优化与物流成本控制，强调计划能力、现场管理和服务意识。",
+    "skills": [
+      "仓储管理",
+      "运输管理",
+      "WMS系统",
+      "路线优化",
+      "成本控制",
+      "团队管理",
+      "数据分析"
+    ],
+    "certificates": [
+      "物流师",
+      "供应链管理师"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 74,
+      "resilience": 80,
+      "communication": 76,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.18,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "物流管理需要从仓储到配送的全链路管理能力。",
+      "证书要求": "物流师和供应链管理师是行业核心资质。",
+      "创新能力": "需在物流效率和成本优化上持续改进。",
+      "学习能力": "物流技术和自动化设备持续升级。",
+      "抗压能力": "大促和异常情况需要快速调度解决。",
+      "沟通能力": "需协调仓储、运输和客服多环节。",
+      "实习能力": "物流企业或电商仓库实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-PRC-001",
+    "title": "采购专员",
+    "summary": "负责供应商开发、采购谈判、合同管理与来料质量跟进，强调谈判能力、成本意识和供应商管理能力。",
+    "skills": [
+      "供应商管理",
+      "采购谈判",
+      "合同管理",
+      "成本分析",
+      "ERP系统",
+      "来料检验",
+      "市场调研"
+    ],
+    "certificates": [
+      "采购师",
+      "供应链管理师"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 74,
+      "resilience": 78,
+      "communication": 80,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "采购需要从寻源到交付的完整采购管理能力。",
+      "证书要求": "采购师和供应链管理师是核心资质。",
+      "创新能力": "需在采购策略和供应商合作模式上持续创新。",
+      "学习能力": "市场行情和供应链工具持续变化。",
+      "抗压能力": "交付压力和成本目标需要持续推动。",
+      "沟通能力": "供应商谈判和内部需求沟通是核心工作。",
+      "实习能力": "制造或零售企业采购部实习能快速入行。"
+    }
+  },
+  {
+    "job_code": "J-AVT-001",
+    "title": "航空维修工程师",
+    "summary": "负责航空器定期检修、故障排除、适航管理与维修记录，强调安全意识、技术规范和细致性。",
+    "skills": [
+      "航空维修",
+      "适航管理",
+      "故障诊断",
+      "技术手册",
+      "工具使用",
+      "安全规范",
+      "维修记录"
+    ],
+    "certificates": [
+      "民用航空器维修人员执照",
+      "机型授权"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 80,
+      "resilience": 82,
+      "communication": 72,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "航空维修需要严格按照技术手册操作的规范能力。",
+      "证书要求": "维修人员执照是法规要求的必备资质。",
+      "创新能力": "需在维修效率和工具使用上持续改进。",
+      "学习能力": "新机型和维修技术需要持续培训。",
+      "抗压能力": "安全责任重大，需要高度警觉。",
+      "沟通能力": "需要与飞行组和工程团队准确交接。",
+      "实习能力": "航空公司机务实习是入行关键途径。"
+    }
+  },
+  {
+    "job_code": "J-CON-001",
+    "title": "管理咨询顾问",
+    "summary": "负责企业战略诊断、管理问题分析、解决方案设计与实施辅导，强调逻辑分析、结构化思维与客户沟通能力。",
+    "skills": [
+      "战略分析",
+      "数据分析",
+      "PPT制作",
+      "访谈技巧",
+      "行业研究",
+      "项目管理",
+      "商业模型"
+    ],
+    "certificates": [
+      "PMP",
+      "CFA/CPA（加分）"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 86,
+      "resilience": 78,
+      "communication": 86,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "管理咨询需要快速理解企业问题并提出结构化方案。",
+      "证书要求": "咨询行业重视综合能力，PMP/CPA/CFA 为加分项。",
+      "创新能力": "需要针对不同客户设计创新解决方案。",
+      "学习能力": "行业知识和管理理论需要快速学习。",
+      "抗压能力": "项目节奏快，经常需要高强度工作。",
+      "沟通能力": "客户沟通和方案汇报是核心工作。",
+      "实习能力": "咨询公司PTA或暑期实习是入行的重要途径。"
+    }
+  },
+  {
+    "job_code": "J-TRL-001",
+    "title": "翻译/本地化",
+    "summary": "负责文档翻译、软件/网站本地化、口译与术语管理，强调双语能力、文化理解和专业领域知识。",
+    "skills": [
+      "笔译",
+      "口译",
+      "CAT工具",
+      "术语管理",
+      "跨文化沟通",
+      "本地化工程",
+      "质量审校"
+    ],
+    "certificates": [
+      "CATTI翻译资格",
+      "语水平证书"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 84,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "翻译需要精通双语并具备专业领域的翻译能力。",
+      "证书要求": "CATTI 是国内翻译行业权威认证。",
+      "创新能力": "需在翻译工具和本地化流程上持续优化。",
+      "学习能力": "行业术语和翻译工具持续更新。",
+      "抗压能力": "截稿期和同传压力需要良好的心理素质。",
+      "沟通能力": "口译和客户沟通是核心工作场景。",
+      "实习能力": "翻译公司或外企本地化部门实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-TRD-001",
+    "title": "外贸专员",
+    "summary": "负责外贸订单跟进、客户开发、报关单证与跨境物流协调，强调英语能力、贸易知识和跨文化商务能力。",
+    "skills": [
+      "国际贸易",
+      "外贸单证",
+      "报关流程",
+      "英语商务邮件",
+      "跨境电商",
+      "信用证",
+      "市场开拓"
+    ],
+    "certificates": [
+      "报关员",
+      "外销员"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 84,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.2,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "外贸需要从客户开发到交付的完整贸易操作能力。",
+      "证书要求": "报关员和外销员证书是行业基本资质。",
+      "创新能力": "需在客户开发和跨境渠道上持续创新。",
+      "学习能力": "贸易政策和跨境电商平台规则持续变化。",
+      "抗压能力": "时差沟通和交期压力需要持久耐力。",
+      "沟通能力": "跨文化商务沟通是日常核心工作。",
+      "实习能力": "外贸企业或跨境电商实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-HOT-001",
+    "title": "酒店管理培训生",
+    "summary": "在酒店各部门轮岗学习，培养为酒店管理人才，强调服务意识、跨部门协作和多语言沟通能力。",
+    "skills": [
+      "客户服务",
+      "前台运营",
+      "餐饮服务",
+      "客房管理",
+      "英语沟通",
+      "投诉处理",
+      "收益管理基础"
+    ],
+    "certificates": [
+      "酒店管理资格",
+      "英语等级证书"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 76,
+      "resilience": 80,
+      "communication": 86,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.32,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "酒店管理需要对前台、餐饮、客房等模块的全面了解。",
+      "证书要求": "酒店管理相关资格和英语证书是基本要求。",
+      "创新能力": "需在服务体验和运营效率上持续改进。",
+      "学习能力": "酒店管理系统和服务标准需要快速掌握。",
+      "抗压能力": "服务行业节奏快，需要持续保持专业态度。",
+      "沟通能力": "多语言沟通和客户关系管理是核心能力。",
+      "实习能力": "酒店实习经历是入行的重要前提。"
+    }
+  },
+  {
+    "job_code": "J-RST-001",
+    "title": "房地产策划",
+    "summary": "负责楼盘营销策划、市场定位、推广方案与竞品分析，强调市场洞察、策划能力和数据分析。",
+    "skills": [
+      "市场调研",
+      "项目定位",
+      "营销策划",
+      "竞品分析",
+      "数据分析",
+      "推广方案",
+      "客户研究"
+    ],
+    "certificates": [
+      "房地产策划师",
+      "市场营销师"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 82,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "房地产策划需要从市场分析到推广方案的完整策划能力。",
+      "证书要求": "房地产策划师和市场营销类证书可补充专业度。",
+      "创新能力": "需要在营销创意和客户触达上持续创新。",
+      "学习能力": "市场政策和消费者偏好持续变化。",
+      "抗压能力": "开盘节点和去化压力需要高效执行。",
+      "沟通能力": "需协调设计、销售和广告多方资源。",
+      "实习能力": "房地产代理公司或开发商策划部实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-FDQ-001",
+    "title": "食品安全/质量管理",
+    "summary": "负责食品安全体系管理、原料检验、生产过程监控与合规审核，强调食品安全法规、检验技能和质量管理能力。",
+    "skills": [
+      "食品安全法规",
+      "HACCP",
+      "质量检验",
+      "ISO22000",
+      "实验室管理",
+      "供应商审核",
+      "数据分析"
+    ],
+    "certificates": [
+      "食品安全管理员",
+      "质量工程师"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 78,
+      "resilience": 78,
+      "communication": 72,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.18,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "食品安全管理需要从原料到成品的全程质量把控能力。",
+      "证书要求": "食品安全管理员和质量类证书是基本资质。",
+      "创新能力": "需在检测方法和质量体系上持续改进。",
+      "学习能力": "食品安全法规和检测标准持续更新。",
+      "抗压能力": "食品安全事件需要快速响应和处理。",
+      "沟通能力": "需推动生产部门执行质量标准。",
+      "实习能力": "食品企业质检部门实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-FIT-001",
+    "title": "健身教练",
+    "summary": "负责健身方案设计、动作指导、体测评估与会员关系维护，强调运动科学知识、沟通能力和体魄。",
+    "skills": [
+      "运动解剖学",
+      "训练计划设计",
+      "营养指导",
+      "体测评估",
+      "私教课程",
+      "团体课教学",
+      "急救知识"
+    ],
+    "certificates": [
+      "健身教练国家职业资格",
+      "ACE/NASM认证"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 74,
+      "resilience": 84,
+      "communication": 82,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.16,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "健身教练需要系统的运动科学知识和训练指导能力。",
+      "证书要求": "国家职业资格和国际认证是入行基本要求。",
+      "创新能力": "需根据会员情况设计个性化训练方案。",
+      "学习能力": "训练方法和营养科学持续更新。",
+      "抗压能力": "业绩目标和体力消耗需要良好的身心状态。",
+      "沟通能力": "会员激励和关系维护是核心工作。",
+      "实习能力": "健身俱乐部实习能快速积累授课经验。"
+    }
+  },
+  {
+    "job_code": "J-AGR-001",
+    "title": "农业技术员",
+    "summary": "负责农作物种植技术指导、病虫害防治、土壤分析与产量优化，强调农业知识、实验能力和田间管理经验。",
+    "skills": [
+      "作物栽培",
+      "病虫害防治",
+      "土壤分析",
+      "农业机械",
+      "数据记录",
+      "农药使用",
+      "田间试验"
+    ],
+    "certificates": [
+      "农艺师",
+      "植保员"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 82,
+      "communication": 68,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "农业技术员需要从种植到收获的全程技术指导能力。",
+      "证书要求": "农艺师和植保员是行业基本资质。",
+      "创新能力": "需在种植技术和精准农业上持续探索。",
+      "学习能力": "农业技术和品种持续更新。",
+      "抗压能力": "自然灾害和田间工作需要良好的体力和心态。",
+      "沟通能力": "需向农户传达技术方案和管理建议。",
+      "实习能力": "农业基地或农技推广站实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-PSY-001",
+    "title": "心理咨询师",
+    "summary": "负责心理评估、咨询辅导、心理健康教育与危机干预，强调心理学理论基础、共情能力和职业伦理。",
+    "skills": [
+      "心理咨询技术",
+      "心理评估",
+      "危机干预",
+      "认知行为疗法",
+      "倾听技巧",
+      "案例分析",
+      "伦理规范"
+    ],
+    "certificates": [
+      "心理咨询师",
+      "精神卫生相关资质"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 82,
+      "resilience": 78,
+      "communication": 90,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "心理咨询需要系统的理论知识和临床实践能力。",
+      "证书要求": "心理咨询师资格是行业基本准入条件。",
+      "创新能力": "需根据来访者情况灵活调整咨询方法。",
+      "学习能力": "心理学理论和治疗方法持续演进。",
+      "抗压能力": "情绪劳动强度大，需要自我调节能力。",
+      "沟通能力": "倾听和共情是心理咨询的核心能力。",
+      "实习能力": "心理咨询机构或医院精神科实习是重要途径。"
+    }
+  },
+  {
+    "job_code": "J-GFX-001",
+    "title": "平面设计师",
+    "summary": "负责品牌视觉设计、海报/画册排版、包装设计与品牌物料输出，强调审美能力、设计工具熟练度和创意表达。",
+    "skills": [
+      "Photoshop",
+      "Illustrator",
+      "InDesign",
+      "排版设计",
+      "色彩理论",
+      "品牌视觉",
+      "印刷知识"
+    ],
+    "certificates": [
+      "Adobe认证设计师",
+      "平面设计师"
+    ],
+    "capabilities": {
+      "innovation": 88,
+      "learning": 74,
+      "resilience": 72,
+      "communication": 74,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "平面设计需要工具熟练、审美在线和高效产出能力。",
+      "证书要求": "Adobe认证可证明工具专业度。",
+      "创新能力": "视觉表达和创意设计是核心竞争力。",
+      "学习能力": "设计趋势和工具版本持续变化。",
+      "抗压能力": "修改迭代和项目节点需要高效应对。",
+      "沟通能力": "需理解客户需求并转化为设计语言。",
+      "实习能力": "设计公司或企业设计部实习能积累作品集。"
+    }
+  },
+  {
+    "job_code": "J-ANI-001",
+    "title": "动画/游戏美术",
+    "summary": "负责角色/场景设计、3D建模、动画制作与游戏视觉效果，强调美术功底、软件熟练度和创意想象能力。",
+    "skills": [
+      "Maya/Blender",
+      "ZBrush",
+      "角色设计",
+      "场景设计",
+      "动画原理",
+      "UV贴图",
+      "游戏引擎"
+    ],
+    "certificates": [
+      "Adobe认证",
+      "Autodesk认证"
+    ],
+    "capabilities": {
+      "innovation": 90,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 68,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "动画游戏美术需要扎实的美术基础和3D软件技能。",
+      "证书要求": "Adobe/Autodesk认证可证明工具熟练度。",
+      "创新能力": "角色和场景的创意设计是核心竞争力。",
+      "学习能力": "制作工具和引擎技术快速迭代。",
+      "抗压能力": "项目节点和版本迭代需要高效产出。",
+      "沟通能力": "需与策划和程序团队协作。",
+      "实习能力": "游戏公司或动画工作室实习能快速积累作品集。"
+    }
+  },
+  {
+    "job_code": "J-NRG-001",
+    "title": "新能源工程师",
+    "summary": "负责光伏/风电系统设计、项目技术评估、设备选型与并网管理，强调电力系统知识、项目协调和新能源政策理解。",
+    "skills": [
+      "光伏系统设计",
+      "电力系统",
+      "AutoCAD",
+      "项目评估",
+      "并网技术",
+      "政策法规",
+      "数据分析"
+    ],
+    "certificates": [
+      "电气工程师",
+      "新能源工程师"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 72,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "新能源工程师需要电力系统和新能源技术的综合能力。",
+      "证书要求": "电气工程师和新能源工程师是核心资质。",
+      "创新能力": "新能源技术迭代快，需持续探索创新方案。",
+      "学习能力": "新能源技术和政策快速变化。",
+      "抗压能力": "项目周期和并网节点需要高效执行。",
+      "沟通能力": "需协调政府、电网和施工多方。",
+      "实习能力": "新能源企业实习能快速积累项目经验。"
+    }
+  },
+  {
+    "job_code": "J-SWK-001",
+    "title": "社会工作者",
+    "summary": "负责社区服务、个案管理、资源链接与弱势群体帮扶，强调共情能力、资源整合和社区动员能力。",
+    "skills": [
+      "个案管理",
+      "社区工作方法",
+      "资源链接",
+      "政策法规",
+      "访谈技巧",
+      "活动策划",
+      "文书撰写"
+    ],
+    "certificates": [
+      "社会工作者职业资格",
+      "心理咨询师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 80,
+      "communication": 86,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "社会工作者需要个案管理和社区工作的专业方法。",
+      "证书要求": "社会工作者职业资格是行业基本准入。",
+      "创新能力": "需在社区服务模式和资源整合上持续创新。",
+      "学习能力": "社会政策和社区需求持续变化。",
+      "抗压能力": "面对弱势群体和复杂个案需要情绪管理。",
+      "沟通能力": "共情和沟通是社会工作的核心能力。",
+      "实习能力": "社区或社工机构实习是入行重要途径。"
+    }
+  },
+  {
+    "job_code": "J-ITC-001",
+    "title": "IT咨询顾问",
+    "summary": "负责企业信息化规划、系统选型评估、数字化转型方案设计与实施辅导，强调技术理解、架构思维和客户沟通能力。",
+    "skills": [
+      "IT规划",
+      "系统架构",
+      "需求分析",
+      "数字化转型",
+      "项目管理",
+      "方案设计",
+      "客户沟通"
+    ],
+    "certificates": [
+      "PMP",
+      "TOGAF",
+      "ITIL"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 84,
+      "resilience": 76,
+      "communication": 86,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.2,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "IT咨询需要从业务理解到技术方案落地的完整能力。",
+      "证书要求": "TOGAF/ITIL 等企业架构认证是加分项。",
+      "创新能力": "需在数字化转型方案上持续创新。",
+      "学习能力": "技术栈和管理方法论持续演进。",
+      "抗压能力": "项目节奏快，需高效产出。",
+      "沟通能力": "向 C-Level 汇报方案是核心工作。",
+      "实习能力": "咨询公司 IT 咨询线实习是重要入行途径。"
+    }
+  },
+  {
+    "job_code": "J-HRC-001",
+    "title": "人力资源咨询顾问",
+    "summary": "负责组织诊断、薪酬体系设计、人才战略规划与 HR 体系优化，强调组织行为学、数据分析与方案设计能力。",
+    "skills": [
+      "组织诊断",
+      "薪酬设计",
+      "人才发展",
+      "数据分析",
+      "访谈调研",
+      "方案设计",
+      "变革管理"
+    ],
+    "certificates": [
+      "人力资源管理师",
+      "组织发展认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 86,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.24,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "HR咨询需要从诊断到落地的完整组织管理能力。",
+      "证书要求": "人力资源管理师和组织发展类认证可补充专业度。",
+      "创新能力": "需在组织设计和激励机制上持续创新。",
+      "学习能力": "管理理论和最佳实践持续更新。",
+      "抗压能力": "项目节奏和客户期望管理需要稳定性。",
+      "沟通能力": "客户沟通和方案汇报是日常工作核心。",
+      "实习能力": "咨询公司人力资本线实习很有价值。"
+    }
+  },
+  {
+    "job_code": "J-FNC-001",
+    "title": "财务咨询顾问",
+    "summary": "负责企业财务尽职调查、交易支持、财务模型搭建与估值分析，强调财务分析能力、交易理解和模型构建能力。",
+    "skills": [
+      "财务建模",
+      "尽职调查",
+      "估值分析",
+      "交易架构",
+      "数据分析",
+      "Excel/VBA",
+      "行业研究"
+    ],
+    "certificates": [
+      "CPA",
+      "CFA"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 84,
+      "resilience": 80,
+      "communication": 78,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.18,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "财务咨询需要精准的财务建模和商业分析能力。",
+      "证书要求": "CPA 和 CFA 是行业高度认可的资质。",
+      "创新能力": "需在交易方案和财务结构设计上创新。",
+      "学习能力": "会计准则和交易模式持续变化。",
+      "抗压能力": "交易窗口期工作强度极高。",
+      "沟通能力": "需向投资人和管理层清晰传达分析结论。",
+      "实习能力": "四大会计师事务所财务咨询实习是入行关键。"
+    }
+  },
+  {
+    "job_code": "J-DTC-001",
+    "title": "数据咨询顾问",
+    "summary": "负责企业数据战略规划、数据治理体系设计与数据驱动转型辅导，强调数据架构理解、业务分析和落地推动能力。",
+    "skills": [
+      "数据治理",
+      "数据架构",
+      "业务分析",
+      "数据战略",
+      "数据质量",
+      "SQL/Python",
+      "方案设计"
+    ],
+    "certificates": [
+      "CDMP",
+      "PMP"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 84,
+      "resilience": 76,
+      "communication": 82,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "数据咨询需要从数据战略到治理落地的综合能力。",
+      "证书要求": "CDMP 数据管理认证是行业权威资质。",
+      "创新能力": "需在数据应用场景和治理方法上持续创新。",
+      "学习能力": "数据技术和最佳实践快速演进。",
+      "抗压能力": "客户期望和项目节奏需要高效推进。",
+      "沟通能力": "需将复杂数据方案向业务层讲清楚。",
+      "实习能力": "咨询公司数据线或企业数据部门实习很有价值。"
+    }
+  },
+  {
+    "job_code": "J-TOU-001",
+    "title": "旅游产品策划",
+    "summary": "负责旅游线路设计、供应商对接、旅游产品定价与用户体验优化，强调旅游资源整合、创意策划和成本控制能力。",
+    "skills": [
+      "线路设计",
+      "供应商管理",
+      "成本核算",
+      "用户研究",
+      "产品定价",
+      "目的地知识",
+      "在线旅游平台"
+    ],
+    "certificates": [
+      "导游证",
+      "旅游策划师"
+    ],
+    "capabilities": {
+      "innovation": 80,
+      "learning": 76,
+      "resilience": 76,
+      "communication": 82,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "旅游产品策划需要从目的地研究到产品上架的完整能力。",
+      "证书要求": "导游证和旅游策划类证书可补充专业度。",
+      "创新能力": "需在旅游产品和体验设计上持续创新。",
+      "学习能力": "旅游目的地和市场趋势持续变化。",
+      "抗压能力": "旺季和突发事件需要灵活应对。",
+      "沟通能力": "供应商和客户协调是核心工作。",
+      "实习能力": "旅行社或 OTA 平台实习能快速入行。"
+    }
+  },
+  {
+    "job_code": "J-TOG-001",
+    "title": "导游",
+    "summary": "负责旅游团队带团讲解、行程安排、突发事件处理与游客服务，强调表达能力、历史文化和应急处理能力。",
+    "skills": [
+      "景点讲解",
+      "行程管理",
+      "历史文化",
+      "急救知识",
+      "游客服务",
+      "外语能力",
+      "突发事件处理"
+    ],
+    "certificates": [
+      "导游证",
+      "急救证"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 74,
+      "resilience": 82,
+      "communication": 88,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "导游需要丰富的文化知识和出色的带团服务能力。",
+      "证书要求": "导游证是法规要求的必备资质。",
+      "创新能力": "需在讲解方式和游客体验上持续改进。",
+      "学习能力": "新景点和文化知识需要持续学习。",
+      "抗压能力": "长时间带团和突发状况需要良好的体力。",
+      "沟通能力": "讲解和游客互动是导游的核心能力。",
+      "实习能力": "旅行社跟团实习能快速积累带团经验。"
+    }
+  },
+  {
+    "job_code": "J-RST-002",
+    "title": "餐饮运营管理",
+    "summary": "负责餐厅日常运营、人员排班、成本控制与服务质量提升，强调现场管理、成本意识和团队领导能力。",
+    "skills": [
+      "餐厅管理",
+      "成本控制",
+      "排班管理",
+      "食品安全",
+      "客户服务",
+      "团队培训",
+      "库存管理"
+    ],
+    "certificates": [
+      "食品安全管理员",
+      "餐饮管理认证"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 72,
+      "resilience": 84,
+      "communication": 80,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.2,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "餐饮运营需要从成本到服务的全方位管理能力。",
+      "证书要求": "食品安全管理员是基本要求。",
+      "创新能力": "需在菜单和运营效率上持续优化。",
+      "学习能力": "餐饮趋势和管理工具持续变化。",
+      "抗压能力": "高峰期和多店管理需要强执行力。",
+      "沟通能力": "团队管理和客户服务是日常工作。",
+      "实习能力": "连锁餐饮管理培训生项目是入行好途径。"
+    }
+  },
+  {
+    "job_code": "J-RST-003",
+    "title": "房地产销售",
+    "summary": "负责楼盘销售、客户接待、带看签约与售后跟进，强调销售技巧、产品知识和客户关系维护能力。",
+    "skills": [
+      "销售技巧",
+      "楼盘知识",
+      "客户管理",
+      "谈判签约",
+      "CRM系统",
+      "市场分析",
+      "按揭流程"
+    ],
+    "certificates": [
+      "房地产经纪人",
+      "销售管理师"
+    ],
+    "capabilities": {
+      "innovation": 64,
+      "learning": 72,
+      "resilience": 86,
+      "communication": 88,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.34,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "房地产销售需要产品知识和成交能力的紧密结合。",
+      "证书要求": "房地产经纪人是行业基本准入资质。",
+      "创新能力": "需在客户触达和成交策略上持续优化。",
+      "学习能力": "楼盘信息和政策法规需持续更新。",
+      "抗压能力": "业绩目标和客户拒绝是日常挑战。",
+      "沟通能力": "客户接待和谈判是核心工作。",
+      "实习能力": "楼盘销售实习能快速积累客户沟通经验。"
+    }
+  },
+  {
+    "job_code": "J-PRP-001",
+    "title": "物业管理",
+    "summary": "负责物业项目运营、设备设施维护、业主服务与安全管理，强调服务意识、现场管理和问题解决能力。",
+    "skills": [
+      "物业管理",
+      "设备维护",
+      "安全管理",
+      "业主沟通",
+      "成本控制",
+      "团队管理",
+      "法律法规"
+    ],
+    "certificates": [
+      "物业管理师",
+      "消防管理"
+    ],
+    "capabilities": {
+      "innovation": 60,
+      "learning": 72,
+      "resilience": 80,
+      "communication": 80,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "物业管理需要从设施到服务的综合管理能力。",
+      "证书要求": "物业管理师是行业基本资质。",
+      "创新能力": "需在服务品质和智慧物业上持续改进。",
+      "学习能力": "物业法规和智能化工具持续更新。",
+      "抗压能力": "业主投诉和突发事件需要快速处理。",
+      "沟通能力": "业主关系维护是核心工作。",
+      "实习能力": "物业公司项目实习能快速了解运营实务。"
+    }
+  },
+  {
+    "job_code": "J-VLU-001",
+    "title": "房地产估价师",
+    "summary": "负责不动产价值评估、市场比较分析、评估报告撰写与投资分析，强调估价方法、数据分析与法规理解能力。",
+    "skills": [
+      "估价方法",
+      "市场比较法",
+      "收益法",
+      "数据分析",
+      "报告撰写",
+      "土地法规",
+      "投资分析"
+    ],
+    "certificates": [
+      "房地产估价师",
+      "土地估价师"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 78,
+      "resilience": 74,
+      "communication": 72,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.2,
+      "development_potential": 0.16
+    },
+    "explanations": {
+      "专业技能": "估价师需要精通各类估价方法并能准确判断市场价值。",
+      "证书要求": "房地产估价师是行业核心执业资格。",
+      "创新能力": "需在估价模型和数据分析上持续优化。",
+      "学习能力": "市场动态和估价法规持续变化。",
+      "抗压能力": "估价结论影响重大，需保持客观严谨。",
+      "沟通能力": "需向委托方和监管机构清晰说明估价依据。",
+      "实习能力": "估价机构实习能快速掌握实务操作。"
+    }
+  },
+  {
+    "job_code": "J-FDR-001",
+    "title": "食品研发员",
+    "summary": "负责新产品配方开发、工艺设计、感官评价与稳定性测试，强调食品科学知识、实验设计和创新能力。",
+    "skills": [
+      "食品配方",
+      "感官评价",
+      "工艺设计",
+      "实验设计",
+      "营养学",
+      "食品添加剂",
+      "稳定性测试"
+    ],
+    "certificates": [
+      "食品工程师",
+      "营养师"
+    ],
+    "capabilities": {
+      "innovation": 84,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 70,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "食品研发需要配方开发和工艺设计的完整能力。",
+      "证书要求": "食品工程师和营养师是核心资质。",
+      "创新能力": "新产品开发是食品研发的核心任务。",
+      "学习能力": "食品科学和消费者趋势持续变化。",
+      "抗压能力": "研发周期和上市节点需要高效推进。",
+      "沟通能力": "需与市场和生产部门紧密协作。",
+      "实习能力": "食品企业研发中心实习能快速积累配方经验。"
+    }
+  },
+  {
+    "job_code": "J-NUT-001",
+    "title": "营养师",
+    "summary": "负责营养方案制定、膳食指导、营养健康评估与科普宣传，强调营养学知识、沟通能力和健康意识。",
+    "skills": [
+      "营养学",
+      "膳食搭配",
+      "健康评估",
+      "营养咨询",
+      "食谱设计",
+      "食品标签",
+      "科普写作"
+    ],
+    "certificates": [
+      "注册营养师",
+      "公共营养师"
+    ],
+    "capabilities": {
+      "innovation": 72,
+      "learning": 80,
+      "resilience": 70,
+      "communication": 82,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.22,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "营养师需要系统的营养学知识和膳食指导能力。",
+      "证书要求": "注册营养师是行业权威资质。",
+      "创新能力": "需在营养方案和健康产品上持续创新。",
+      "学习能力": "营养科学和健康趋势持续更新。",
+      "抗压能力": "客户健康管理需要长期跟踪。",
+      "沟通能力": "营养咨询和科普传播是核心工作。",
+      "实习能力": "医院营养科或健康管理机构实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-FDI-001",
+    "title": "调味品/饮品研发",
+    "summary": "负责调味品或饮品配方开发、风味调试、工艺放大与感官测试，强调味觉敏感度、配方设计和实验能力。",
+    "skills": [
+      "配方设计",
+      "感官评价",
+      "风味化学",
+      "工艺放大",
+      "稳定性测试",
+      "成本优化",
+      "消费者测试"
+    ],
+    "certificates": [
+      "食品工程师",
+      "调香师"
+    ],
+    "capabilities": {
+      "innovation": 86,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 68,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "调味品/饮品研发需要精准的配方设计和风味把控能力。",
+      "证书要求": "食品工程师和调香师可补充专业度。",
+      "创新能力": "口味创新是产品差异化的核心。",
+      "学习能力": "消费者口味偏好和工艺技术持续变化。",
+      "抗压能力": "产品上市周期需要高效迭代。",
+      "沟通能力": "需与市场和生产团队紧密配合。",
+      "实习能力": "食品企业研发实习能快速积累配方经验。"
+    }
+  },
+  {
+    "job_code": "J-SPT-001",
+    "title": "体育赛事运营",
+    "summary": "负责赛事策划、场馆协调、赞助商管理与赛事执行，强调项目统筹、现场执行和多方协调能力。",
+    "skills": [
+      "赛事策划",
+      "项目管理",
+      "赞助商管理",
+      "场馆协调",
+      "预算管理",
+      "志愿者管理",
+      "应急预案"
+    ],
+    "certificates": [
+      "体育管理认证",
+      "项目管理认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 76,
+      "resilience": 82,
+      "communication": 84,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "赛事运营需要从策划到执行的完整项目管理能力。",
+      "证书要求": "体育管理和项目管理类证书可补充专业度。",
+      "创新能力": "需在赛事形式和观众体验上持续创新。",
+      "学习能力": "赛事运营技术和赞助模式持续变化。",
+      "抗压能力": "赛事当天需要快速处理各种突发状况。",
+      "沟通能力": "多方协调是赛事运营的核心工作。",
+      "实习能力": "体育赛事公司或场馆实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-RHB-001",
+    "title": "运动康复师",
+    "summary": "负责运动损伤评估、康复方案制定、理疗操作与运动防护指导，强调运动医学知识、手法技术和沟通能力。",
+    "skills": [
+      "运动损伤评估",
+      "康复训练",
+      "理疗技术",
+      "运动解剖",
+      "手法治疗",
+      "康复方案",
+      "运动防护"
+    ],
+    "certificates": [
+      "康复治疗师",
+      "运动防护师"
+    ],
+    "capabilities": {
+      "innovation": 70,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 80,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.18,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "运动康复需要系统的评估和康复方案设计能力。",
+      "证书要求": "康复治疗师和运动防护师是核心资质。",
+      "创新能力": "需在康复方法和技术上持续改进。",
+      "学习能力": "康复技术和运动医学持续演进。",
+      "抗压能力": "复杂病例需要耐心和持续关注。",
+      "沟通能力": "需要与运动员和教练团队密切配合。",
+      "实习能力": "运动医学中心或康复机构实习是入行关键。"
+    }
+  },
+  {
+    "job_code": "J-PEF-001",
+    "title": "体能训练师",
+    "summary": "负责运动员/健身人群体能评估、训练计划设计与训练监控，强调运动生理学、训练科学和数据分析能力。",
+    "skills": [
+      "体能评估",
+      "训练计划",
+      "运动生理",
+      "力量训练",
+      "速度敏捷",
+      "数据分析",
+      "运动营养"
+    ],
+    "certificates": [
+      "体能训练师",
+      "CSCS"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 80,
+      "resilience": 80,
+      "communication": 76,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "体能训练需要科学的评估和训练方案设计能力。",
+      "证书要求": "CSCS 和体能训练师是国际权威认证。",
+      "创新能力": "需在训练方法和监控技术上持续创新。",
+      "学习能力": "训练科学和运动技术持续演进。",
+      "抗压能力": "训练周期和比赛目标需要持续推进。",
+      "沟通能力": "需与教练、运动员和医疗团队紧密协作。",
+      "实习能力": "体育俱乐部或体能训练中心实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-HRT-001",
+    "title": "园艺师",
+    "summary": "负责园林植物配置、景观绿化设计、养护方案制定与病虫害防治，强调植物学知识、审美能力和养护技术。",
+    "skills": [
+      "植物配置",
+      "景观设计",
+      "病虫害防治",
+      "土壤管理",
+      "AutoCAD",
+      "苗圃管理",
+      "绿化养护"
+    ],
+    "certificates": [
+      "园艺师",
+      "景观设计师"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 76,
+      "resilience": 76,
+      "communication": 70,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.18,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "园艺师需要从植物配置到养护管理的完整技术能力。",
+      "证书要求": "园艺师和景观设计师是行业核心资质。",
+      "创新能力": "需在植物配置和景观效果上持续创新。",
+      "学习能力": "植物品种和绿化技术持续更新。",
+      "抗压能力": "季节性工作和现场管理需要持续投入。",
+      "沟通能力": "需与设计团队和施工方有效配合。",
+      "实习能力": "园林企业或苗圃实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-ANH-001",
+    "title": "畜牧技术员",
+    "summary": "负责畜禽饲养管理、疫病防控、繁育指导与养殖场运营，强调动物医学知识、实践能力和生物安全意识。",
+    "skills": [
+      "饲养管理",
+      "疫病防控",
+      "繁殖技术",
+      "动物营养",
+      "生物安全",
+      "养殖设备",
+      "数据记录"
+    ],
+    "certificates": [
+      "畜牧师",
+      "执业兽医"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 76,
+      "resilience": 82,
+      "communication": 66,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "畜牧技术需要系统的动物医学和饲养管理知识。",
+      "证书要求": "畜牧师和执业兽医是行业核心资质。",
+      "创新能力": "需在养殖效率和疫病防控上持续改进。",
+      "学习能力": "养殖技术和动物医学持续更新。",
+      "抗压能力": "疫病风险和现场管理需要高度警觉。",
+      "沟通能力": "需与养殖户和技术团队有效沟通。",
+      "实习能力": "养殖场实习是积累经验的关键途径。"
+    }
+  },
+  {
+    "job_code": "J-AGT-001",
+    "title": "农业机械技术员",
+    "summary": "负责农业机械操作、维修保养、设备选型与农机推广，强调机械原理、动手能力和田间操作经验。",
+    "skills": [
+      "农机操作",
+      "设备维修",
+      "机械原理",
+      "电气控制",
+      "GPS导航",
+      "安全规范",
+      "故障诊断"
+    ],
+    "certificates": [
+      "农机操作证",
+      "机械工程师"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 82,
+      "communication": 66,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "农机技术需要机械操作和维修保养的实践能力。",
+      "证书要求": "农机操作证是基本要求。",
+      "创新能力": "需在精准农业和智能农机上跟进新技术。",
+      "学习能力": "农机技术和智能化设备持续升级。",
+      "抗压能力": "农忙季节高强度作业需要良好的体力。",
+      "沟通能力": "需与农户和技术团队有效沟通。",
+      "实习能力": "农机企业或农场实习能快速积累操作经验。"
+    }
+  },
+  {
+    "job_code": "J-PET-001",
+    "title": "石油工程师",
+    "summary": "负责油藏工程分析、钻井方案设计、采油工艺优化与油田开发规划，强调地质理解、工程计算和项目协调能力。",
+    "skills": [
+      "油藏工程",
+      "钻井工程",
+      "采油工艺",
+      "地质分析",
+      "数值模拟",
+      "AutoCAD",
+      "HSE管理"
+    ],
+    "certificates": [
+      "石油工程师",
+      "注册安全工程师"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 80,
+      "resilience": 80,
+      "communication": 68,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "石油工程需要从油藏到钻井的完整技术能力。",
+      "证书要求": "石油工程师和注册安全工程师是核心资质。",
+      "创新能力": "需在采油工艺和非常规油气开发上持续创新。",
+      "学习能力": "油气开发技术和数字化工具持续演进。",
+      "抗压能力": "现场作业和安全风险需要高度警觉。",
+      "沟通能力": "需与多专业团队紧密协作。",
+      "实习能力": "油田现场实习能快速积累工程经验。"
+    }
+  },
+  {
+    "job_code": "J-ESM-001",
+    "title": "储能工程师",
+    "summary": "负责储能系统设计、电池选型、BMS调试与储能项目技术评估，强调电化学知识、系统设计和安全评估能力。",
+    "skills": [
+      "储能系统设计",
+      "电池技术",
+      "BMS",
+      "电力电子",
+      "系统仿真",
+      "安全评估",
+      "并网技术"
+    ],
+    "certificates": [
+      "电气工程师",
+      "储能工程师"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 84,
+      "resilience": 76,
+      "communication": 70,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.16,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "储能工程师需要从电池到系统的完整技术能力。",
+      "证书要求": "电气工程师和储能方向认证是核心资质。",
+      "创新能力": "储能技术迭代快，需持续跟进新方案。",
+      "学习能力": "电化学和电力电子技术快速演进。",
+      "抗压能力": "储能安全和项目节点需要严谨推进。",
+      "沟通能力": "需与电网、供应商和客户多方协调。",
+      "实习能力": "储能企业或研究院实习能快速入行。"
+    }
+  },
+  {
+    "job_code": "J-ENM-001",
+    "title": "能源管理师",
+    "summary": "负责企业能源审计、节能方案设计、碳排放核算与能源体系管理，强调节能技术、数据分析和碳管理能力。",
+    "skills": [
+      "能源审计",
+      "节能技术",
+      "碳排放核算",
+      "数据分析",
+      "ISO50001",
+      "碳交易",
+      "能源系统"
+    ],
+    "certificates": [
+      "能源管理师",
+      "碳管理师"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 74,
+      "internship": 76
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "能源管理需要审计、节能和碳核算的综合能力。",
+      "证书要求": "能源管理师和碳管理师是新兴核心资质。",
+      "创新能力": "需在节能方案和碳管理策略上持续创新。",
+      "学习能力": "碳政策和节能技术快速变化。",
+      "抗压能力": "合规压力和节能目标需要持续推进。",
+      "沟通能力": "需推动企业各层级执行节能措施。",
+      "实习能力": "节能服务公司或企业能源管理岗位实习有价值。"
+    }
+  },
+  {
+    "job_code": "J-CCR-001",
+    "title": "空乘/乘务员",
+    "summary": "负责客舱服务、旅客安全保障、应急处理与机上广播，强调服务意识、安全规范和应变能力。",
+    "skills": [
+      "客舱服务",
+      "安全规范",
+      "应急处理",
+      "急救技能",
+      "外语沟通",
+      "旅客沟通",
+      "机上广播"
+    ],
+    "certificates": [
+      "乘务员资格证",
+      "急救证"
+    ],
+    "capabilities": {
+      "innovation": 58,
+      "learning": 72,
+      "resilience": 84,
+      "communication": 86,
+      "internship": 82
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.32,
+      "professional_literacy": 0.22,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "空乘需要严格的客舱服务和安全保障操作能力。",
+      "证书要求": "乘务员资格证是法规必备资质。",
+      "创新能力": "需在服务体验和旅客满意度上持续改进。",
+      "学习能力": "安全规范和服务流程需要持续训练。",
+      "抗压能力": "高空作业和突发状况需要冷静应对。",
+      "沟通能力": "多语言沟通和旅客服务是核心能力。",
+      "实习能力": "航空公司培训体系是入行的核心途径。"
+    }
+  },
+  {
+    "job_code": "J-ATC-001",
+    "title": "空中交通管制员",
+    "summary": "负责航空器飞行指挥、空域管理、间隔保障与应急协调，强调空间感知、快速决策和抗压能力。",
+    "skills": [
+      "飞行指挥",
+      "空域管理",
+      "雷达监控",
+      "气象分析",
+      "应急预案",
+      "通信协调",
+      "规章标准"
+    ],
+    "certificates": "空中交通管制执照",
+    "capabilities": {
+      "innovation": 62,
+      "learning": 80,
+      "resilience": 88,
+      "communication": 84,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.18,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "空管需要精准的飞行指挥和空域管理能力。",
+      "证书要求": "空中交通管制执照是法规要求的必备资质。",
+      "创新能力": "需在空域利用和流量管理上持续优化。",
+      "学习能力": "空管技术和规章持续更新。",
+      "抗压能力": "安全责任极大，需要高度专注和冷静。",
+      "沟通能力": "与飞行员和相邻管制单位的沟通是核心。",
+      "实习能力": "民航局空管培训体系是入行的唯一途径。"
+    }
+  },
+  {
+    "job_code": "J-SCM-001",
+    "title": "敏捷教练/Scrum Master",
+    "summary": "负责敏捷团队引导、Scrum流程实施、障碍消除与持续改进推动，强调敏捷方法论、团队引导和变革推动能力。",
+    "skills": [
+      "Scrum",
+      "看板方法",
+      "团队引导",
+      "迭代管理",
+      "障碍消除",
+      "持续改进",
+      "JIRA/Confluence"
+    ],
+    "certificates": [
+      "CSM/PMP",
+      "SAFe"
+    ],
+    "capabilities": {
+      "innovation": 76,
+      "learning": 82,
+      "resilience": 78,
+      "communication": 90,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.38,
+      "professional_literacy": 0.22,
+      "development_potential": 0.26
+    },
+    "explanations": {
+      "专业技能": "敏捷教练需要深入理解敏捷方法论并能有效引导团队。",
+      "证书要求": "CSM 和 PMP 是行业认可的敏捷认证。",
+      "创新能力": "需根据团队情况灵活调整敏捷实践。",
+      "学习能力": "敏捷框架和工具持续演进。",
+      "抗压能力": "团队冲突和交付压力需要稳定的引导。",
+      "沟通能力": "团队引导和跨部门协调是核心工作。",
+      "实习能力": "在敏捷团队中工作或担任 Scrum Master 能快速成长。"
+    }
+  },
+  {
+    "job_code": "J-EPM-001",
+    "title": "工程项目管理",
+    "summary": "负责工程项目进度/质量/成本的综合管理、施工协调与验收交付，强调工程管理、规范执行和多方协调能力。",
+    "skills": [
+      "工程进度管理",
+      "质量管理",
+      "成本控制",
+      "施工协调",
+      "安全文明",
+      "验收交付",
+      "BIM应用"
+    ],
+    "certificates": [
+      "建造师",
+      "PMP"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 84,
+      "communication": 80,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.4,
+      "professional_literacy": 0.18,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "工程项目管理需要进度、质量、成本的全面管控能力。",
+      "证书要求": "建造师是工程项目管理的核心执业资格。",
+      "创新能力": "需在施工组织和管理方法上持续改进。",
+      "学习能力": "工程技术和管理规范持续更新。",
+      "抗压能力": "工期和安全责任需要强执行力。",
+      "沟通能力": "甲方、设计、施工、监理多方协调是日常。",
+      "实习能力": "施工现场管理实习能快速积累项目经验。"
+    }
+  },
+  {
+    "job_code": "J-INT-001",
+    "title": "室内设计师",
+    "summary": "负责室内空间规划、方案设计、施工图绘制与材料选型，强调空间思维、审美能力和施工落地经验。",
+    "skills": [
+      "AutoCAD",
+      "SketchUp",
+      "3ds Max",
+      "空间规划",
+      "材料选型",
+      "施工图",
+      "软装搭配"
+    ],
+    "certificates": [
+      "室内设计师",
+      "建筑装饰工程师"
+    ],
+    "capabilities": {
+      "innovation": 86,
+      "learning": 76,
+      "resilience": 74,
+      "communication": 76,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.44,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "室内设计需要从方案到施工图的完整设计能力。",
+      "证书要求": "室内设计师和装饰工程师可补充专业度。",
+      "创新能力": "空间创意和风格表达是核心竞争力。",
+      "学习能力": "设计趋势和材料工艺持续变化。",
+      "抗压能力": "方案修改和施工配合需要耐心和效率。",
+      "沟通能力": "需与甲方和施工方准确传达设计意图。",
+      "实习能力": "设计公司或装饰企业实习能快速积累项目经验。"
+    }
+  },
+  {
+    "job_code": "J-ILL-001",
+    "title": "插画师",
+    "summary": "负责商业插画创作、角色设计、出版物配图与品牌视觉插画，强调绘画功底、创意表达和风格多样能力。",
+    "skills": [
+      "手绘/板绘",
+      "Photoshop",
+      "Procreate",
+      "角色设计",
+      "色彩理论",
+      "构图",
+      "商业插画"
+    ],
+    "certificates": [
+      "Adobe认证",
+      "美术类学位"
+    ],
+    "capabilities": {
+      "innovation": 92,
+      "learning": 76,
+      "resilience": 70,
+      "communication": 68,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.14,
+      "professional_skills": 0.46,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "插画师需要扎实的绘画功底和商业创作能力。",
+      "证书要求": "美术类学位和工具认证可补充专业度。",
+      "创新能力": "视觉创意和风格突破是核心竞争力。",
+      "学习能力": "绘画工具和审美趋势持续变化。",
+      "抗压能力": "修改迭代和项目节点需要高效产出。",
+      "沟通能力": "需理解客户需求并准确表达创意。",
+      "实习能力": "设计公司或游戏公司实习能快速积累作品。"
+    }
+  },
+  {
+    "job_code": "J-EXH-001",
+    "title": "展览/展示设计",
+    "summary": "负责展览空间规划、展台设计、互动装置设计与现场搭建协调，强调空间设计、创意展示和项目管理能力。",
+    "skills": [
+      "空间设计",
+      "3D建模",
+      "展台设计",
+      "互动装置",
+      "AutoCAD",
+      "灯光设计",
+      "材料工艺"
+    ],
+    "certificates": [
+      "展示设计师",
+      "室内设计师"
+    ],
+    "capabilities": {
+      "innovation": 88,
+      "learning": 76,
+      "resilience": 78,
+      "communication": 78,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "展览设计需要空间创意和互动体验的综合设计能力。",
+      "证书要求": "展示设计和室内设计类证书可补充专业度。",
+      "创新能力": "创意展示和互动体验是核心竞争力。",
+      "学习能力": "展示技术和互动装置持续更新。",
+      "抗压能力": "展期紧迫和现场搭建需要高效执行。",
+      "沟通能力": "需与客户、施工和供应商多方协调。",
+      "实习能力": "展览公司或会展企业实习能快速积累经验。"
+    }
+  },
+  {
+    "job_code": "J-SIT-001",
+    "title": "同声传译",
+    "summary": "负责国际会议、商务谈判中的实时口译服务，强调双语能力、快速反应、领域知识和高强度专注力。",
+    "skills": [
+      "同传技术",
+      "交替传译",
+      "术语管理",
+      "领域知识",
+      "快速反应",
+      "压力管理",
+      "笔记系统"
+    ],
+    "certificates": [
+      "CATTI一级/二级",
+      "AIIC会员"
+    ],
+    "capabilities": {
+      "innovation": 66,
+      "learning": 84,
+      "resilience": 84,
+      "communication": 92,
+      "internship": 72
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "同传需要极高强度的双语实时转换能力。",
+      "证书要求": "CATTI一级是同传行业最高认证。",
+      "创新能力": "需在术语处理和应急翻译上灵活应对。",
+      "学习能力": "各领域知识需要快速学习掌握。",
+      "抗压能力": "高强度实时翻译需要极强心理素质。",
+      "沟通能力": "口译本质上是高级沟通能力的体现。",
+      "实习能力": "大量模拟训练和跟会实践是入行关键。"
+    }
+  },
+  {
+    "job_code": "J-CBD-001",
+    "title": "跨境电商运营",
+    "summary": "负责跨境电商平台运营、海外市场选品、Listing优化与跨境物流协调，强调平台规则理解、数据分析和选品能力。",
+    "skills": [
+      "Amazon/Shopee",
+      "选品分析",
+      "Listing优化",
+      "广告投放",
+      "跨境物流",
+      "数据分析",
+      "海外市场研究"
+    ],
+    "certificates": [
+      "电商运营师",
+      "跨境电商认证"
+    ],
+    "capabilities": {
+      "innovation": 78,
+      "learning": 82,
+      "resilience": 76,
+      "communication": 72,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.22
+    },
+    "explanations": {
+      "专业技能": "跨境电商需要选品、运营和物流的综合能力。",
+      "证书要求": "跨境电商和运营类认证可补充方法论。",
+      "创新能力": "需在选品策略和运营方法上持续创新。",
+      "学习能力": "平台规则和海外市场趋势频繁变化。",
+      "抗压能力": "库存风险和平台政策变化需要快速应对。",
+      "沟通能力": "需与供应商、物流和服务商协调。",
+      "实习能力": "跨境电商企业实习或自主运营店铺是入行途径。"
+    }
+  },
+  {
+    "job_code": "J-CRG-001",
+    "title": "职业规划师",
+    "summary": "负责职业测评解读、职业路径规划、求职技能辅导与职业发展跟踪，强调职业理论、测评工具和辅导能力。",
+    "skills": [
+      "职业测评",
+      "MBTI/霍兰德",
+      "职业规划",
+      "简历辅导",
+      "面试辅导",
+      "行业分析",
+      "一对一辅导"
+    ],
+    "certificates": [
+      "GCDF",
+      "职业生涯规划师"
+    ],
+    "capabilities": {
+      "innovation": 74,
+      "learning": 80,
+      "resilience": 74,
+      "communication": 88,
+      "internship": 74
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.16,
+      "professional_skills": 0.36,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "职业规划师需要测评工具应用和个性化辅导能力。",
+      "证书要求": "GCDF 和职业生涯规划师是权威认证。",
+      "创新能力": "需根据个人背景定制职业发展方案。",
+      "学习能力": "行业动态和职业趋势持续变化。",
+      "抗压能力": "案例积累和客户期望需要耐心。",
+      "沟通能力": "一对一辅导和沟通是核心工作。",
+      "实习能力": "高校就业中心或职业咨询机构实习是重要途径。"
+    }
+  },
+  {
+    "job_code": "J-CMM-001",
+    "title": "社区管理/网格员",
+    "summary": "负责社区基层治理、居民服务、矛盾调解与政策宣传，强调群众工作能力、政策理解和问题解决能力。",
+    "skills": [
+      "群众工作",
+      "政策宣传",
+      "矛盾调解",
+      "信息采集",
+      "社区活动",
+      "台账管理",
+      "应急响应"
+    ],
+    "certificates": [
+      "社会工作师",
+      "社区管理认证"
+    ],
+    "capabilities": {
+      "innovation": 60,
+      "learning": 72,
+      "resilience": 80,
+      "communication": 84,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.22,
+      "professional_skills": 0.3,
+      "professional_literacy": 0.24,
+      "development_potential": 0.24
+    },
+    "explanations": {
+      "专业技能": "社区管理需要基层服务和群众工作的综合能力。",
+      "证书要求": "社会工作师是社区工作的基本资质。",
+      "创新能力": "需在社区服务和治理模式上持续探索。",
+      "学习能力": "政策和社区治理方法持续更新。",
+      "抗压能力": "基层矛盾和突发事件需要快速处理。",
+      "沟通能力": "居民服务和矛盾调解是日常工作核心。",
+      "实习能力": "社区实习或志愿服务能快速了解基层工作。"
+    }
+  },
+  {
+    "job_code": "J-WMS-001",
+    "title": "仓储自动化工程师",
+    "summary": "负责智能仓储系统设计、自动化设备选型、WMS/WCS集成与产线自动化改造，强调自动化知识、系统集成和现场调试能力。",
+    "skills": [
+      "自动化设计",
+      "WMS/WCS",
+      "PLC编程",
+      "机器人集成",
+      "AutoCAD",
+      "物流自动化",
+      "现场调试"
+    ],
+    "certificates": [
+      "电气工程师",
+      "自动化工程师"
+    ],
+    "capabilities": {
+      "innovation": 82,
+      "learning": 80,
+      "resilience": 78,
+      "communication": 70,
+      "internship": 80
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.18,
+      "professional_skills": 0.48,
+      "professional_literacy": 0.14,
+      "development_potential": 0.2
+    },
+    "explanations": {
+      "专业技能": "仓储自动化需要从系统设计到设备集成的完整能力。",
+      "证书要求": "电气和自动化工程师是核心资质。",
+      "创新能力": "智能仓储和无人化方案是前沿方向。",
+      "学习能力": "自动化技术和机器人设备快速迭代。",
+      "抗压能力": "项目交付和设备调试需要高效执行。",
+      "沟通能力": "需与 IT、运营和供应商多方协调。",
+      "实习能力": "自动化企业或物流技术公司实习很重要。"
+    }
+  },
+  {
+    "job_code": "J-CLD-001",
+    "title": "冷链物流管理",
+    "summary": "负责冷链仓储管理、温控运输协调、冷链质量监控与合规管理，强调温控技术、质量意识和合规操作能力。",
+    "skills": [
+      "冷链管理",
+      "温控技术",
+      "质量监控",
+      "GSP合规",
+      "仓储管理",
+      "运输调度",
+      "数据分析"
+    ],
+    "certificates": [
+      "冷链物流师",
+      "GSP认证"
+    ],
+    "capabilities": {
+      "innovation": 68,
+      "learning": 76,
+      "resilience": 80,
+      "communication": 74,
+      "internship": 78
+    },
+    "dimension_weights": {
+      "basic_requirements": 0.2,
+      "professional_skills": 0.42,
+      "professional_literacy": 0.2,
+      "development_potential": 0.18
+    },
+    "explanations": {
+      "专业技能": "冷链物流需要温控管理和质量保障的专业能力。",
+      "证书要求": "冷链物流师和 GSP 认证是行业基本资质。",
+      "创新能力": "需在温控方案和运输效率上持续改进。",
+      "学习能力": "冷链技术和法规要求持续更新。",
+      "抗压能力": "温控中断风险需要高度警觉。",
+      "沟通能力": "需与仓储、运输和客户多方协调。",
+      "实习能力": "冷链物流企业或医药仓储实习很有价值。"
+    }
   }
 ]
-

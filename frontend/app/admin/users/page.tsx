@@ -56,6 +56,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(0);
   const [detailUser, setDetailUser] = useState<AdminUser | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [showPw, setShowPw] = useState({ create: false, edit: false });
   const [detailError, setDetailError] = useState("");
   const router = useRouter();
 
@@ -382,7 +383,10 @@ export default function AdminUsersPage() {
             </label>
             <label>
               <span>初始密码</span>
-              <input type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+              <div className="password-field">
+                <input type={showPw.create ? "text" : "password"} value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+                <button type="button" onClick={() => setShowPw(v => ({ ...v, create: !v.create }))} className="password-toggle" tabIndex={-1} aria-label={showPw.create ? "隐藏密码" : "显示密码"}><Icon name={showPw.create ? "eye" : "eye-off"} size={18} /></button>
+              </div>
             </label>
             <div className="admin-user-form__actions">
               <button type="submit" className="admin-action-button admin-action-button--primary" disabled={saving}>
@@ -653,7 +657,10 @@ export default function AdminUsersPage() {
                   </label>
                   <label>
                     <span>新密码（可留空）</span>
-                    <input type="password" value={editForm.password || ""} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} />
+                    <div className="password-field">
+                      <input type={showPw.edit ? "text" : "password"} value={editForm.password || ""} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} />
+                      <button type="button" onClick={() => setShowPw(v => ({ ...v, edit: !v.edit }))} className="password-toggle" tabIndex={-1} aria-label={showPw.edit ? "隐藏密码" : "显示密码"}><Icon name={showPw.edit ? "eye" : "eye-off"} size={18} /></button>
+                    </div>
                   </label>
                 </div>
                 <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 8 }}>

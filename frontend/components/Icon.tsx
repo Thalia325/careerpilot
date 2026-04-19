@@ -34,6 +34,8 @@ type IconName =
   | "check"
   | "plus"
   | "tag"
+  | "eye"
+  | "eye-off"
   | "upload";
 
 const paths: Record<IconName, string> = {
@@ -68,6 +70,8 @@ const paths: Record<IconName, string> = {
   check: "M20 6L9 17l-5-5",
   plus: "M12 5v14M5 12h14",
   tag: "M12 2l-10 10 3 3 10-10-3-3z M9 7l6 6",
+  eye: "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12zM12 9a3 3 0 100 6 3 3 0 000-6z",
+  "eye-off": "M3 3l18 18M10.6 10.6A3 3 0 0012 15a3 3 0 002.4-1.2M7.1 7.1C3.8 8.7 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1M14.9 5.5A10.8 10.8 0 0012 5C5.5 5 2 12 2 12m17.1 3.2C21 13.7 22 12 22 12s-3.5-6-10-6",
   upload: "M12 16V4M12 4l-4 4M12 4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2",
 };
 

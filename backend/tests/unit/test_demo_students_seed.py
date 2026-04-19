@@ -54,7 +54,7 @@ class TestSeedDemoStudents:
 
     def test_creates_35_demo_students(self, seeded_db):
         total = seeded_db.scalar(select(func.count(Student.id)))
-        assert total >= 35
+        assert total >= 60
 
     def test_covers_multiple_majors(self, seeded_db):
         rows = seeded_db.execute(
@@ -117,7 +117,7 @@ class TestSeedDemoStudents:
                 UploadedFile.file_type == "resume"
             )
         )
-        assert count >= 30
+        assert count >= 50
 
     def test_students_have_profiles(self, seeded_db):
         count = seeded_db.scalar(select(func.count(StudentProfile.id)))
@@ -166,7 +166,7 @@ class TestSeedDemoStudents:
         tasks = seeded_db.scalars(
             select(GrowthTask).where(GrowthTask.deadline.isnot(None))
         ).all()
-        assert len(tasks) >= 30
+        assert len(tasks) >= 50
 
 
 class TestTeacherAPIWithSeedData:
@@ -179,7 +179,7 @@ class TestTeacherAPIWithSeedData:
         )
         assert resp.status_code == 200
         data = resp.json()["data"]
-        assert len(data) >= 35
+        assert len(data) >= 60
         student = data[0]
         for key in ["student_id", "name", "major", "grade", "target_job", "match_score", "report_status"]:
             assert key in student
@@ -213,7 +213,7 @@ class TestTeacherAPIWithSeedData:
         )
         assert resp.status_code == 200
         data = resp.json()["data"]
-        assert len(data) >= 30
+        assert len(data) >= 50
         summary = data[-1]
         assert summary["name"] == "全班汇总"
         assert summary["student_id"] == 0
@@ -245,7 +245,7 @@ class TestTemplateCoverage:
     """Tests for _STUDENT_TEMPLATES data quality — no DB needed."""
 
     def test_template_count(self):
-        assert len(_STUDENT_TEMPLATES) == 35
+        assert len(_STUDENT_TEMPLATES) == 63
 
     def test_covers_7_majors(self):
         majors = set(t[1] for t in _STUDENT_TEMPLATES)

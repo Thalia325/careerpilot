@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -123,7 +124,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password">密码</label>
-              <div style={{ position: "relative" }}>
+              <div className="password-field">
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -131,16 +132,15 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="输入密码"
                   required
-                  style={{ width: "100%", paddingRight: 44, boxSizing: "border-box" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: "0.8rem", padding: "2px 6px" }}
+                  className="password-toggle"
                   tabIndex={-1}
                   aria-label={showPassword ? "隐藏密码" : "显示密码"}
                 >
-                  {showPassword ? "隐藏" : "显示"}
+                  <Icon name={showPassword ? "eye" : "eye-off"} size={18} />
                 </button>
               </div>
             </div>

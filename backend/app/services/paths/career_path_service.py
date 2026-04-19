@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 import re
 from ast import literal_eval
+from types import SimpleNamespace
 from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import JobProfile, PathRecommendation, StudentProfile
+from app.models import JobProfile, PathRecommendation, ProfileVersion, StudentProfile
 from app.services.paths.graph_query_service import GraphQueryService
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,85 @@ TRANSITION_FALLBACKS: dict[str, list[list[str]]] = {
         ["测试开发工程师", "后端开发工程师"],
         ["测试开发工程师", "运维工程师"],
         ["测试开发工程师", "全栈工程师"],
+    ],
+    "金融分析师": [
+        ["金融分析师", "投资顾问"],
+        ["金融分析师", "风险控制专员"],
+        ["金融分析师", "数据分析师"],
+    ],
+    "财务会计": [
+        ["财务会计", "审计专员"],
+        ["财务会计", "金融分析师"],
+        ["财务会计", "税务专员"],
+    ],
+    "法务专员": [
+        ["法务专员", "合规专员"],
+        ["法务专员", "知识产权专员"],
+    ],
+    "培训讲师": [
+        ["培训讲师", "人力资源专员"],
+        ["培训讲师", "教学设计师"],
+    ],
+    "市场营销专员": [
+        ["市场营销专员", "品牌策划"],
+        ["市场营销专员", "广告策划"],
+        ["市场营销专员", "电商运营"],
+    ],
+    "销售代表": [
+        ["销售代表", "大客户经理"],
+        ["销售代表", "医药代表"],
+        ["销售代表", "市场营销专员"],
+    ],
+    "人力资源专员": [
+        ["人力资源专员", "行政管理"],
+        ["人力资源专员", "法务专员"],
+    ],
+    "行政专员": [
+        ["行政专员", "人力资源专员"],
+        ["行政专员", "项目管理"],
+    ],
+    "机械工程师": [
+        ["机械工程师", "工业工程师"],
+        ["机械工程师", "质量工程师"],
+        ["机械工程师", "项目管理"],
+    ],
+    "土木工程师": [
+        ["土木工程师", "建筑设计师"],
+        ["土木工程师", "工程项目管理"],
+    ],
+    "建筑设计师": [
+        ["建筑设计师", "UI/UX 设计师"],
+        ["建筑设计师", "室内设计师"],
+        ["建筑设计师", "项目管理"],
+    ],
+    "电气工程师": [
+        ["电气工程师", "新能源工程师"],
+        ["电气工程师", "运维工程师"],
+        ["电气工程师", "项目管理"],
+    ],
+    "医药代表": [
+        ["医药代表", "销售代表"],
+        ["医药代表", "市场营销专员"],
+    ],
+    "供应链专员": [
+        ["供应链专员", "采购专员"],
+        ["供应链专员", "数据分析师"],
+        ["供应链专员", "电商运营"],
+    ],
+    "记者/编辑": [
+        ["记者/编辑", "新媒体运营"],
+        ["记者/编辑", "公关专员"],
+        ["记者/编辑", "广告策划"],
+    ],
+    "新媒体运营": [
+        ["新媒体运营", "电商运营"],
+        ["新媒体运营", "市场营销专员"],
+        ["新媒体运营", "产品经理"],
+    ],
+    "管理咨询顾问": [
+        ["管理咨询顾问", "产品经理"],
+        ["管理咨询顾问", "项目管理"],
+        ["管理咨询顾问", "金融分析师"],
     ],
 }
 
@@ -259,6 +339,17 @@ class CareerPathService:
     def __init__(self, graph_query_service: GraphQueryService) -> None:
         self.graph_query_service = graph_query_service
 
+    @staticmethod
+    def _profile_from_version(version: ProfileVersion, fallback: StudentProfile) -> SimpleNamespace:
+        snapshot = version.snapshot_json or {}
+        return SimpleNamespace(
+            skills_json=snapshot.get("skills") or fallback.skills_json or [],
+            certificates_json=snapshot.get("certificates") or fallback.certificates_json or [],
+            projects_json=snapshot.get("projects") or fallback.projects_json or [],
+            internships_json=snapshot.get("internships") or fallback.internships_json or [],
+            capability_scores=snapshot.get("capability_scores") or fallback.capability_scores or {},
+        )
+
     async def plan_path(
         self,
         db: Session,
@@ -273,6 +364,12 @@ class CareerPathService:
             job_profile = db.scalar(select(JobProfile).where(JobProfile.job_code == job_code))
             if not student_profile or not job_profile:
                 raise ValueError("路径规划缺少学生画像或岗位画像")
+            ability_profile = student_profile
+            if profile_version_id:
+                profile_version = db.get(ProfileVersion, profile_version_id)
+                if not profile_version or profile_version.student_id != student_id:
+                    raise ValueError("画像版本不存在或不属于当前学生")
+                ability_profile = self._profile_from_version(profile_version, student_profile)
             graph = await self.graph_query_service.query_job(job_code)
             primary_path = graph["promotion_paths"][0] if graph["promotion_paths"] else [job_profile.title]
             all_profiles = list(db.scalars(select(JobProfile)).all())
@@ -302,16 +399,33 @@ class CareerPathService:
             rationale = "基于岗位图谱的晋升链路和转岗链路，结合学生当前技能覆盖情况生成主路径与备选路径。"
 
             # Build enriched content
-            current_ability = self._build_current_ability(student_profile, job_profile)
-            certificate_recommendations = self._build_certificate_recommendations(student_profile, job_profile)
-            learning_resources = self._build_learning_resources(student_profile, job_profile, gaps)
+            current_ability = self._build_current_ability(ability_profile, job_profile)
+            certificate_recommendations = self._build_certificate_recommendations(ability_profile, job_profile)
+            learning_resources = self._build_learning_resources(ability_profile, job_profile, gaps)
             evaluation_metrics = self._build_evaluation_metrics(job_profile, recommendations)
 
-            existing = db.scalar(
-                select(PathRecommendation)
-                .where(PathRecommendation.student_id == student_id)
-                .where(PathRecommendation.target_job_code == job_code)
-            )
+            if analysis_run_id:
+                existing = db.scalar(
+                    select(PathRecommendation)
+                    .where(PathRecommendation.student_id == student_id)
+                    .where(PathRecommendation.target_job_code == job_code)
+                    .where(PathRecommendation.analysis_run_id == analysis_run_id)
+                )
+            elif profile_version_id:
+                existing = db.scalar(
+                    select(PathRecommendation)
+                    .where(PathRecommendation.student_id == student_id)
+                    .where(PathRecommendation.target_job_code == job_code)
+                    .where(PathRecommendation.profile_version_id == profile_version_id)
+                )
+            else:
+                existing = db.scalar(
+                    select(PathRecommendation)
+                    .where(PathRecommendation.student_id == student_id)
+                    .where(PathRecommendation.target_job_code == job_code)
+                    .where(PathRecommendation.analysis_run_id == None)
+                    .where(PathRecommendation.profile_version_id == None)
+                )
             if not existing:
                 existing = PathRecommendation(student_id=student_id, target_job_code=job_code)
                 db.add(existing)
@@ -472,7 +586,8 @@ class CareerPathService:
         paths = _unique_paths(graph.get("transition_paths", []) + TRANSITION_FALLBACKS.get(target_title, []))
         for cluster in graph.get("transition_clusters", []):
             paths.extend(_unique_paths(cluster.get("related_paths", [])))
-        for related_title in [target_title, "数据工程师", "数据分析师", "后端开发工程师", "全栈工程师", "产品经理", "UI/UX 设计师", "测试开发工程师"]:
+        related_titles = [target_title] + list(TRANSITION_FALLBACKS.keys())[:10]
+        for related_title in related_titles:
             paths.extend(TRANSITION_FALLBACKS.get(related_title, []))
         return _unique_paths(paths)
 

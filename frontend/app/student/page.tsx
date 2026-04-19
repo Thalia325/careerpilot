@@ -25,7 +25,6 @@ import {
   markStepComplete,
   markStepFailed,
   markAnalysisComplete,
-  resetAnalysisRun,
   type UploadedFileInfo,
   type StudentSession,
   type AnalysisRunState,
@@ -144,6 +143,7 @@ export default function StudentMainPage() {
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [filesExpanded, setFilesExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const dragDepthRef = useRef(0);
@@ -447,7 +447,11 @@ export default function StudentMainPage() {
               break;
             }
             case "pathed": {
-              const pathPlan = await getPathPlan(sid, jCode);
+              const pathPlan = await getPathPlan(sid, jCode, {
+                analysis_run_id: runId,
+                profile_version_id: localProfileVersionId,
+                match_result_id: localMatchResultId,
+              });
               const pId = (pathPlan as Record<string, unknown>).path_id ?? (pathPlan as Record<string, unknown>).id ?? null;
               if (pId && typeof pId === "number") {
                 await updateAnalysisContext(runId, { path_recommendation_id: pId });
@@ -540,6 +544,59 @@ export default function StudentMainPage() {
       existingRunId: analysisRunId ?? undefined,
     }).finally(() => setRetrying(false));
   }, [session, jobCode, uploadedFiles, runFileIds, pipelineError, analysisRunId, runPipeline]);
+
+  const resetAnalysisState = (options?: { clearJob?: boolean; clearFiles?: boolean }) => {
+    setPipelineCurrent(null);
+    setPipelineDone(false);
+    setPipelineError(null);
+    setPipelineErrorDetail(undefined);
+    setPipelineCompletedSteps(new Set());
+    setAnalysisRunId(null);
+    setReportId(null);
+    setMatchResultId(null);
+    setProfileVersionId(null);
+    setPathRecommendationId(null);
+    setIncompleteRunData(false);
+    setRunFileIds([]);
+    setRetrying(false);
+    setUploadError("");
+    setUploadSuccess("");
+    setFilesExpanded(false);
+
+    if (options?.clearJob) {
+      setJobCode(null);
+      setJobTitle("");
+      setJobSelectorDismissed(false);
+      setJobSelectError("");
+    }
+
+    if (options?.clearFiles) {
+      clearFiles().catch(() => {});
+      setUploadedFiles([]);
+    }
+  };
+
+  const startNewTopic = () => {
+    const key = getAccountStorageKey("chat_messages");
+    if (key) localStorage.removeItem(key);
+    localStorage.removeItem("chat_messages");
+    const backupKey = getAccountStorageKey("chat_messages_current_backup");
+    if (backupKey) localStorage.removeItem(backupKey);
+
+    setMessages([]);
+    setQuery("");
+    resetAnalysisState({ clearJob: true, clearFiles: true });
+
+    if (isHistoricalChatView) {
+      router.push("/student");
+    }
+    loadGreeting();
+  };
+
+  const startJobReselect = () => {
+    if (pipelineRunning || isUploading) return;
+    resetAnalysisState({ clearJob: true });
+  };
 
   const handleSend = async () => {
     const text = query.trim();
@@ -698,10 +755,31 @@ export default function StudentMainPage() {
 
   const renderFileList = () => {
     if (uploadedFiles.length === 0) return null;
+    const sortedFiles = [...uploadedFiles].sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      return b.id - a.id;
+    });
+    const visibleFiles = filesExpanded ? sortedFiles : sortedFiles.slice(0, 1);
+    const hasMoreFiles = sortedFiles.length > 1;
+
     return (
       <div className="student-main__file-list">
-        <div className="student-main__file-list-title">已上传文件</div>
-        {uploadedFiles.map((f) => (
+        <div className="student-main__file-list-header">
+          <div className="student-main__file-list-title">已上传文件</div>
+          {hasMoreFiles && (
+            <button
+              type="button"
+              className="student-main__file-list-toggle"
+              onClick={() => setFilesExpanded((expanded) => !expanded)}
+              aria-expanded={filesExpanded}
+            >
+              {filesExpanded ? "收起" : `展开全部 ${sortedFiles.length}`}
+            </button>
+          )}
+        </div>
+        {visibleFiles.map((f) => (
           <div key={f.id} className="student-main__file-item">
             <span className="student-main__file-item-icon"><Icon name="file" size={16} /></span>
             <span className="student-main__file-item-name">{f.file_name}</span>
@@ -826,6 +904,24 @@ export default function StudentMainPage() {
             </span>
           )}
         </div>
+        <div className="student-main__result-reset-actions">
+          <button
+            type="button"
+            className="student-main__result-reset-btn"
+            onClick={startJobReselect}
+            disabled={pipelineRunning || isUploading}
+          >
+            重新选择岗位
+          </button>
+          <button
+            type="button"
+            className="student-main__result-reset-btn student-main__result-reset-btn--primary"
+            onClick={startNewTopic}
+            disabled={pipelineRunning || isUploading}
+          >
+            + 开启新话题
+          </button>
+        </div>
         {incompleteRunData && (
           <p className="student-main__result-hint" style={{ color: "#92400e" }}>
             💡 可点击 <strong>&quot;开启新话题&quot;</strong> 按钮重新上传简历进行分析
@@ -845,7 +941,7 @@ export default function StudentMainPage() {
 
   return (
     <div
-      className={`student-main${isDraggingUpload ? " is-upload-dragging" : ""}`}
+      className={`student-main${messages.length > 0 ? " is-chat" : ""}${isDraggingUpload ? " is-upload-dragging" : ""}`}
       onDragEnter={handlePageDragEnter}
       onDragOver={handlePageDragOver}
       onDragLeave={handlePageDragLeave}
@@ -932,7 +1028,7 @@ export default function StudentMainPage() {
       {renderPipelineResult()}
 
       {needsJobSelect && (
-        <div style={{ maxWidth: 720, margin: "0 auto 16px" }}>
+        <div style={{ width: "980px", maxWidth: "calc(100% - 48px)", margin: "0 auto 16px" }}>
           <div className="student-main__step-indicator student-main__step-indicator--done">
             <Icon name="check-circle" size={16} color="#16a34a" />
             <span>简历上传成功</span>
@@ -958,7 +1054,7 @@ export default function StudentMainPage() {
       )}
 
       {!needsJobSelect && !jobCode && uploadedFiles.length > 0 && !pipelineRunning && !pipelineDone && jobSelectorDismissed && (
-        <div style={{ maxWidth: 720, margin: "0 auto 16px", textAlign: "center" }}>
+        <div style={{ width: "980px", maxWidth: "calc(100% - 48px)", margin: "0 auto 16px", textAlign: "center" }}>
           <div className="student-main__step-indicator student-main__step-indicator--done">
             <Icon name="check-circle" size={16} color="#16a34a" />
             <span>简历已上传</span>
@@ -1041,58 +1137,6 @@ export default function StudentMainPage() {
         </div>
       ) : (
         <>
-          <div className="chat-new-topic-bar">
-            <button
-              className="chat-new-topic-btn"
-              onClick={() => {
-                const key = getAccountStorageKey("chat_messages");
-                if (key) localStorage.removeItem(key);
-                localStorage.removeItem("chat_messages");
-                // Clear historical backup if exists
-                const backupKey = getAccountStorageKey("chat_messages_current_backup");
-                if (backupKey) localStorage.removeItem(backupKey);
-                setMessages([]);
-                setQuery("");
-                setPipelineCurrent(null);
-                setPipelineDone(false);
-                setPipelineError(null);
-                setPipelineErrorDetail(undefined);
-                setPipelineCompletedSteps(new Set());
-                setAnalysisRunId(null);
-                setReportId(null);
-                setMatchResultId(null);
-                setProfileVersionId(null);
-                setPathRecommendationId(null);
-                setIncompleteRunData(false);
-                setRunFileIds([]);
-                setRetrying(false);
-                setUploadError("");
-                setUploadSuccess("");
-                clearFiles().catch(() => {});
-                setUploadedFiles([]);
-                // If in historical view, navigate to /student to exit
-                if (isHistoricalChatView) {
-                  router.push("/student");
-                }
-                loadGreeting();
-                getStudentSession()
-                  .then((s) => {
-                    setSession(s);
-                    if (s.target_job_code) {
-                      setJobCode(s.target_job_code);
-                      setJobTitle(s.target_job_title || "");
-                    } else if (s.suggested_job_code) {
-                      setJobCode(s.suggested_job_code);
-                      setJobTitle(s.suggested_job_title || "");
-                    }
-                  })
-                  .catch(() => {});
-              }}
-              disabled={isLoading}
-            >
-              + 开启新话题
-            </button>
-          </div>
           <div className="chat-messages">
             {isHistoricalChatView && (
               <div style={{

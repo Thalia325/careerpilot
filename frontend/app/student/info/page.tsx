@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getStudentSession, updateStudentInfo, changePassword, type StudentInfoInput, type StudentSession } from "@/lib/api";
+import { Icon } from "@/components/Icon";
 
 const emptyForm: StudentInfoInput = {
   full_name: "",
@@ -23,6 +24,7 @@ export default function StudentInfoPage() {
   const [pwMessage, setPwMessage] = useState("");
   const [pwError, setPwError] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
+  const [showPw, setShowPw] = useState({ old: false, new: false, confirm: false });
 
   useEffect(() => {
     getStudentSession()
@@ -222,15 +224,24 @@ export default function StudentInfoPage() {
           }}>
             <label>
               <span>旧密码</span>
-              <input type="password" value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder="输入当前密码" required />
+              <div className="password-field">
+                <input type={showPw.old ? "text" : "password"} value={pwForm.old_password} onChange={e => setPwForm(f => ({ ...f, old_password: e.target.value }))} placeholder="输入当前密码" required />
+                <button type="button" onClick={() => setShowPw(v => ({ ...v, old: !v.old }))} className="password-toggle" tabIndex={-1} aria-label={showPw.old ? "隐藏密码" : "显示密码"}><Icon name={showPw.old ? "eye" : "eye-off"} size={18} /></button>
+              </div>
             </label>
             <label>
               <span>新密码</span>
-              <input type="password" value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder="至少6位" required />
+              <div className="password-field">
+                <input type={showPw.new ? "text" : "password"} value={pwForm.new_password} onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))} placeholder="至少6位" required />
+                <button type="button" onClick={() => setShowPw(v => ({ ...v, new: !v.new }))} className="password-toggle" tabIndex={-1} aria-label={showPw.new ? "隐藏密码" : "显示密码"}><Icon name={showPw.new ? "eye" : "eye-off"} size={18} /></button>
+              </div>
             </label>
             <label>
               <span>确认新密码</span>
-              <input type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="再次输入新密码" required />
+              <div className="password-field">
+                <input type={showPw.confirm ? "text" : "password"} value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} placeholder="再次输入新密码" required />
+                <button type="button" onClick={() => setShowPw(v => ({ ...v, confirm: !v.confirm }))} className="password-toggle" tabIndex={-1} aria-label={showPw.confirm ? "隐藏密码" : "显示密码"}><Icon name={showPw.confirm ? "eye" : "eye-off"} size={18} /></button>
+              </div>
             </label>
             <div className="student-info-actions">
               <button className="btn-primary" type="submit" disabled={pwSaving}>

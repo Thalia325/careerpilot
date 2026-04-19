@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.integrations.llm.providers import BaseLLMProvider
-from app.models import AnalysisRun, CareerReport, GrowthTask, JobProfile, PathRecommendation, ProfileVersion, ReportVersion, Student, StudentProfile, UploadedFile
+from app.models import AnalysisRun, CareerReport, GrowthTask, JobProfile, MatchDimensionScore, MatchResult, PathRecommendation, ProfileVersion, ReportVersion, Student, StudentProfile, UploadedFile
 from app.services.matching.recommendation import _resume_relevance
 from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
@@ -338,6 +338,107 @@ class ReportService:
         # OCR missing is a warning but doesn't block report generation
         return missing
 
+    def _profile_payload(self, student_profile: StudentProfile, profile_version: ProfileVersion | None) -> dict[str, Any]:
+        if profile_version and profile_version.snapshot_json:
+            snapshot = profile_version.snapshot_json
+            return {
+                "source_summary": snapshot.get("source_summary") or profile_version.source_files or student_profile.source_summary,
+                "skills": snapshot.get("skills") or [],
+                "certificates": snapshot.get("certificates") or [],
+                "projects": snapshot.get("projects") or [],
+                "internships": snapshot.get("internships") or [],
+                "capability_scores": snapshot.get("capability_scores") or {},
+                "completeness_score": snapshot.get("completeness_score") or 0,
+                "competitiveness_score": snapshot.get("competitiveness_score") or 0,
+            }
+        return {
+            "source_summary": student_profile.source_summary,
+            "skills": student_profile.skills_json,
+            "certificates": student_profile.certificates_json,
+            "projects": student_profile.projects_json,
+            "internships": student_profile.internships_json,
+            "capability_scores": student_profile.capability_scores,
+            "completeness_score": student_profile.completeness_score,
+            "competitiveness_score": student_profile.competitiveness_score,
+        }
+
+    def _resume_ocr_from_profile_version(
+        self,
+        db: Session,
+        profile_version: ProfileVersion | None,
+    ) -> dict:
+        if not profile_version:
+            return {}
+        files = [db.get(UploadedFile, fid) for fid in (profile_version.uploaded_file_ids or [])]
+        files = [file for file in files if file and file.file_type == "resume"]
+        if not files:
+            return {}
+        if profile_version.source_files:
+            source_names = {item.strip() for item in profile_version.source_files.split("；") if item.strip()}
+            sourced_files = [file for file in files if file.file_name in source_names]
+            if sourced_files:
+                files = sourced_files
+        files.sort(key=lambda file: (file.created_at, file.id), reverse=True)
+        for file in files:
+            ocr = (file.meta_json or {}).get("ocr") or (file.meta_json or {}).get("ocr_result")
+            if isinstance(ocr, dict):
+                return ocr
+        return {}
+
+    def _match_result_from_db(self, db: Session, match_result_id: int, student_id: int, job_code: str) -> dict:
+        match = db.get(MatchResult, match_result_id)
+        if not match or match.student_id != student_id or match.target_job_code != job_code:
+            raise ValueError("匹配结果不存在或不属于本次分析")
+        dimensions = list(
+            db.scalars(
+                select(MatchDimensionScore)
+                .where(MatchDimensionScore.match_result_id == match.id)
+                .order_by(MatchDimensionScore.id.asc())
+            ).all()
+        )
+        return {
+            "student_id": student_id,
+            "job_code": job_code,
+            "match_result_id": match.id,
+            "total_score": match.total_score,
+            "dimensions": [
+                {
+                    "dimension": item.dimension,
+                    "score": item.score,
+                    "weight": item.weight,
+                    "reasoning": item.reasoning,
+                    "evidence": item.evidence_json or {},
+                }
+                for item in dimensions
+            ],
+            "strengths": match.strengths_json or [],
+            "gap_items": match.gaps_json or [],
+            "suggestions": match.suggestions_json or [],
+            "summary": match.summary,
+        }
+
+    def _path_result_from_db(self, path_rec: PathRecommendation | None) -> dict | None:
+        if not path_rec:
+            return None
+        return {
+            "path_recommendation_id": path_rec.id,
+            "student_id": path_rec.student_id,
+            "target_job_code": path_rec.target_job_code,
+            "primary_path": path_rec.primary_path_json or [],
+            "alternate_paths": path_rec.alternate_paths_json or [],
+            "vertical_graph": path_rec.vertical_graph_json or {},
+            "transition_graph": path_rec.transition_graph_json or {},
+            "gaps": path_rec.gaps_json or [],
+            "recommendations": path_rec.recommendations_json or [],
+            "current_ability": path_rec.current_ability_json or {},
+            "certificate_recommendations": path_rec.certificate_recommendations_json or [],
+            "learning_resources": path_rec.learning_resources_json or [],
+            "evaluation_metrics": path_rec.evaluation_metrics_json or [],
+            "profile_version_id": path_rec.profile_version_id,
+            "match_result_id": path_rec.match_result_id,
+            "analysis_run_id": path_rec.analysis_run_id,
+        }
+
     async def generate_report(
         self,
         db: Session,
@@ -352,17 +453,25 @@ class ReportService:
         job_profile = db.scalar(select(JobProfile).where(JobProfile.job_code == job_code))
         if not student or not student_profile or not job_profile:
             raise ValueError("生成报告前请先准备学生画像与岗位画像")
-        latest_ocr = self._latest_resume_ocr(db, student.user_id, job_profile, student_profile.source_summary)
-        student_name = self._student_name_from_ocr(student, latest_ocr)
 
         # Resolve context IDs from analysis_run if not explicitly provided
-        if analysis_run_id and not (profile_version_id or match_result_id):
+        if analysis_run_id:
             run = db.get(AnalysisRun, analysis_run_id)
             if run:
                 if not profile_version_id:
                     profile_version_id = run.profile_version_id
                 if not match_result_id:
                     match_result_id = run.match_result_id
+
+        profile_version = db.get(ProfileVersion, profile_version_id) if profile_version_id else None
+        if profile_version_id and (not profile_version or profile_version.student_id != student_id):
+            raise ValueError("画像版本不存在或不属于当前学生")
+        profile_payload = self._profile_payload(student_profile, profile_version)
+        latest_ocr = self._resume_ocr_from_profile_version(db, profile_version)
+        if not latest_ocr:
+            latest_ocr = self._latest_resume_ocr(db, student.user_id, job_profile, str(profile_payload.get("source_summary") or ""))
+        student_name = self._student_name_from_ocr(student, latest_ocr)
+        profile_updated_at = profile_version.updated_at if profile_version else student_profile.updated_at
 
         # If analysis_run_id is provided, look for a report bound to that specific run
         # to support multiple reports per student+job (different analysis runs)
@@ -385,8 +494,8 @@ class ReportService:
             and report.content_json
             and report.markdown_content
             and report.updated_at
-            and student_profile.updated_at
-            and report.updated_at >= student_profile.updated_at
+            and profile_updated_at
+            and report.updated_at >= profile_updated_at
             and self._report_matches_current_resume(report, student_name, latest_ocr)
             and "学生基本情况" in report.markdown_content
         ):
@@ -402,14 +511,37 @@ class ReportService:
                 "match_result_id": report.match_result_id,
                 "analysis_run_id": report.analysis_run_id,
             }
-        match_result = self.matching_service.analyze_match(db, student_id, job_code)
-        actual_match_result_id = match_result_id or match_result.get("match_result_id") if isinstance(match_result, dict) else match_result_id
-        path_result = await self.career_path_service.plan_path(
-            db, student_id, job_code,
-            profile_version_id=profile_version_id,
-            match_result_id=actual_match_result_id,
-            analysis_run_id=analysis_run_id,
-        )
+        if match_result_id:
+            match_result = self._match_result_from_db(db, match_result_id, student_id, job_code)
+        else:
+            match_result = self.matching_service.analyze_match(
+                db,
+                student_id,
+                job_code,
+                profile_version_id=profile_version_id,
+                analysis_run_id=analysis_run_id,
+            )
+        actual_match_result_id = match_result.get("match_result_id") if isinstance(match_result, dict) else match_result_id
+        path_rec = None
+        if analysis_run_id:
+            run = db.get(AnalysisRun, analysis_run_id)
+            if run and run.path_recommendation_id:
+                path_rec = db.get(PathRecommendation, run.path_recommendation_id)
+            if not path_rec:
+                path_rec = db.scalar(
+                    select(PathRecommendation)
+                    .where(PathRecommendation.student_id == student_id)
+                    .where(PathRecommendation.target_job_code == job_code)
+                    .where(PathRecommendation.analysis_run_id == analysis_run_id)
+                )
+        path_result = self._path_result_from_db(path_rec)
+        if path_result is None:
+            path_result = await self.career_path_service.plan_path(
+                db, student_id, job_code,
+                profile_version_id=profile_version_id,
+                match_result_id=actual_match_result_id,
+                analysis_run_id=analysis_run_id,
+            )
 
         # Evidence sufficiency check — return insufficient_data before calling LLM
         evidence_gaps = self._check_evidence_sufficiency(latest_ocr, match_result)
@@ -460,11 +592,20 @@ class ReportService:
             }
 
         # Look up the PathRecommendation that plan_path just created/updated
-        path_rec = db.scalar(
-            select(PathRecommendation)
-            .where(PathRecommendation.student_id == student_id)
-            .where(PathRecommendation.target_job_code == job_code)
-        )
+        if analysis_run_id:
+            path_rec = db.scalar(
+                select(PathRecommendation)
+                .where(PathRecommendation.student_id == student_id)
+                .where(PathRecommendation.target_job_code == job_code)
+                .where(PathRecommendation.analysis_run_id == analysis_run_id)
+            )
+        else:
+            path_rec = db.scalar(
+                select(PathRecommendation)
+                .where(PathRecommendation.student_id == student_id)
+                .where(PathRecommendation.target_job_code == job_code)
+                .where(PathRecommendation.analysis_run_id == None)
+            )
 
         # Get profile version snapshot for grade info
         student_grade = student.grade or ""
@@ -477,18 +618,18 @@ class ReportService:
         llm_result = await self.llm_provider.generate_report(
             {
                 "student_name": student_name,
-                "student_major": self._student_major_from_ocr(student, student_profile, latest_ocr),
+                "student_major": self._student_major_from_ocr(student, student_profile, latest_ocr, str(profile_payload.get("source_summary") or "")),
                 "student_grade": student_grade,
                 "resume_intent": self._resume_intent_from_ocr(latest_ocr),
                 "resume_evidence": self._resume_evidence_from_ocr(latest_ocr),
                 "student_profile": {
-                    "skills": student_profile.skills_json,
-                    "certificates": student_profile.certificates_json,
-                    "capability_scores": student_profile.capability_scores,
-                    "completeness_score": student_profile.completeness_score,
-                    "competitiveness_score": student_profile.competitiveness_score,
-                    "projects": student_profile.projects_json,
-                    "internships": student_profile.internships_json,
+                    "skills": profile_payload["skills"],
+                    "certificates": profile_payload["certificates"],
+                    "capability_scores": profile_payload["capability_scores"],
+                    "completeness_score": profile_payload["completeness_score"],
+                    "competitiveness_score": profile_payload["competitiveness_score"],
+                    "projects": profile_payload["projects"],
+                    "internships": profile_payload["internships"],
                 },
                 "job_profile": {
                     "job_code": job_profile.job_code,
@@ -625,11 +766,13 @@ class ReportService:
             return student.user.full_name
         return f"学生{student.id}"
 
-    def _student_major_from_ocr(self, student: Student, student_profile: StudentProfile, ocr: dict) -> str:
+    def _student_major_from_ocr(self, student: Student, student_profile: StudentProfile, ocr: dict, source_summary: str = "") -> str:
         structured = self._ocr_structured(ocr)
         major = str(structured.get("major") or "").strip()
         if major:
             return major
+        if source_summary:
+            return source_summary
         if student_profile.source_summary:
             return student_profile.source_summary
         return student.major

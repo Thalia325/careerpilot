@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getJobTemplates } from "@/lib/api";
 
 type JobItem = {
@@ -16,10 +16,14 @@ type Props = {
   onCancel?: () => void;
 };
 
+const COLLAPSED_JOB_COUNT = 12;
+
 export function JobSelector({ onSelect, onCancel }: Props) {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     getJobTemplates()
@@ -27,6 +31,35 @@ export function JobSelector({ onSelect, onCancel }: Props) {
       .catch(() => setJobs([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const jobOptions = useMemo(
+    () =>
+      jobs.map((job, index) => ({
+        job,
+        code: job.job_code || `J-SEL-${index}`,
+        label: job.industry || job.category || "",
+      })),
+    [jobs],
+  );
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredJobs = useMemo(() => {
+    if (!normalizedQuery) return jobOptions;
+    return jobOptions.filter(({ job, code, label }) => {
+      const searchable = [job.title, label, job.category, job.industry, code]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(normalizedQuery);
+    });
+  }, [jobOptions, normalizedQuery]);
+
+  const visibleJobs =
+    expanded || normalizedQuery
+      ? filteredJobs
+      : filteredJobs.slice(0, COLLAPSED_JOB_COUNT);
+  const hiddenCount = Math.max(filteredJobs.length - visibleJobs.length, 0);
+  const selectedJob = jobOptions.find((option) => option.code === selected);
 
   if (loading) {
     return (
@@ -38,14 +71,40 @@ export function JobSelector({ onSelect, onCancel }: Props) {
 
   return (
     <div className="job-selector">
-      <p className="job-selector__hint">请先选择一个目标岗位，再开始分析：</p>
+      <div className="job-selector__header">
+        <div>
+          <p className="job-selector__hint">请先选择一个目标岗位，再开始分析：</p>
+          <p className="job-selector__summary">
+            共 {jobs.length} 个岗位{normalizedQuery ? `，匹配 ${filteredJobs.length} 个` : ""}
+          </p>
+        </div>
+        {filteredJobs.length > COLLAPSED_JOB_COUNT && !normalizedQuery && (
+          <button
+            type="button"
+            className="job-selector__fold"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "收起" : `展开更多 ${hiddenCount}`}
+          </button>
+        )}
+      </div>
+
+      <label className="job-selector__search">
+        <span className="job-selector__search-label">搜索岗位</span>
+        <input
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="输入岗位名称、行业或类别"
+          aria-label="搜索岗位"
+        />
+      </label>
+
       <div className="job-selector__grid">
-        {jobs.map((job, i) => {
-          const code = job.job_code || `J-SEL-${i}`;
-          const label = job.industry || job.category || "";
+        {visibleJobs.map(({ job, code, label }) => {
           return (
             <button
               key={code}
+              type="button"
               className={`job-selector__card ${selected === code ? "job-selector__card--active" : ""}`}
               onClick={() => setSelected(selected === code ? null : code)}
             >
@@ -55,9 +114,18 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           );
         })}
       </div>
+
+      {filteredJobs.length === 0 && (
+        <p className="job-selector__empty">没有找到匹配的岗位，请换个关键词试试。</p>
+      )}
+
       <div className="job-selector__actions">
+        <span className="job-selector__selected">
+          {selectedJob ? `已选择：${selectedJob.job.title}` : "请选择一个岗位"}
+        </span>
         {onCancel && (
           <button
+            type="button"
             className="job-selector__back"
             onClick={onCancel}
           >
@@ -65,12 +133,12 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           </button>
         )}
         <button
+          type="button"
           className="job-selector__confirm btn-primary"
           disabled={!selected}
           onClick={() => {
-            if (selected) {
-              const job = jobs.find((j) => (j.job_code || "") === selected);
-              onSelect(selected, job?.title ?? selected);
+            if (selected && selectedJob) {
+              onSelect(selected, selectedJob.job.title);
             }
           }}
         >
@@ -82,34 +150,91 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           background: #fff;
           border: 1px solid #e5e7eb;
           border-radius: 12px;
-          padding: 20px 24px;
+          padding: 18px 20px;
           margin-bottom: 16px;
+        }
+        .job-selector__header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 14px;
         }
         .job-selector__hint {
           font-size: 14px;
           color: #666;
-          margin-bottom: 16px;
+          margin: 0;
+        }
+        .job-selector__summary {
+          margin: 6px 0 0;
+          font-size: 12px;
+          color: #8a94a6;
+        }
+        .job-selector__fold {
+          flex-shrink: 0;
+          min-height: 34px;
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          background: #fff;
+          color: #173f8a;
+          box-shadow: none;
+          filter: none;
+        }
+        .job-selector__fold:hover {
+          background: #f8fafc;
+          box-shadow: none;
+          filter: none;
+          transform: none;
+        }
+        .job-selector__search {
+          display: grid;
+          grid-template-columns: auto minmax(220px, 1fr);
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+        .job-selector__search-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #334155;
+          white-space: nowrap;
+        }
+        .job-selector__search input {
+          min-height: 38px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          font-size: 14px;
+          background: #fff;
         }
         .job-selector__grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
         .job-selector__card {
           border: 1px solid #e5e7eb;
           border-radius: 8px;
-          padding: 12px 14px;
+          min-height: 52px;
+          padding: 9px 12px;
           cursor: pointer;
           background: #fff;
-          text-align: left;
+          text-align: center;
           transition: all 0.15s;
           display: flex;
           flex-direction: column;
+          align-items: center;
+          justify-content: center;
           gap: 6px;
+          box-shadow: none;
+          filter: none;
         }
         .job-selector__card:hover {
           border-color: #2563eb;
+          box-shadow: none;
+          filter: none;
         }
         .job-selector__card--active {
           border-color: #2563eb;
@@ -119,16 +244,34 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           font-size: 14px;
           font-weight: 500;
           color: #111;
+          line-height: 1.25;
         }
         .job-selector__tag {
           font-size: 12px;
           color: #888;
+          line-height: 1.2;
+        }
+        .job-selector__empty {
+          margin: 0 0 14px;
+          padding: 12px;
+          border: 1px dashed #d1d5db;
+          border-radius: 8px;
+          color: #64748b;
+          text-align: center;
+          font-size: 13px;
         }
         .job-selector__actions {
           display: flex;
           gap: 10px;
           align-items: center;
+          justify-content: flex-end;
           margin-top: 4px;
+          flex-wrap: wrap;
+        }
+        .job-selector__selected {
+          margin-right: auto;
+          color: #475569;
+          font-size: 13px;
         }
         .job-selector__back {
           font-size: 14px;
@@ -151,6 +294,32 @@ export function JobSelector({ onSelect, onCancel }: Props) {
         .job-selector__confirm:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+        @media (max-width: 640px) {
+          .job-selector {
+            padding: 16px;
+          }
+          .job-selector__header,
+          .job-selector__search {
+            grid-template-columns: 1fr;
+          }
+          .job-selector__header {
+            display: grid;
+          }
+          .job-selector__fold {
+            justify-self: start;
+          }
+          .job-selector__grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .job-selector__actions {
+            align-items: stretch;
+          }
+          .job-selector__selected,
+          .job-selector__back,
+          .job-selector__confirm {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

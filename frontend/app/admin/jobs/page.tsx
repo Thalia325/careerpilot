@@ -50,8 +50,6 @@ export default function AdminJobsPage() {
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(0);
   const [showForm, setShowForm] = useState(false);
-  const [viewPosition, setViewPosition] = useState<AdminPosition | null>(null);
-  const [deletePosition, setDeletePosition] = useState<AdminPosition | null>(null);
   const router = useRouter();
 
   const loadPositions = useCallback(async () => {
@@ -94,8 +92,6 @@ export default function AdminJobsPage() {
     setError("");
     setMessage("");
     setShowForm(false);
-    setViewPosition(null);
-    setDeletePosition(null);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -140,40 +136,20 @@ export default function AdminJobsPage() {
       internship_requirements: pos.internship_requirements || "",
     });
     setError("");
-    setMessage("");
-    setViewPosition(null);
+    setMessage("正在编辑岗位");
     setShowForm(true);
-    setDeletePosition(null);
   };
 
-  const handleView = (pos: AdminPosition) => {
-    setViewPosition(pos);
-    setShowForm(false);
-    setEditingId(null);
-    setDeletePosition(null);
-    setError("");
-    setMessage("");
-  };
-
-  const handleDelete = (pos: AdminPosition) => {
-    setDeletePosition(pos);
-    setShowForm(false);
-    setEditingId(null);
-    setViewPosition(null);
-    setError("");
-    setMessage("");
-  };
-
-  const confirmDelete = async () => {
-    if (!deletePosition) return;
+  const handleDelete = async (pos: AdminPosition) => {
+    if (!window.confirm(`确定删除岗位"${pos.title}"（${pos.job_code}）吗？有关联匹配结果的岗位将被后端拒绝删除。`)) return;
     setSaving(true);
     setError("");
     setMessage("");
     try {
-      await deleteAdminPosition(deletePosition.id);
-      setPositions((prev) => prev.filter((p) => p.id !== deletePosition.id));
+      await deleteAdminPosition(pos.id);
+      setPositions((prev) => prev.filter((p) => p.id !== pos.id));
       setTotal((prev) => prev - 1);
-      setDeletePosition(null);
+      if (editingId === pos.id) resetForm();
       setMessage("岗位已删除");
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
@@ -183,52 +159,6 @@ export default function AdminJobsPage() {
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const modalBackdropStyle = {
-    position: "fixed",
-    inset: 0,
-    zIndex: 50,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    background: "rgba(15, 23, 42, 0.35)",
-  } as const;
-  const modalPanelStyle = {
-    width: "min(900px, 100%)",
-    maxHeight: "calc(100vh - 64px)",
-    overflowY: "auto",
-    borderRadius: 8,
-    background: "#fff",
-    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.22)",
-  } as const;
-  const modalHeaderStyle = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: "20px 24px 12px",
-    borderBottom: "1px solid var(--border, #e0e0e0)",
-  } as const;
-  const modalBodyStyle = {
-    padding: 24,
-  } as const;
-  const closeButtonStyle = {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    border: "1px solid var(--border, #e0e0e0)",
-    background: "#fff",
-    cursor: "pointer",
-    fontSize: "1.1rem",
-    lineHeight: 1,
-    color: "var(--subtle)",
-  } as const;
-  const detailLabelStyle = {
-    display: "block",
-    fontSize: "0.75rem",
-    color: "var(--subtle)",
-    marginBottom: 2,
-  } as const;
 
   return (
     <div className="workspace-bg">
@@ -327,6 +257,72 @@ export default function AdminJobsPage() {
           </form>
         </div>
 
+        {/* 新增/编辑表单 */}
+        {showForm && (
+          <div className="admin-dashboard__card" style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ fontSize: "1rem", margin: 0 }}>{editingId ? "编辑岗位" : "新增岗位"}</h3>
+              <button type="button" onClick={resetForm} style={{ background: "none", border: "none", fontSize: "1.25rem", cursor: "pointer", color: "var(--subtle)", lineHeight: 1 }}>
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="admin-user-form">
+              <label>
+                <span>岗位编码 *</span>
+                <input
+                  value={form.job_code || ""}
+                  onChange={(e) => setForm({ ...form, job_code: e.target.value })}
+                  placeholder="例如：software-engineer"
+                  required
+                />
+              </label>
+              <label>
+                <span>岗位名称 *</span>
+                <input
+                  value={form.title || ""}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="例如：软件工程师"
+                  required
+                />
+              </label>
+              <label>
+                <span>岗位概述</span>
+                <textarea
+                  value={form.summary || ""}
+                  onChange={(e) => setForm({ ...form, summary: e.target.value })}
+                  placeholder="岗位简要描述..."
+                  rows={3}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border, #e0e0e0)", fontSize: "0.875rem", outline: "none", resize: "vertical", fontFamily: "inherit" }}
+                />
+              </label>
+              <label>
+                <span>技能要求</span>
+                <input
+                  value={(form.skill_requirements || []).join("、")}
+                  onChange={(e) => setForm({ ...form, skill_requirements: e.target.value ? e.target.value.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean) : [] })}
+                  placeholder="多项技能用顿号、逗号或换行分隔"
+                />
+              </label>
+              <label>
+                <span>证书要求</span>
+                <input
+                  value={(form.certificate_requirements || []).join("、")}
+                  onChange={(e) => setForm({ ...form, certificate_requirements: e.target.value ? e.target.value.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean) : [] })}
+                  placeholder="多项证书用顿号、逗号或换行分隔"
+                />
+              </label>
+              <div className="admin-user-form__actions">
+                <button type="submit" className="admin-action-button admin-action-button--primary" disabled={saving}>
+                  {saving ? "保存中..." : editingId ? "保存修改" : "新增岗位"}
+                </button>
+                <button type="button" className="admin-action-button" onClick={resetForm} disabled={saving}>
+                  取消
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* 岗位列表 */}
         {loading ? (
           <div style={{ textAlign: "center", padding: 32, color: "var(--subtle)" }}>加载中...</div>
@@ -361,7 +357,6 @@ export default function AdminJobsPage() {
                         <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{formatDate(pos.created_at)}</td>
                         <td>
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button type="button" className="admin-table-button" onClick={() => handleView(pos)} disabled={saving}>查看</button>
                             <button type="button" className="admin-table-button" onClick={() => handleEdit(pos)} disabled={saving}>编辑</button>
                             <button type="button" className="admin-table-button admin-table-button--danger" onClick={() => handleDelete(pos)} disabled={saving}>删除</button>
                           </div>
@@ -395,218 +390,6 @@ export default function AdminJobsPage() {
                 </button>
               </div>
             )}
-          </div>
-        )}
-
-        {viewPosition && (
-          <div style={modalBackdropStyle} role="dialog" aria-modal="true" aria-label="岗位详情">
-            <div style={modalPanelStyle}>
-              <div style={modalHeaderStyle}>
-                <div>
-                  <h3 style={{ fontSize: "1rem", margin: 0 }}>岗位详情</h3>
-                  <p style={{ margin: "4px 0 0", color: "var(--subtle)", fontSize: "0.8rem" }}>
-                    查看岗位画像基础信息和能力要求
-                  </p>
-                </div>
-                <button type="button" style={closeButtonStyle} onClick={() => setViewPosition(null)} aria-label="关闭">&times;</button>
-              </div>
-              <div style={modalBodyStyle}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-                  <div>
-                    <span style={detailLabelStyle}>ID</span>
-                    <span>{viewPosition.id}</span>
-                  </div>
-                  <div>
-                    <span style={detailLabelStyle}>岗位编码</span>
-                    <code style={{ fontSize: "0.8125rem" }}>{viewPosition.job_code}</code>
-                  </div>
-                  <div>
-                    <span style={detailLabelStyle}>岗位名称</span>
-                    <span>{viewPosition.title}</span>
-                  </div>
-                  <div>
-                    <span style={detailLabelStyle}>创建时间</span>
-                    <span>{formatDate(viewPosition.created_at)}</span>
-                  </div>
-                  <div>
-                    <span style={detailLabelStyle}>更新时间</span>
-                    <span>{formatDate(viewPosition.updated_at)}</span>
-                  </div>
-                </div>
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border, #e0e0e0)" }}>
-                  <div style={{ marginBottom: 12 }}>
-                    <span style={detailLabelStyle}>岗位概述</span>
-                    <p style={{ margin: 0, color: "var(--foreground)" }}>{viewPosition.summary || "-"}</p>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
-                    <div>
-                      <span style={detailLabelStyle}>技能要求</span>
-                      <span>{(viewPosition.skill_requirements || []).join("、") || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>证书要求</span>
-                      <span>{(viewPosition.certificate_requirements || []).join("、") || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>创新要求</span>
-                      <span>{viewPosition.innovation_requirements || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>学习要求</span>
-                      <span>{viewPosition.learning_requirements || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>抗压要求</span>
-                      <span>{viewPosition.resilience_requirements || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>沟通要求</span>
-                      <span>{viewPosition.communication_requirements || "-"}</span>
-                    </div>
-                    <div>
-                      <span style={detailLabelStyle}>实习要求</span>
-                      <span>{viewPosition.internship_requirements || "-"}</span>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                  <button type="button" className="admin-action-button" onClick={() => setViewPosition(null)} disabled={saving}>
-                    关闭
-                  </button>
-                  <button type="button" className="admin-action-button admin-action-button--primary" onClick={() => handleEdit(viewPosition)} disabled={saving}>
-                    编辑
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showForm && (
-          <div style={modalBackdropStyle} role="dialog" aria-modal="true" aria-label={editingId ? "编辑岗位" : "新增岗位"}>
-            <div style={modalPanelStyle}>
-              <div style={modalHeaderStyle}>
-                <div>
-                  <h3 style={{ fontSize: "1rem", margin: 0 }}>{editingId ? "编辑岗位" : "新增岗位"}</h3>
-                  <p style={{ margin: "4px 0 0", color: "var(--subtle)", fontSize: "0.8rem" }}>
-                    {editingId ? "修改岗位画像信息" : "创建新的岗位画像"}
-                  </p>
-                </div>
-                <button type="button" style={closeButtonStyle} onClick={resetForm} aria-label="关闭">&times;</button>
-              </div>
-              <form onSubmit={handleSubmit} style={modalBodyStyle}>
-                {error && (
-                  <div style={{
-                    marginBottom: 12,
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    background: "rgba(220, 38, 38, 0.1)",
-                    color: "#dc2626",
-                    fontSize: "0.875rem",
-                  }}>
-                    {error}
-                  </div>
-                )}
-                <div className="admin-user-form">
-                  <label>
-                    <span>岗位编码 *</span>
-                    <input
-                      value={form.job_code || ""}
-                      onChange={(e) => setForm({ ...form, job_code: e.target.value })}
-                      placeholder="例如：software-engineer"
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>岗位名称 *</span>
-                    <input
-                      value={form.title || ""}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                      placeholder="例如：软件工程师"
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span>岗位概述</span>
-                    <textarea
-                      value={form.summary || ""}
-                      onChange={(e) => setForm({ ...form, summary: e.target.value })}
-                      placeholder="岗位简要描述..."
-                      rows={3}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border, #e0e0e0)", fontSize: "0.875rem", outline: "none", resize: "vertical", fontFamily: "inherit" }}
-                    />
-                  </label>
-                  <label>
-                    <span>技能要求</span>
-                    <input
-                      value={(form.skill_requirements || []).join("、")}
-                      onChange={(e) => setForm({ ...form, skill_requirements: e.target.value ? e.target.value.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean) : [] })}
-                      placeholder="多项技能用顿号、逗号或换行分隔"
-                    />
-                  </label>
-                  <label>
-                    <span>证书要求</span>
-                    <input
-                      value={(form.certificate_requirements || []).join("、")}
-                      onChange={(e) => setForm({ ...form, certificate_requirements: e.target.value ? e.target.value.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean) : [] })}
-                      placeholder="多项证书用顿号、逗号或换行分隔"
-                    />
-                  </label>
-                </div>
-                <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                  <button type="button" className="admin-action-button" onClick={resetForm} disabled={saving}>
-                    取消
-                  </button>
-                  <button type="submit" className="admin-action-button admin-action-button--primary" disabled={saving}>
-                    {saving ? "保存中..." : editingId ? "保存修改" : "新增岗位"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {deletePosition && (
-          <div style={modalBackdropStyle} role="dialog" aria-modal="true" aria-label="确认删除岗位">
-            <div style={{ ...modalPanelStyle, width: "min(520px, 100%)" }}>
-              <div style={modalHeaderStyle}>
-                <div>
-                  <h3 style={{ fontSize: "1rem", margin: 0 }}>确认删除岗位</h3>
-                  <p style={{ margin: "4px 0 0", color: "var(--subtle)", fontSize: "0.8rem" }}>
-                    有关联匹配结果的岗位可能会被后端拒绝删除
-                  </p>
-                </div>
-                <button type="button" style={closeButtonStyle} onClick={() => setDeletePosition(null)} aria-label="关闭">&times;</button>
-              </div>
-              <div style={modalBodyStyle}>
-                {error && (
-                  <div style={{
-                    marginBottom: 12,
-                    padding: "10px 14px",
-                    borderRadius: 8,
-                    background: "rgba(220, 38, 38, 0.1)",
-                    color: "#dc2626",
-                    fontSize: "0.875rem",
-                  }}>
-                    {error}
-                  </div>
-                )}
-                <div style={{ padding: 14, borderRadius: 8, background: "rgba(220, 38, 38, 0.08)", color: "#991b1b" }}>
-                  <p style={{ margin: "0 0 8px", fontWeight: 700 }}>请确认是否删除以下岗位：</p>
-                  <p style={{ margin: 0 }}>
-                    {deletePosition.title}（{deletePosition.job_code}）
-                  </p>
-                </div>
-                <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                  <button type="button" className="admin-action-button" onClick={() => setDeletePosition(null)} disabled={saving}>
-                    取消
-                  </button>
-                  <button type="button" className="admin-table-button admin-table-button--danger" onClick={confirmDelete} disabled={saving}>
-                    {saving ? "删除中..." : "确认删除"}
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>

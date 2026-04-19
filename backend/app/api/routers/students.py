@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.errors import require_role, raise_resource_forbidden
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -444,6 +444,9 @@ def get_student_history(
         return {"items": []}
 
     records = []
+    run_ids = list(db.scalars(select(AnalysisRun.id).where(AnalysisRun.student_id == student.id)).all())
+    profile_version_ids = list(db.scalars(select(ProfileVersion.id).where(ProfileVersion.student_id == student.id)).all())
+    has_scoped_analysis = bool(run_ids or profile_version_ids)
 
     # --- Upload records ---
     if not record_type or record_type == "upload":
@@ -494,9 +497,18 @@ def get_student_history(
             select(StudentProfile).where(StudentProfile.student_id == student.id)
         )
         if student_profile:
+            if has_scoped_analysis:
+                match_query = select(MatchResult).where(MatchResult.student_id == student.id)
+                scoped_conditions = []
+                if run_ids:
+                    scoped_conditions.append(MatchResult.analysis_run_id.in_(run_ids))
+                if profile_version_ids:
+                    scoped_conditions.append(MatchResult.profile_version_id.in_(profile_version_ids))
+                match_query = match_query.where(or_(*scoped_conditions))
+            else:
+                match_query = select(MatchResult).where(MatchResult.student_profile_id == student_profile.id)
             matches = list(db.scalars(
-                select(MatchResult)
-                .where(MatchResult.student_profile_id == student_profile.id)
+                match_query
                 .order_by(MatchResult.created_at.desc())
                 .limit(20)
             ).all())
@@ -520,9 +532,16 @@ def get_student_history(
 
     # --- Path planning records ---
     if not record_type or record_type == "path":
+        path_query = select(PathRecommendation).where(PathRecommendation.student_id == student.id)
+        if has_scoped_analysis:
+            scoped_conditions = []
+            if run_ids:
+                scoped_conditions.append(PathRecommendation.analysis_run_id.in_(run_ids))
+            if profile_version_ids:
+                scoped_conditions.append(PathRecommendation.profile_version_id.in_(profile_version_ids))
+            path_query = path_query.where(or_(*scoped_conditions))
         paths = list(db.scalars(
-            select(PathRecommendation)
-            .where(PathRecommendation.student_id == student.id)
+            path_query
             .order_by(PathRecommendation.created_at.desc())
             .limit(10)
         ).all())
@@ -546,9 +565,16 @@ def get_student_history(
 
     # --- Report records ---
     if not record_type or record_type == "report":
+        report_query = select(CareerReport).where(CareerReport.student_id == student.id)
+        if has_scoped_analysis:
+            scoped_conditions = []
+            if run_ids:
+                scoped_conditions.append(CareerReport.analysis_run_id.in_(run_ids))
+            if profile_version_ids:
+                scoped_conditions.append(CareerReport.profile_version_id.in_(profile_version_ids))
+            report_query = report_query.where(or_(*scoped_conditions))
         reports = list(db.scalars(
-            select(CareerReport)
-            .where(CareerReport.student_id == student.id)
+            report_query
             .order_by(CareerReport.created_at.desc())
             .limit(20)
         ).all())

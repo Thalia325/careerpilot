@@ -191,11 +191,21 @@ export async function getMatchResult(matchId: number): Promise<MatchingResult> {
   return await request<MatchingResult>(`/matching/${matchId}`);
 }
 
-export async function getPathPlan(studentId: number, jobCode: string): Promise<PathPlan> {
+export async function getPathPlan(
+  studentId: number,
+  jobCode: string,
+  context?: { analysis_run_id?: number | null; profile_version_id?: number | null; match_result_id?: number | null },
+): Promise<PathPlan> {
   try {
     const response = await request<{ data: PathPlan }>("/career-paths/plan", {
       method: "POST",
-      body: JSON.stringify({ student_id: studentId, job_code: jobCode })
+      body: JSON.stringify({
+        student_id: studentId,
+        job_code: jobCode,
+        analysis_run_id: context?.analysis_run_id ?? null,
+        profile_version_id: context?.profile_version_id ?? null,
+        match_result_id: context?.match_result_id ?? null,
+      })
     });
     return response.data;
   } catch (error) {

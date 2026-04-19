@@ -126,45 +126,45 @@ export default function StudentPathPage() {
       ) : (
         <>
           <SectionCard title="当前能力起点">
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
-              {/* 已匹配技能 */}
-              <div>
-                <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>已掌握技能</h4>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div className="path-ability-grid">
+              <div className="path-ability-column">
+                <h4 className="path-ability-heading">已掌握技能</h4>
+                <div className="path-chip-list">
                   {abilitySkills.map((skill: string) => (
-                    <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#eef6ff", color: "#0f4f9a", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
+                    <span key={skill} className="path-chip path-chip--known">{skill}</span>
                   ))}
                 </div>
                 {abilitySkills.length === 0 && (
-                  <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无技能数据</span>
+                  <span className="path-empty-text">暂无技能数据</span>
                 )}
               </div>
-              {/* 匹配 / 缺失技能 */}
-              <div>
-                <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>技能差距</h4>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="path-ability-column">
+                <h4 className="path-ability-heading">技能差距</h4>
+                <div className="path-chip-list">
                   {matchedSkills.map((skill: string) => (
-                    <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#f0fdf4", color: "#166534", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
+                    <span key={skill} className="path-chip path-chip--matched">{skill}</span>
                   ))}
                   {missingSkills.map((skill: string) => (
-                    <span key={skill} style={{ padding: "4px 10px", borderRadius: 8, background: "#fef2f2", color: "#991b1b", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
+                    <span key={skill} className="path-chip path-chip--missing">{skill}</span>
                   ))}
                 </div>
                 {matchedSkills.length === 0 && missingSkills.length === 0 && (
-                  <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无匹配数据</span>
+                  <span className="path-empty-text">暂无匹配数据</span>
                 )}
               </div>
-              {/* 证书 & 项目 & 实习 */}
-              <div>
-                <h4 style={{ margin: "0 0 8px", fontSize: "0.875rem", color: "var(--ink)" }}>证书 / 项目 / 实习</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "0.8125rem", color: "var(--ink)", lineHeight: 1.6 }}>
+              <div className="path-ability-column path-ability-column--wide">
+                <h4 className="path-ability-heading">证书 / 项目 / 实习</h4>
+                <div className="path-evidence-list">
                   {certificates.length > 0 && (
-                    <p style={{ margin: 0 }}><span style={{ color: "var(--subtle)" }}>证书：</span>{certificates.join("、")}</p>
+                    <div className="path-evidence-row">
+                      <span className="path-evidence-label">证书</span>
+                      <p>{certificates.join("、")}</p>
+                    </div>
                   )}
                   {projects.length > 0 && (
-                    <div>
-                      <span style={{ color: "var(--subtle)" }}>项目：</span>
-                      <div style={{ display: "grid", gap: 4, marginTop: 2 }}>
+                    <div className="path-evidence-row">
+                      <span className="path-evidence-label">项目</span>
+                      <div className="path-evidence-items">
                         {projects.map((project: string) => (
                           <span key={project}>{project}</span>
                         ))}
@@ -172,9 +172,9 @@ export default function StudentPathPage() {
                     </div>
                   )}
                   {internships.length > 0 && (
-                    <div>
-                      <span style={{ color: "var(--subtle)" }}>实习：</span>
-                      <div style={{ display: "grid", gap: 4, marginTop: 2 }}>
+                    <div className="path-evidence-row">
+                      <span className="path-evidence-label">实习</span>
+                      <div className="path-evidence-items">
                         {internships.map((internship: string) => (
                           <span key={internship}>{internship}</span>
                         ))}
@@ -182,7 +182,7 @@ export default function StudentPathPage() {
                     </div>
                   )}
                   {!hasEvidence && (
-                    <span style={{ color: "var(--subtle)", fontSize: "0.8125rem" }}>暂无数据</span>
+                    <span className="path-empty-text">暂无数据</span>
                   )}
                 </div>
               </div>
@@ -190,66 +190,36 @@ export default function StudentPathPage() {
           </SectionCard>
 
           <SectionCard title="垂直岗位图谱">
-            <p style={{ color: "var(--subtle)", margin: "0 0 20px", lineHeight: 1.7 }}>
+            <p className="path-map-intro">
               {plan?.vertical_graph?.description || plan?.rationale || "基于岗位图谱生成晋升链路。"}
             </p>
             {verticalNodes.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div className="path-timeline">
               {verticalNodes.map((node, index, arr) => {
                 return (
-                  <div key={`${node.title}-${index}`} style={{ display: "flex", gap: 16 }}>
-                    {/* Timeline rail */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 28, flexShrink: 0 }}>
-                      <div
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: "50%",
-                          background: "#fff",
-                          border: `2px solid ${pathTheme.mutedBorder}`,
-                          flexShrink: 0,
-                          marginTop: 20,
-                        }}
-                      />
+                  <div key={`${node.title}-${index}`} className="path-timeline-row">
+                    <div className="path-timeline-rail">
+                      <div className="path-timeline-dot" />
                       {index < arr.length - 1 && (
-                        <div style={{ width: 2, flex: 1, background: pathTheme.rail, minHeight: 16 }} />
+                        <div className="path-timeline-line" />
                       )}
                     </div>
-                    {/* Node card */}
-                    <div
-                      style={{
-                        flex: 1,
-                        border: `1px solid ${pathTheme.border}`,
-                        borderRadius: 8,
-                        padding: 16,
-                        background: pathTheme.surface,
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 10, alignItems: "center" }}>
-                        <span style={{ color: pathTheme.primary, fontWeight: 700, fontSize: "0.8125rem" }}>L{node.level ?? index + 1}</span>
+                    <div className="path-node-card">
+                      <div className="path-node-card__top">
+                        <span className="path-node-card__level">L{node.level ?? index + 1}</span>
                         {node.stage && (
-                          <span
-                            style={{
-                              padding: "2px 8px",
-                              borderRadius: 6,
-                              background: pathTheme.primarySoft,
-                              color: pathTheme.primaryDark,
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {node.stage}
-                          </span>
+                          <span className="path-node-card__stage">{node.stage}</span>
                         )}
                       </div>
-                      <h3 style={{ margin: "0 0 8px", fontSize: "1rem" }}>{node.title}</h3>
-                      <p style={{ margin: "0 0 12px", color: "var(--subtle)", fontSize: "0.8125rem", lineHeight: 1.6 }}>{node.description || "围绕岗位要求持续沉淀项目成果。"}</p>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      <h3 className="path-node-card__title">{node.title}</h3>
+                      <p className="path-node-card__desc">{node.description || "围绕岗位要求持续沉淀项目成果。"}</p>
+                      {(node.skills ?? []).length > 0 && (
+                      <div className="path-node-card__skills">
                         {(node.skills ?? []).slice(0, 4).map((skill) => (
-                          <span key={skill} style={{ padding: "4px 8px", borderRadius: 8, background: pathTheme.primarySoft, color: pathTheme.primaryDark, fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
+                          <span key={skill} className="path-chip path-chip--known">{skill}</span>
                         ))}
                       </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -261,11 +231,11 @@ export default function StudentPathPage() {
               </div>
             )}
             {(plan?.vertical_graph?.promotion_paths ?? []).length > 1 && (
-              <div style={{ marginTop: 18 }}>
-                <h3 style={{ margin: "0 0 10px", fontSize: "0.9375rem" }}>其他晋升链路</h3>
-                <div style={{ display: "grid", gap: 8 }}>
+              <div className="path-promotion-paths">
+                <h3>其他晋升链路</h3>
+                <div className="path-promotion-paths__list">
                   {(plan?.vertical_graph?.promotion_paths ?? []).map((path: string[]) => (
-                    <div key={path.join("-")} style={{ padding: "10px 12px", borderRadius: 8, background: pathTheme.surface, color: "var(--ink)", border: `1px solid ${pathTheme.border}` }}>
+                    <div key={path.join("-")} className="path-promotion-item">
                       {path.join(" → ")}
                     </div>
                   ))}

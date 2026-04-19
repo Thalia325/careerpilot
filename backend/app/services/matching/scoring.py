@@ -33,6 +33,66 @@ SKILL_GROUPS: dict[str, set[str]] = {
     "product": {
         "产品", "需求", "需求分析", "原型", "用户研究", "项目管理", "商业分析",
     },
+    "finance": {
+        "金融", "财务", "投资", "估值", "财务建模", "会计", "审计", "税务", "报表",
+        "成本", "保险", "精算", "风控", "风险", "银行", "基金", "证券",
+    },
+    "marketing": {
+        "市场", "营销", "品牌", "推广", "广告", "数字营销", "seo", "sem",
+        "竞品分析", "社交媒体", "文案", "新媒体", "策划", "传播", "公关",
+    },
+    "sales": {
+        "销售", "客户", "商务拓展", "谈判", "crm", "大客户", "渠道", "商务",
+    },
+    "hr": {
+        "人力资源", "招聘", "薪酬", "绩效", "员工关系", "劳动法", "培训",
+        "组织发展", "hrbp",
+    },
+    "engineering": {
+        "机械", "autocad", "solidworks", "有限元", "土木", "结构设计", "bim",
+        "施工", "电气", "建筑", "工程测量", "工艺优化", "工业", "化工",
+    },
+    "education": {
+        "教育", "教学", "课程设计", "培训讲师", "教师", "教学法", "教育心理",
+        "留学", "教学设计",
+    },
+    "legal": {
+        "法律", "法务", "合同", "合规", "知识产权", "法规", "风险评估",
+        "专利", "商标",
+    },
+    "pharma": {
+        "医药", "临床", "cra", "生物", "药品", "医学", "实验室", "药物",
+        "食品安全", "营养", "影像",
+    },
+    "logistics": {
+        "物流", "供应链", "采购", "库存", "仓储", "配送", "冷链", "货运",
+    },
+    "media": {
+        "新闻", "编辑", "记者", "视频", "动画", "平面设计", "插画",
+        "展览", "摄影", "视觉", "内容",
+    },
+    "hospitality": {
+        "酒店", "餐饮", "旅游", "导游", "物业管理", "服务", "接待",
+    },
+    "energy": {
+        "新能源", "石油", "储能", "能源", "环保", "环境", "电力", "节能",
+        "光伏", "风电",
+    },
+    "agriculture": {
+        "农业", "作物", "畜牧", "园艺", "种植", "病虫害", "农机", "肥料",
+    },
+    "sports": {
+        "体育", "健身", "运动", "康复", "体能", "赛事",
+    },
+    "psychology": {
+        "心理", "咨询", "社工", "社会工作者", "情绪", "辅导", "社区",
+    },
+    "translation": {
+        "翻译", "口译", "同传", "本地化", "外贸", "跨境电商",
+    },
+    "consulting": {
+        "咨询", "顾问", "管理咨询", "战略", "行业研究", "尽职调查",
+    },
 }
 
 
@@ -78,6 +138,7 @@ def _has_directional_relationship(student_norm: str, required_norm: str) -> bool
     if student_norm in ai_terms and required_norm in ai_terms:
         return True
 
+    # IT relationships
     if student_norm == "python" and required_norm in {"pandas", "numpy"}:
         return True
     if student_norm in {"python", "sql", "mysql"} and required_norm in {"数据分析", "数据处理", "统计", "统计建模", "数据可视化"}:
@@ -89,6 +150,28 @@ def _has_directional_relationship(student_norm: str, required_norm: str) -> bool
     if student_norm == "java" and required_norm == "spring boot":
         return True
     if student_norm == "linux" and required_norm in {"shell", "ci/cd"}:
+        return True
+
+    # Cross-domain: Python used in finance/data
+    if student_norm == "python" and required_norm in {"财务建模", "量化", "数据可视化", "统计分析"}:
+        return True
+    # Excel used broadly
+    if student_norm == "excel" and required_norm in {"财务分析", "数据分析", "成本核算", "预算管理", "财务报表"}:
+        return True
+    # SQL used in data/finance
+    if student_norm in {"sql", "mysql"} and required_norm in {"数据分析", "数据仓库", "财务分析", "etl"}:
+        return True
+    # AutoCAD used in engineering
+    if student_norm == "autocad" and required_norm in {"机械设计", "结构设计", "建筑设计", "施工图", "电气设计", "工艺设计"}:
+        return True
+    # CRM used in sales/HR
+    if student_norm == "crm" and required_norm in {"客户管理", "销售", "招聘", "客户关系"}:
+        return True
+    # PPT used broadly
+    if student_norm in {"ppt", "powerpoint"} and required_norm in {"课程设计", "培训", "营销策划", "方案设计", "汇报"}:
+        return True
+    # ERP used in supply chain/finance
+    if student_norm == "erp" and required_norm in {"供应链", "库存管理", "成本核算", "采购管理", "生产管理"}:
         return True
     return False
 

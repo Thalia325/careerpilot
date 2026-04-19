@@ -134,7 +134,7 @@ export const demoPath = {
   ],
 };
 
-export type JobCategory = "产品/技术" | "设计/创意" | "运营/市场" | "金融/商务" | "人力/行政" | "教育/咨询";
+export type JobCategory = string;
 
 export interface JobDetail {
   title: string;
