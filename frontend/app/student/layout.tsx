@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
-import { SidebarDrawer } from "@/components/SidebarDrawer";
-import { Icon } from "@/components/Icon";
+import { ReactNode, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { AccessDeniedNotice } from "@/components/AccessDeniedNotice";
+import { Icon } from "@/components/Icon";
+import { SidebarDrawer } from "@/components/SidebarDrawer";
 
 const studentNavItems = [
   { href: "/student", label: "首页", icon: <Icon name="home" size={18} /> },
   { href: "/student/info", label: "个人信息", icon: <Icon name="user" size={18} /> },
-  { href: "/student/profile", label: "我的能力分析", icon: <Icon name="chart" size={18} /> },
+  { href: "/student/profile", label: "能力分析", icon: <Icon name="chart" size={18} /> },
   { href: "/student/recommended", label: "推荐岗位", icon: <Icon name="briefcase" size={18} /> },
-  { href: "/student/matching", label: "岗位匹配分析", icon: <Icon name="target" size={18} /> },
-  { href: "/student/path", label: "职业路径规划", icon: <Icon name="trending-up" size={18} /> },
+  { href: "/student/matching", label: "匹配分析", icon: <Icon name="target" size={18} /> },
+  { href: "/student/interview", label: "模拟面试", icon: <Icon name="chat" size={18} /> },
+  { href: "/student/path", label: "职业路径", icon: <Icon name="trending-up" size={18} /> },
   { href: "/student/report", label: "完整报告", icon: <Icon name="file" size={18} /> },
   { href: "/student/jobs", label: "岗位探索", icon: <Icon name="search" size={18} /> },
   { href: "/student/history", label: "历史记录", icon: <Icon name="clock" size={18} /> },
@@ -23,14 +23,15 @@ const titleMap: Record<string, string> = {
   "/student": "职航智策",
   "/student/info": "个人信息",
   "/student/recommended": "推荐岗位",
-  "/student/profile": "我的能力分析",
-  "/student/matching": "岗位匹配分析",
-  "/student/path": "职业路径规划",
+  "/student/profile": "能力分析",
+  "/student/matching": "匹配分析",
+  "/student/interview": "模拟面试",
+  "/student/path": "职业路径",
   "/student/report": "完整报告",
   "/student/jobs": "岗位探索",
   "/student/history": "历史记录",
   "/student/dashboard": "个人概览",
-  "/student/upload": "材料上传与智能识别",
+  "/student/upload": "材料上传",
 };
 
 export default function StudentLayout({ children }: { children: ReactNode }) {
@@ -74,7 +75,9 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
             onClick={handleLogout}
             style={{ background: "none", border: "none", cursor: "pointer", width: "100%", color: "var(--color-error)" }}
           >
-            <span className="sidebar-drawer__link-icon"><Icon name="logout" size={18} /></span>
+            <span className="sidebar-drawer__link-icon">
+              <Icon name="logout" size={18} />
+            </span>
             退出登录
           </button>
         }
@@ -89,7 +92,9 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
         </div>
         <div className="workspace-topbar__right">
           <span className="workspace-topbar__user">{roleLabel}</span>
-          <button className="workspace-topbar__logout" onClick={handleLogout}>退出</button>
+          <button className="workspace-topbar__logout" onClick={handleLogout}>
+            退出
+          </button>
         </div>
       </div>
 

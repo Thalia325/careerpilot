@@ -55,6 +55,54 @@ const weightLabels: Record<string, string> = {
   development_potential: "发展潜力",
 };
 
+const exploreCategories = [
+  "前端开发",
+  "Java开发",
+  "C/C++开发",
+  "软件测试",
+  "硬件测试",
+  "实施工程师",
+  "技术支持",
+  "运维工程师",
+  "产品经理",
+  "项目管理",
+  "算法工程师",
+  "数据分析",
+  "网络安全",
+  "网络工程师",
+  "硬件工程师",
+  "售前工程师",
+  "其他岗位",
+];
+
+const titleCategoryRules: Array<[string, RegExp]> = [
+  ["前端开发", /前端|web前端|web 前端|react|vue|javascript|typescript/],
+  ["Java开发", /java|spring/],
+  ["C/C++开发", /c\/c\+\+|c\+\+|c语言|嵌入式软件/],
+  ["软件测试", /软件测试|测试工程师|质量管理\/测试|质量保证|功能测试|自动化测试|qa/],
+  ["硬件测试", /硬件测试|板卡测试|电子测试/],
+  ["实施工程师", /实施工程师|实施顾问|erp实施|系统实施|软件实施|项目实施/],
+  ["技术支持", /技术支持|售后工程师|客户支持|服务工程师/],
+  ["运维工程师", /运维|devops|sre|系统运维/],
+  ["产品经理", /产品经理|产品专员|产品助理|需求分析|业务分析/],
+  ["项目管理", /项目经理|项目主管|项目专员|项目助理|项目管理|项目招投标|招投标专员/],
+  ["算法工程师", /算法|机器学习|深度学习|计算机视觉|自然语言|nlp|cv/],
+  ["数据分析", /数据分析|数据挖掘|bi|数据统计|数据运营/],
+  ["网络安全", /网络安全|信息安全|安全工程师|渗透|安全运维/],
+  ["网络工程师", /网络工程师|网络维护|传输网络|通信工程师/],
+  ["硬件工程师", /硬件工程师|计算机硬件维护|硬件维护|嵌入式硬件/],
+  ["售前工程师", /售前|解决方案工程师|方案工程师/],
+];
+
+const contextCategoryRules: Array<[string, RegExp]> = [
+  ...titleCategoryRules,
+];
+
+function matchCategory(blob: string, rules: Array<[string, RegExp]>): string | null {
+  const loweredBlob = blob.toLowerCase();
+  return rules.find(([, pattern]) => pattern.test(loweredBlob))?.[0] ?? null;
+}
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
 }
@@ -68,34 +116,15 @@ function getCategoryStyle(category: string) {
 }
 
 function inferCategory(job: ApiJobTemplate): string {
-  if (job.industry) return job.industry;
+  const explicitCategory = (job.category ?? "").trim();
+  if (exploreCategories.includes(explicitCategory)) return explicitCategory;
+
   const title = job.title ?? "";
-  const skills = asStringArray(job.skills ?? job.skill_requirements).join(" ");
-  const blob = `${title} ${skills}`;
-
-  if (/机械|土木|建筑|结构|电气|化工|工业|环境|质量|石油|储能|新能源|航空/.test(blob)) return "工程/制造";
-  if (/医药|临床|生物|医学|影像|药学|食品|营养/.test(blob)) return "医药/医疗";
-  if (/物流|供应链|采购|仓储|冷链/.test(blob)) return "供应链/物流";
-  if (/金融|财务|会计|审计|税务|投资|风控|银行|保险|精算|成本/.test(blob)) return "金融/财务";
-  if (/法务|法律|合规|知识产权/.test(blob)) return "法律/合规";
-  if (/销售|商务拓展|BD|大客户|客户经理/.test(blob)) return "销售/商务";
-  if (/市场|营销|广告|品牌|公关|活动策划|电商|新媒体|内容运营|文案/.test(title)) return "市场/营销";
-  if (/人力|HR|招聘|薪酬|行政|前台|文秘|绩效/.test(blob)) return "人力/行政";
-  if (/教育|培训|教学|课程|留学|教师|教学设计/.test(blob)) return "教育/培训";
-  if (/咨询|顾问|管理咨询|IT咨询|职业规划/.test(blob)) return "咨询/顾问";
-  if (/记者|编辑|视频|动画|平面|插画|展览|摄影|视觉|文案/.test(blob)) return "传媒/内容";
-  if (/翻译|口译|同传|外贸|跨境电商|本地化/.test(blob)) return "翻译/外贸";
-  if (/酒店|旅游|导游|餐饮|物业/.test(blob)) return "酒店/旅游";
-  if (/房地产|估价|地产/.test(blob)) return "房地产";
-  if (/体育|健身|运动|康复|体能|赛事/.test(blob)) return "体育/健身";
-  if (/农业|园艺|畜牧|作物/.test(blob)) return "农业";
-  if (/心理|社工|社区/.test(blob)) return "心理/社工";
-  if (/能源|环保|节能|电力/.test(blob)) return "能源/环保";
-
-  if (/UI|UX|设计|Figma|视觉|交互|平面|室内|展览/.test(blob)) return "设计/创意";
-  if (/运营|市场|内容|增长|营销/.test(title)) return "运营/市场";
-
-  return "产品/技术";
+  const rawCategory = job.category ?? "";
+  const industry = job.industry ?? "";
+  return matchCategory(title, titleCategoryRules)
+    ?? matchCategory(`${rawCategory} ${industry}`, contextCategoryRules)
+    ?? "其他岗位";
 }
 
 function normalizeJob(job: ApiJobTemplate): JobExploreItem {
@@ -119,7 +148,7 @@ function normalizeJob(job: ApiJobTemplate): JobExploreItem {
   return {
     job_code: job.job_code,
     title: job.title ?? "未命名岗位",
-    category: job.category ?? job.industry ?? inferCategory(job),
+    category: inferCategory(job),
     industry: job.industry,
     location: job.location,
     company_name: job.company_name,

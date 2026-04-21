@@ -13,12 +13,13 @@ type JobItem = {
 
 type Props = {
   onSelect: (jobCode: string, jobTitle: string) => void;
+  onSkip?: () => void;
   onCancel?: () => void;
 };
 
 const COLLAPSED_JOB_COUNT = 12;
 
-export function JobSelector({ onSelect, onCancel }: Props) {
+export function JobSelector({ onSelect, onSkip, onCancel }: Props) {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -74,6 +75,7 @@ export function JobSelector({ onSelect, onCancel }: Props) {
       <div className="job-selector__header">
         <div>
           <p className="job-selector__hint">请先选择一个目标岗位，再开始分析：</p>
+          <p className="job-selector__hint">如果暂时不确定方向，也可以先解析简历，由系统推荐适合岗位。</p>
           <p className="job-selector__summary">
             共 {jobs.length} 个岗位{normalizedQuery ? `，匹配 ${filteredJobs.length} 个` : ""}
           </p>
@@ -130,6 +132,15 @@ export function JobSelector({ onSelect, onCancel }: Props) {
             onClick={onCancel}
           >
             返回上传
+          </button>
+        )}
+        {onSkip && (
+          <button
+            type="button"
+            className="job-selector__skip"
+            onClick={onSkip}
+          >
+            暂不选择，先分析简历
           </button>
         )}
         <button
@@ -288,6 +299,21 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           background: #f9fafb;
           border-color: #9ca3af;
         }
+        .job-selector__skip {
+          font-size: 14px;
+          color: #0f766e;
+          background: #f0fdfa;
+          border: 1px solid #99f6e4;
+          border-radius: 8px;
+          padding: 8px 16px;
+          cursor: pointer;
+          min-height: 36px;
+          transition: all 0.15s;
+        }
+        .job-selector__skip:hover {
+          background: #ccfbf1;
+          border-color: #5eead4;
+        }
         .job-selector__confirm {
           margin-top: 0;
         }
@@ -317,6 +343,7 @@ export function JobSelector({ onSelect, onCancel }: Props) {
           }
           .job-selector__selected,
           .job-selector__back,
+          .job-selector__skip,
           .job-selector__confirm {
             width: 100%;
           }

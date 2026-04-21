@@ -6,6 +6,45 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhos
 export type StudentProfile = typeof demoStudentProfile;
 export type MatchingResult = typeof demoMatching;
 export type PathPlan = typeof demoPath;
+export type MockInterviewQuestion = {
+  question_id: string;
+  category: string;
+  question: string;
+  focus_points: string[];
+  answer_tips: string[];
+};
+export type MockInterviewDraft = {
+  student_id: number;
+  job_code: string;
+  job_title: string;
+  readiness_score: number;
+  readiness_level: string;
+  focus_summary: string[];
+  questions: MockInterviewQuestion[];
+};
+export type MockInterviewAnswer = {
+  question_id: string;
+  answer: string;
+};
+export type MockInterviewFeedbackItem = {
+  question_id: string;
+  question: string;
+  score: number;
+  matched_points: string[];
+  missing_points: string[];
+  suggestion: string;
+};
+export type MockInterviewEvaluation = {
+  student_id: number;
+  job_code: string;
+  job_title: string;
+  overall_score: number;
+  readiness_level: string;
+  recommendation: string;
+  focus_summary: string[];
+  feedback: MockInterviewFeedbackItem[];
+  next_actions: string[];
+};
 export type SchedulerJobItem = {
   job_name: string;
   cron_expr: string;
@@ -16,6 +55,10 @@ export type ReportDraft = {
   report_id: number;
   student_id: number;
   job_code: string;
+  matched_job_code: string | null;
+  matched_job_title: string | null;
+  ideal_job_code: string | null;
+  ideal_job_title: string | null;
   markdown_content: string;
   content: Record<string, unknown>;
   status: string;
@@ -155,6 +198,12 @@ export async function updateTargetJob(jobCode: string, jobTitle: string): Promis
   });
 }
 
+export async function clearTargetJob(): Promise<{ ok: boolean; target_job_code: string; target_job_title: string }> {
+  return request("/students/me/target-job", {
+    method: "DELETE",
+  });
+}
+
 export async function getStudentProfile(studentId: number): Promise<StudentProfile> {
   try {
     return await request<StudentProfile>(`/student-profiles/${studentId}`);
@@ -222,6 +271,40 @@ export async function getPathResult(pathId: number): Promise<PathPlan> {
   return response.data;
 }
 
+export async function generateMockInterview(
+  studentId: number,
+  jobCode: string,
+  context?: { analysis_run_id?: number | null; profile_version_id?: number | null },
+): Promise<MockInterviewDraft> {
+  return request<MockInterviewDraft>("/interviews/mock/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      student_id: studentId,
+      job_code: jobCode,
+      analysis_run_id: context?.analysis_run_id ?? null,
+      profile_version_id: context?.profile_version_id ?? null,
+    }),
+  });
+}
+
+export async function evaluateMockInterview(
+  studentId: number,
+  jobCode: string,
+  answers: MockInterviewAnswer[],
+  context?: { analysis_run_id?: number | null; profile_version_id?: number | null },
+): Promise<MockInterviewEvaluation> {
+  return request<MockInterviewEvaluation>("/interviews/mock/evaluate", {
+    method: "POST",
+    body: JSON.stringify({
+      student_id: studentId,
+      job_code: jobCode,
+      answers,
+      analysis_run_id: context?.analysis_run_id ?? null,
+      profile_version_id: context?.profile_version_id ?? null,
+    }),
+  });
+}
+
 export async function getJobTemplates(): Promise<JobDetail[]> {
   try {
     const response = await request<{ data: JobDetail[] }>("/jobs/profiles/templates");
@@ -284,6 +367,10 @@ export async function generateReport(
         report_id: 1,
         student_id: studentId,
         job_code: jobCode,
+        matched_job_code: jobCode,
+        matched_job_title: null,
+        ideal_job_code: jobCode,
+        ideal_job_title: null,
         markdown_content: demoReportMarkdown,
         content: {},
         status: "draft",
@@ -521,12 +608,13 @@ export type AdminUserInput = {
   email: string;
 };
 
-export async function getAdminUsers(params?: { keyword?: string; role?: string; skip?: number; limit?: number }): Promise<{ total: number; items: AdminUser[] }> {
+export async function getAdminUsers(params?: { keyword?: string; role?: string; skip?: number; limit?: number; sort?: "id_asc" | "newest" }): Promise<{ total: number; items: AdminUser[] }> {
   const qs = new URLSearchParams();
   if (params?.keyword) qs.set("keyword", params.keyword);
   if (params?.role) qs.set("role", params.role);
-  if (params?.skip) qs.set("skip", String(params.skip));
+  if (params?.skip !== undefined) qs.set("skip", String(params.skip));
   if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.sort) qs.set("sort", params.sort);
   const query = qs.toString();
   const path = `/admin/users${query ? `?${query}` : ""}`;
   const res = await request<{ data: { total: number; items: AdminUser[] } }>(path);

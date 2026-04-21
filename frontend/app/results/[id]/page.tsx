@@ -36,6 +36,56 @@ function exportedUrl(fileName: string): string {
   return `${root}/exports/${encodeURIComponent(fileName)}`;
 }
 
+async function downloadExportedFile(fileName: string): Promise<void> {
+  const url = exportedUrl(fileName);
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+}
+
+function readComparison(report: ReportDraft | null) {
+  const content = (report?.content ?? {}) as Record<string, unknown>;
+  const comparison = (content.job_comparison ?? {}) as Record<string, unknown>;
+  const matched = (comparison.matched_job ?? {}) as Record<string, unknown>;
+  const ideal = (comparison.ideal_job ?? {}) as Record<string, unknown>;
+
+  return {
+    matchedJobTitle: (matched.job_title as string | undefined) || report?.matched_job_title || "未识别",
+    matchedJobCode: (matched.job_code as string | undefined) || report?.matched_job_code || "",
+    matchedScore: typeof matched.match_score === "number" ? matched.match_score : null,
+    idealJobTitle: (ideal.job_title as string | undefined) || report?.ideal_job_title || report?.matched_job_title || "未识别",
+    idealJobCode: (ideal.job_code as string | undefined) || report?.ideal_job_code || report?.matched_job_code || "",
+    differenceSummary: (comparison.difference_summary as string | undefined) || "",
+    focusRecommendation: (comparison.focus_recommendation as string | undefined) || "",
+    sameJob: Boolean(comparison.same_job),
+    missingSkills: Array.isArray(ideal.missing_skills) ? (ideal.missing_skills as string[]) : [],
+  };
+}
+
 export default function ResultPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -144,7 +194,8 @@ export default function ResultPage() {
     try {
       const result = await exportReport(reportId, format);
       setExportResult(result);
-      setNotice(`${format.toUpperCase()} 导出完成`);
+      await downloadExportedFile(result.exported.file_name);
+      setNotice(`${format.toUpperCase()} 导出完成，已开始下载`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "导出失败");
     } finally {
@@ -171,6 +222,7 @@ export default function ResultPage() {
     }>;
   }>;
   const hasGraphData = verticalNodes.length > 0 || transitionRoles.length > 0;
+  const comparison = readComparison(report);
 
   return (
     <StudentShellClient title="完整报告">
@@ -284,6 +336,44 @@ export default function ResultPage() {
             ))}
           </div>
 
+          <SectionCard title="岗位对照摘要">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+              <div style={{ border: "1px solid rgba(15,116,218,0.16)", borderRadius: 8, padding: 16, background: "#f8fbff" }}>
+                <div style={{ color: "#0f74da", fontSize: "0.75rem", fontWeight: 700, marginBottom: 8 }}>当前较匹配岗位</div>
+                <div style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 6 }}>{comparison.matchedJobTitle}</div>
+                {comparison.matchedJobCode ? (
+                  <div style={{ color: "var(--subtle)", fontSize: "0.8125rem", marginBottom: 8 }}>{comparison.matchedJobCode}</div>
+                ) : null}
+                {typeof comparison.matchedScore === "number" ? (
+                  <div style={{ color: "#0f4f9a", fontSize: "0.875rem", fontWeight: 600 }}>匹配得分 {comparison.matchedScore.toFixed(1)}</div>
+                ) : null}
+              </div>
+              <div style={{ border: "1px solid rgba(245,158,11,0.18)", borderRadius: 8, padding: 16, background: "#fffaf2" }}>
+                <div style={{ color: "#b45309", fontSize: "0.75rem", fontWeight: 700, marginBottom: 8 }}>理想岗位</div>
+                <div style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 6 }}>{comparison.idealJobTitle}</div>
+                {comparison.idealJobCode ? (
+                  <div style={{ color: "var(--subtle)", fontSize: "0.8125rem", marginBottom: 8 }}>{comparison.idealJobCode}</div>
+                ) : null}
+                <div style={{ color: "#8a4b00", fontSize: "0.875rem", lineHeight: 1.6 }}>
+                  {comparison.sameJob ? "当前匹配岗位与理想岗位一致。" : "当前匹配岗位与理想岗位不一致，需按理想岗位补齐差距。"}
+                </div>
+              </div>
+            </div>
+            {comparison.differenceSummary ? (
+              <p style={{ margin: "14px 0 0", color: "var(--subtle)", lineHeight: 1.7 }}>{comparison.differenceSummary}</p>
+            ) : null}
+            {comparison.focusRecommendation ? (
+              <p style={{ margin: "8px 0 0", color: "#0f766e", lineHeight: 1.7 }}>{comparison.focusRecommendation}</p>
+            ) : null}
+            {!comparison.sameJob && comparison.missingSkills.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                {comparison.missingSkills.slice(0, 6).map((skill) => (
+                  <span key={skill} style={{ padding: "4px 8px", borderRadius: 8, background: "#fff4e5", color: "#8a4b00", fontSize: "0.75rem", fontWeight: 600 }}>{skill}</span>
+                ))}
+              </div>
+            ) : null}
+          </SectionCard>
+
           <SectionCard title={`报告 #${report?.report_id ?? reportId}`}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
               <button className="btn-secondary" onClick={() => setEditing((value) => !value)} disabled={Boolean(busy)}>
@@ -320,7 +410,7 @@ export default function ResultPage() {
             {exportResult && (
               <div style={{ padding: 12, borderRadius: 8, background: "#eef6ff", marginBottom: 12 }}>
                 导出文件：
-                <a href={exportedUrl(exportResult.exported.file_name)} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
+                <a href={exportedUrl(exportResult.exported.file_name)} download={exportResult.exported.file_name} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
                   {exportResult.exported.file_name}
                 </a>
               </div>

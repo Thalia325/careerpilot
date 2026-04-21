@@ -1,0 +1,194 @@
+{
+  "cases": [
+    {
+      "student": {
+        "name": "张晨",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": ["JavaScript", "TypeScript", "React", "HTML", "CSS"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "前端开发工程师",
+        "education": "本科",
+        "majors": ["软件工程", "计算机科学与技术"],
+        "required_skills": ["JavaScript", "TypeScript", "React", "HTML", "CSS"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["JavaScript", "TypeScript", "React", "HTML", "CSS"]
+      }
+    },
+    {
+      "student": {
+        "name": "李琪",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": ["Python", "SQL", "数据分析", "机器学习"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "数据分析师",
+        "education": "本科",
+        "majors": ["计算机科学与技术", "数据科学与大数据技术"],
+        "required_skills": ["Python", "SQL", "数据分析", "机器学习"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["Python", "SQL", "数据分析", "机器学习"]
+      }
+    },
+    {
+      "student": {
+        "name": "王岩",
+        "education": "本科",
+        "major": "网络工程",
+        "skills": ["Linux", "TCP/IP", "网络安全", "Python"],
+        "certificates": ["网络工程师"]
+      },
+      "job": {
+        "title": "网络安全工程师",
+        "education": "本科",
+        "majors": ["网络工程", "信息安全"],
+        "required_skills": ["Linux", "TCP/IP", "网络安全", "Python"],
+        "certificates": ["网络工程师"]
+      },
+      "system_result": {
+        "matched_skills": ["Linux", "TCP/IP", "网络安全", "Python"]
+      }
+    },
+    {
+      "student": {
+        "name": "赵宁",
+        "education": "本科",
+        "major": "通信工程",
+        "skills": ["C++", "嵌入式", "Linux", "通信协议"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "嵌入式开发工程师",
+        "education": "本科",
+        "majors": ["通信工程", "电子信息工程"],
+        "required_skills": ["C++", "嵌入式", "Linux", "通信协议"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["C++", "嵌入式", "Linux", "通信协议"]
+      }
+    },
+    {
+      "student": {
+        "name": "孙捷",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": ["Java", "Spring Boot", "MySQL", "Redis"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "后端开发工程师",
+        "education": "本科",
+        "majors": ["计算机科学与技术", "软件工程"],
+        "required_skills": ["Java", "Spring Boot", "MySQL", "Redis"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["Java", "Spring Boot", "MySQL", "Redis"]
+      }
+    },
+    {
+      "student": {
+        "name": "陈可",
+        "education": "本科",
+        "major": "人工智能",
+        "skills": ["Python", "PyTorch", "机器学习", "深度学习"],
+        "certificates": ["英语六级"]
+      },
+      "job": {
+        "title": "算法工程师",
+        "education": "本科",
+        "majors": ["人工智能", "计算机科学与技术"],
+        "required_skills": ["Python", "PyTorch", "机器学习", "深度学习"],
+        "certificates": ["英语六级"]
+      },
+      "system_result": {
+        "matched_skills": ["Python", "PyTorch", "机器学习", "深度学习"]
+      }
+    },
+    {
+      "student": {
+        "name": "周凡",
+        "education": "本科",
+        "major": "信息管理与信息系统",
+        "skills": ["SQL", "Python", "BI", "需求分析"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "商业数据分析师",
+        "education": "本科",
+        "majors": ["信息管理与信息系统", "数据科学与大数据技术"],
+        "required_skills": ["SQL", "Python", "BI", "需求分析"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["SQL", "Python", "BI", "需求分析"]
+      }
+    },
+    {
+      "student": {
+        "name": "吴桐",
+        "education": "本科",
+        "major": "电子信息工程",
+        "skills": ["C", "单片机", "硬件调试", "电路设计"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "硬件工程师",
+        "education": "本科",
+        "majors": ["电子信息工程", "通信工程"],
+        "required_skills": ["C", "单片机", "硬件调试", "电路设计"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["C", "单片机", "硬件调试", "电路设计"]
+      }
+    },
+    {
+      "student": {
+        "name": "许岚",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": ["Vue", "JavaScript", "CSS", "接口联调"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "Web 开发工程师",
+        "education": "本科",
+        "majors": ["软件工程", "计算机科学与技术"],
+        "required_skills": ["Vue", "JavaScript", "CSS", "接口联调"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["Vue", "JavaScript", "CSS", "接口联调"]
+      }
+    },
+    {
+      "student": {
+        "name": "高翔",
+        "education": "本科",
+        "major": "信息安全",
+        "skills": ["渗透测试", "Python", "Linux", "漏洞分析"],
+        "certificates": ["网络工程师"]
+      },
+      "job": {
+        "title": "安全测试工程师",
+        "education": "本科",
+        "majors": ["信息安全", "网络工程"],
+        "required_skills": ["渗透测试", "Python", "Linux", "漏洞分析"],
+        "certificates": ["网络工程师"]
+      },
+      "system_result": {
+        "matched_skills": ["渗透测试", "Python", "Linux", "漏洞分析"]
+      }
+    }
+  ]
+}

@@ -18,6 +18,8 @@ import {
   generateReport,
   getGreeting,
   updateTargetJob,
+  clearTargetJob,
+  getRecommendedJobs,
   startAnalysisRun,
   getLatestAnalysis,
   updateAnalysisContext,
@@ -164,6 +166,7 @@ export default function StudentMainPage() {
   const [pathRecommendationId, setPathRecommendationId] = useState<number | null>(null);
   const [jobSelectError, setJobSelectError] = useState("");
   const [jobSelectorDismissed, setJobSelectorDismissed] = useState(false);
+  const [jobSelectorOpen, setJobSelectorOpen] = useState(false);
   const [incompleteRunData, setIncompleteRunData] = useState(false);
   const [runFileIds, setRunFileIds] = useState<number[]>([]);
   const [retrying, setRetrying] = useState(false);
@@ -380,9 +383,9 @@ export default function StudentMainPage() {
       sid: number,
       jCode: string,
       fileIds: number[],
-      options?: { resumeFromStep?: string; existingRunId?: number },
+      options?: { resumeFromStep?: string; existingRunId?: number; autoSelectJob?: boolean },
     ) => {
-      const { resumeFromStep, existingRunId } = options ?? {};
+      const { resumeFromStep, existingRunId, autoSelectJob } = options ?? {};
       const startIdx = resumeFromStep
         ? PIPELINE_STEP_KEYS.indexOf(resumeFromStep as typeof PIPELINE_STEP_KEYS[number])
         : 0;
@@ -405,6 +408,7 @@ export default function StudentMainPage() {
       let currentStep: string = startIdx >= 0 ? PIPELINE_STEP_KEYS[Math.max(0, startIdx)] : "uploaded";
       let localProfileVersionId = profileVersionId;
       let localMatchResultId = matchResultId;
+      let localJobCode = jCode;
 
       try {
         // Create a new run only when not resuming
@@ -435,10 +439,31 @@ export default function StudentMainPage() {
               if (localProfileVersionId) {
                 await updateAnalysisContext(runId, { profile_version_id: localProfileVersionId });
               }
+              if (autoSelectJob && !localJobCode) {
+                const recommendedJobs = await getRecommendedJobs();
+                const bestJob = recommendedJobs
+                  .filter((job) => job.job_code && job.title)
+                  .sort((a, b) => (b.match_score ?? 0) - (a.match_score ?? 0))[0];
+                if (!bestJob) {
+                  throw new Error("已完成简历解析，但暂未推荐出适合岗位，请手动选择一个岗位继续分析。");
+                }
+                localJobCode = bestJob.job_code;
+                setJobCode(bestJob.job_code);
+                setJobTitle(bestJob.title);
+                setJobSelectorOpen(false);
+                setJobSelectorDismissed(true);
+                await updateTargetJob(bestJob.job_code, bestJob.title);
+                await updateAnalysisContext(runId, { target_job_code: bestJob.job_code });
+                setUploadSuccess(`已根据简历推荐岗位：${bestJob.title}，正在继续生成匹配分析`);
+                setTimeout(() => setUploadSuccess(""), 5000);
+              }
               break;
             }
             case "matched": {
-              const matching = await getMatching(sid, jCode, localProfileVersionId, runId);
+              if (!localJobCode) {
+                throw new Error("请先选择目标岗位，或使用“暂不选择，先分析简历”让系统推荐岗位。");
+              }
+              const matching = await getMatching(sid, localJobCode, localProfileVersionId, runId);
               localMatchResultId = matching.match_result_id ?? null;
               if (localMatchResultId) {
                 await updateAnalysisContext(runId, { match_result_id: localMatchResultId });
@@ -447,7 +472,10 @@ export default function StudentMainPage() {
               break;
             }
             case "pathed": {
-              const pathPlan = await getPathPlan(sid, jCode, {
+              if (!localJobCode) {
+                throw new Error("缺少目标岗位，无法生成职业路径。");
+              }
+              const pathPlan = await getPathPlan(sid, localJobCode, {
                 analysis_run_id: runId,
                 profile_version_id: localProfileVersionId,
                 match_result_id: localMatchResultId,
@@ -460,7 +488,10 @@ export default function StudentMainPage() {
               break;
             }
             case "reported": {
-              const report = await generateReport(sid, jCode, {
+              if (!localJobCode) {
+                throw new Error("缺少目标岗位，无法生成报告。");
+              }
+              const report = await generateReport(sid, localJobCode, {
                 analysis_run_id: runId,
                 profile_version_id: localProfileVersionId,
                 match_result_id: localMatchResultId,
@@ -567,6 +598,7 @@ export default function StudentMainPage() {
       setJobCode(null);
       setJobTitle("");
       setJobSelectorDismissed(false);
+      setJobSelectorOpen(false);
       setJobSelectError("");
     }
 
@@ -585,6 +617,8 @@ export default function StudentMainPage() {
 
     setMessages([]);
     setQuery("");
+    setJobSelectorOpen(false);
+    clearTargetJob().catch(() => {});
     resetAnalysisState({ clearJob: true, clearFiles: true });
 
     if (isHistoricalChatView) {
@@ -595,7 +629,16 @@ export default function StudentMainPage() {
 
   const startJobReselect = () => {
     if (pipelineRunning || isUploading) return;
+    if (uploadedFiles.length === 0) {
+      setUploadError("请先上传简历，上传成功后再选择目标岗位。");
+      setJobSelectorOpen(false);
+      setJobSelectorDismissed(false);
+      return;
+    }
     resetAnalysisState({ clearJob: true });
+    clearTargetJob().catch(() => {});
+    setJobSelectorDismissed(false);
+    setJobSelectorOpen(true);
   };
 
   const handleSend = async () => {
@@ -664,11 +707,8 @@ export default function StudentMainPage() {
       await refreshFiles();
       setUploadSuccess(`${file.name} 上传成功，请选择目标岗位开始分析`);
       setJobSelectorDismissed(false);
+      setJobSelectorOpen(true);
       setTimeout(() => setUploadSuccess(""), 5000);
-
-      if (session?.student_id && jobCode) {
-        runPipeline(session.student_id, jobCode, [uploaded.id]);
-      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "上传失败，请稍后重试";
       setUploadError(msg);
@@ -736,6 +776,7 @@ export default function StudentMainPage() {
       if (result.analysis_run_id) {
         setAnalysisRunId(result.analysis_run_id);
       }
+      setJobSelectorOpen(false);
       return true;
     } catch (err) {
       const msg = err instanceof APIError
@@ -904,27 +945,9 @@ export default function StudentMainPage() {
             </span>
           )}
         </div>
-        <div className="student-main__result-reset-actions">
-          <button
-            type="button"
-            className="student-main__result-reset-btn"
-            onClick={startJobReselect}
-            disabled={pipelineRunning || isUploading}
-          >
-            重新选择岗位
-          </button>
-          <button
-            type="button"
-            className="student-main__result-reset-btn student-main__result-reset-btn--primary"
-            onClick={startNewTopic}
-            disabled={pipelineRunning || isUploading}
-          >
-            + 开启新话题
-          </button>
-        </div>
         {incompleteRunData && (
           <p className="student-main__result-hint" style={{ color: "#92400e" }}>
-            💡 可点击 <strong>&quot;开启新话题&quot;</strong> 按钮重新上传简历进行分析
+            💡 可点击当前岗位栏的 <strong>&quot;开启新对话&quot;</strong> 按钮重新上传简历进行分析
           </p>
         )}
         {!incompleteRunData && (
@@ -936,7 +959,82 @@ export default function StudentMainPage() {
     );
   };
 
-  const needsJobSelect = !jobCode && uploadedFiles.length > 0 && !pipelineRunning && !pipelineDone && !jobSelectorDismissed;
+  const renderTopicActions = () => {
+    if (isHistoricalChatView) return null;
+    return (
+      <div className="student-main__topic-actions">
+        <div className="student-main__topic-status">
+          <span className="student-main__topic-label">当前岗位</span>
+          <strong>{jobTitle || jobCode || "未选择"}</strong>
+        </div>
+        <div className="student-main__topic-buttons">
+          <button
+            type="button"
+            className="student-main__topic-btn"
+            onClick={startJobReselect}
+            disabled={pipelineRunning || isUploading}
+          >
+            重新选择岗位
+          </button>
+          <button
+            type="button"
+            className="student-main__topic-btn student-main__topic-btn--primary"
+            onClick={startNewTopic}
+            disabled={pipelineRunning || isUploading}
+          >
+            开启新对话
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const needsJobSelect = uploadedFiles.length > 0 && !pipelineRunning && !pipelineDone && !jobSelectorDismissed && (jobSelectorOpen || !jobCode);
+  const renderJobSelectorBlock = (placement: "standalone" | "chat") => {
+    if (!needsJobSelect) return null;
+    return (
+      <div className={`student-main__job-select-block student-main__job-select-block--${placement}`}>
+        <div className="student-main__step-indicator student-main__step-indicator--done">
+          <Icon name={uploadedFiles.length > 0 ? "check-circle" : "target"} size={16} color={uploadedFiles.length > 0 ? "#16a34a" : "#1a73e8"} />
+          <span>{uploadedFiles.length > 0 ? "简历上传成功" : "重新选择目标岗位"}</span>
+          {uploadedFiles.length > 0 && (
+            <span className="student-main__step-indicator-file">{uploadedFiles[uploadedFiles.length - 1].file_name}</span>
+          )}
+        </div>
+        <JobSelector
+          onSelect={async (code, title) => {
+            const saved = await handleJobSelect(code, title);
+            if (session?.student_id) {
+              const fileIds = uploadedFiles.map((f) => f.id);
+              runPipeline(session.student_id, code, fileIds);
+            }
+          }}
+          onSkip={() => {
+            if (!session?.student_id) {
+              setJobSelectError("学生信息加载中，请稍后再试。");
+              return;
+            }
+            const fileIds = uploadedFiles.map((f) => f.id);
+            if (fileIds.length === 0) {
+              setJobSelectError("请先上传简历，再使用系统推荐岗位。");
+              return;
+            }
+            setJobSelectError("");
+            setJobSelectorOpen(false);
+            setJobSelectorDismissed(true);
+            clearTargetJob().catch(() => {});
+            runPipeline(session.student_id, "", fileIds, { autoSelectJob: true });
+          }}
+          onCancel={() => {
+            setJobSelectorOpen(false);
+            setJobSelectorDismissed(true);
+            setJobSelectError("");
+          }}
+        />
+        {jobSelectError && <p className="student-main__upload-error">{jobSelectError}</p>}
+      </div>
+    );
+  };
   const inputIsCompact = isLoading || pipelineRunning;
 
   return (
@@ -1026,32 +1124,9 @@ export default function StudentMainPage() {
 
       {renderPipeline()}
       {renderPipelineResult()}
+      {renderTopicActions()}
 
-      {needsJobSelect && (
-        <div style={{ width: "980px", maxWidth: "calc(100% - 48px)", margin: "0 auto 16px" }}>
-          <div className="student-main__step-indicator student-main__step-indicator--done">
-            <Icon name="check-circle" size={16} color="#16a34a" />
-            <span>简历上传成功</span>
-            {uploadedFiles.length > 0 && (
-              <span className="student-main__step-indicator-file">{uploadedFiles[uploadedFiles.length - 1].file_name}</span>
-            )}
-          </div>
-          <JobSelector
-            onSelect={async (code, title) => {
-              const saved = await handleJobSelect(code, title);
-              if (session?.student_id) {
-                const fileIds = uploadedFiles.map((f) => f.id);
-                runPipeline(session.student_id, code, fileIds);
-              }
-            }}
-            onCancel={() => {
-              setJobSelectorDismissed(true);
-              setJobSelectError("");
-            }}
-          />
-          {jobSelectError && <p className="student-main__upload-error">{jobSelectError}</p>}
-        </div>
-      )}
+      {messages.length === 0 && renderJobSelectorBlock("standalone")}
 
       {!needsJobSelect && !jobCode && uploadedFiles.length > 0 && !pipelineRunning && !pipelineDone && jobSelectorDismissed && (
         <div style={{ width: "980px", maxWidth: "calc(100% - 48px)", margin: "0 auto 16px", textAlign: "center" }}>
@@ -1198,6 +1273,7 @@ export default function StudentMainPage() {
                 </div>
               </div>
             )}
+            {renderJobSelectorBlock("chat")}
             <div ref={chatEndRef} />
           </div>
 

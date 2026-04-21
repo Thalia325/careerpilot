@@ -281,11 +281,11 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
+      <div className="admin-users-page">
+        <div className="admin-users-header">
           <div>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0 0 4px" }}>用户管理</h2>
-            <p style={{ margin: 0, color: "var(--subtle)", fontSize: "0.875rem" }}>
+            <h2 className="admin-users-title">用户管理</h2>
+            <p className="admin-users-desc">
               新增、查看、编辑、删除学生、教师和管理员账号。共 {total} 位用户。
             </p>
           </div>
@@ -295,46 +295,25 @@ export default function AdminUsersPage() {
         </div>
 
         {(message || error) && (
-          <div style={{
-            marginBottom: 12,
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: error ? "rgba(220, 38, 38, 0.1)" : "rgba(12, 179, 166, 0.12)",
-            color: error ? "#dc2626" : "#0b7b72",
-            fontSize: "0.875rem",
-          }}>
+          <div className={`admin-users-alert ${error ? "admin-users-alert--error" : "admin-users-alert--success"}`}>
             {error || message}
           </div>
         )}
 
         {/* 搜索栏 */}
-        <div className="admin-dashboard__card" style={{ marginBottom: 16 }}>
-          <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="admin-dashboard__card admin-users-section">
+          <form onSubmit={handleSearch} className="admin-users-search">
             <input
               type="text"
               placeholder="搜索用户名、姓名或邮箱..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              style={{
-                flex: "1 1 240px",
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1px solid var(--border, #e0e0e0)",
-                fontSize: "0.875rem",
-                outline: "none",
-              }}
+              className="admin-users-search__input"
             />
             <select
               value={roleFilter}
               onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1px solid var(--border, #e0e0e0)",
-                fontSize: "0.875rem",
-                outline: "none",
-                minWidth: 100,
-              }}
+              className="admin-users-search__select"
             >
               <option value="">全部角色</option>
               {Object.entries(roleLabels).map(([role, label]) => (
@@ -358,8 +337,8 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 新增用户表单 */}
-        <div className="admin-dashboard__card" style={{ marginBottom: 16 }}>
-          <h3 style={{ fontSize: "1rem", margin: "0 0 14px" }}>新增用户</h3>
+        <div className="admin-dashboard__card admin-users-section">
+          <h3 className="admin-users-card-title">新增用户</h3>
           <form onSubmit={handleSubmit} className="admin-user-form">
             <label>
               <span>用户名</span>
@@ -398,10 +377,10 @@ export default function AdminUsersPage() {
 
         {/* 用户列表 */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: 32, color: "var(--subtle)" }}>加载中...</div>
+          <div className="admin-dashboard__card admin-users-state">加载中...</div>
         ) : (
           <div className="admin-dashboard__card">
-            <div style={{ overflowX: "auto" }}>
+            <div className="admin-users-table-wrap">
               <table className="admin-user-table">
                 <thead>
                   <tr>
@@ -417,21 +396,21 @@ export default function AdminUsersPage() {
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: 24, color: "var(--subtle)" }}>
+                      <td colSpan={7} className="admin-users-empty">
                         {keyword || roleFilter ? "没有匹配的用户" : "暂无用户数据"}
                       </td>
                     </tr>
                   ) : (
                     users.map((u) => (
                       <tr key={u.id}>
-                        <td style={{ color: "var(--subtle)", fontSize: "0.8rem" }}>{u.id}</td>
+                        <td className="admin-users-muted-cell">{u.id}</td>
                         <td><strong>{u.full_name || u.username}</strong></td>
                         <td>{u.username}</td>
                         <td><span className={`role-badge role-badge--${u.role}`}>{roleLabels[u.role as AdminUserInput["role"]] || u.role}</span></td>
                         <td>{u.email || "-"}</td>
-                        <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>{formatDate(u.created_at)}</td>
+                        <td className="admin-users-date-cell">{formatDate(u.created_at)}</td>
                         <td>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div className="admin-users-row-actions">
                             <button type="button" className="admin-table-button" onClick={() => handleView(u.id)} disabled={saving}>查看</button>
                             <button type="button" className="admin-table-button" onClick={() => handleEdit(u)} disabled={saving}>编辑</button>
                             <button type="button" className="admin-table-button admin-table-button--danger" onClick={() => handleDelete(u)} disabled={saving}>删除</button>
@@ -446,7 +425,7 @@ export default function AdminUsersPage() {
 
             {/* 分页 */}
             {totalPages > 1 && (
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 0 4px" }}>
+              <div className="admin-users-pagination">
                 <button
                   className="admin-action-button"
                   disabled={page === 0 || loading}
@@ -454,7 +433,7 @@ export default function AdminUsersPage() {
                 >
                   上一页
                 </button>
-                <span style={{ fontSize: "0.875rem", color: "var(--subtle)" }}>
+                <span className="admin-users-pagination__text">
                   第 {page + 1} / {totalPages} 页
                 </span>
                 <button

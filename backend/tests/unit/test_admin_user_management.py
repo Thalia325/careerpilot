@@ -4,6 +4,8 @@ Verify admin user search, detail, update, and delete operations
 with proper authorization and data scoping.
 """
 
+from datetime import datetime, timezone
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -80,6 +82,39 @@ class TestAdminUserSearch:
         assert "total" in data
         assert "items" in data
         assert data["total"] >= 2
+
+    def test_list_users_orders_newest_first(self, client: TestClient, db_session: Session):
+        """Admin user list can show newly registered users first."""
+        admin = _make_user(db_session, "admin_search_latest", "admin")
+        older = _make_user(db_session, "latest_order_old", "student")
+        newer = _make_user(db_session, "latest_order_new", "student")
+        older.created_at = datetime(2026, 4, 18, 8, 0, tzinfo=timezone.utc)
+        newer.created_at = datetime(2026, 4, 20, 8, 0, tzinfo=timezone.utc)
+        db_session.commit()
+
+        resp = client.get(
+            ADMIN_BASE,
+            params={"keyword": "latest_order", "limit": 2, "sort": "newest"},
+            headers=_auth_headers(admin.id),
+        )
+        assert resp.status_code == 200
+        items = resp.json()["data"]["items"]
+        assert [item["username"] for item in items] == ["latest_order_new", "latest_order_old"]
+
+    def test_list_users_orders_by_id_ascending_by_default(self, client: TestClient, db_session: Session):
+        """Default admin user list starts from the first account."""
+        admin = _make_user(db_session, "admin_search_first", "admin")
+        first = _make_user(db_session, "first_order_a", "student")
+        second = _make_user(db_session, "first_order_b", "student")
+
+        resp = client.get(
+            ADMIN_BASE,
+            params={"keyword": "first_order", "limit": 2},
+            headers=_auth_headers(admin.id),
+        )
+        assert resp.status_code == 200
+        items = resp.json()["data"]["items"]
+        assert [item["username"] for item in items] == [first.username, second.username]
 
     def test_search_by_username(self, client: TestClient, db_session: Session):
         """Keyword search matches username."""

@@ -92,12 +92,16 @@ def list_users(
     limit: int = 50,
     keyword: str = Query("", description="搜索关键词，匹配 username/email/full_name"),
     role: str = Query("", description="按角色过滤：student/teacher/admin"),
+    sort: str = Query("id_asc", description="排序：id_asc/newest"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db_session),
 ) -> APIResponse:
     require_role(current_user.role, "admin")
 
-    query = select(User).order_by(User.id)
+    if sort == "newest":
+        query = select(User).order_by(User.created_at.desc(), User.id.desc())
+    else:
+        query = select(User).order_by(User.id.asc())
     count_query = select(func.count(User.id))
 
     if keyword:

@@ -108,6 +108,99 @@ class ReportService:
     def _list_lines(self, items: list[str]) -> str:
         return "".join(f"- {item}\n" for item in items if self._clean_text(item))
 
+    @staticmethod
+    def _normalize_compare_key(value: str) -> str:
+        return re.sub(r"\s+", "", str(value or "").strip()).lower()
+
+    def _match_items(self, owned_items: list[str], required_items: list[str]) -> tuple[list[str], list[str]]:
+        owned_keys = {self._normalize_compare_key(item) for item in owned_items if self._clean_text(item)}
+        matched = [item for item in required_items if self._normalize_compare_key(item) in owned_keys]
+        missing = [item for item in required_items if self._normalize_compare_key(item) not in owned_keys]
+        return matched, missing
+
+    def _resolve_ideal_job_profile(self, db: Session, student: Student, fallback_profile: JobProfile) -> tuple[JobProfile, str]:
+        if student.target_job_code:
+            profile = db.scalar(select(JobProfile).where(JobProfile.job_code == student.target_job_code).limit(1))
+            if profile:
+                return profile, "student_target"
+
+        if student.target_job_title:
+            profile = db.scalar(select(JobProfile).where(JobProfile.title == student.target_job_title).limit(1))
+            if profile:
+                return profile, "student_target"
+
+        if student.career_goal:
+            goal = student.career_goal.strip()
+            if goal:
+                profile = db.scalar(select(JobProfile).where(JobProfile.title.ilike(f"%{goal}%")).limit(1))
+                if profile:
+                    return profile, "career_goal"
+
+        return fallback_profile, "matched_job"
+
+    def _build_job_comparison(
+        self,
+        profile_payload: dict[str, Any],
+        matched_job_profile: JobProfile,
+        ideal_job_profile: JobProfile,
+        match_result: dict[str, Any],
+        ideal_source: str,
+    ) -> dict[str, Any]:
+        student_skills = self._clean_list(profile_payload.get("skills"), limit=20)
+        student_certificates = self._clean_list(profile_payload.get("certificates"), limit=10)
+        ideal_skills = self._clean_list(ideal_job_profile.skill_requirements, limit=12)
+        ideal_certificates = self._clean_list(ideal_job_profile.certificate_requirements, limit=8)
+        matched_skills, missing_skills = self._match_items(student_skills, ideal_skills)
+        matched_certificates, missing_certificates = self._match_items(student_certificates, ideal_certificates)
+        same_job = matched_job_profile.job_code == ideal_job_profile.job_code
+
+        if same_job:
+            recommendation = "当前较匹配岗位与理想岗位一致，可以围绕该岗位持续补齐项目深度与证书要求。"
+            difference_summary = "当前推荐岗位与理想岗位一致，报告后续分析围绕同一岗位展开。"
+        else:
+            recommendation = f"当前更适合先从 {matched_job_profile.title} 切入，再逐步补齐 {ideal_job_profile.title} 所需差距。"
+            difference_summary = (
+                f"系统当前匹配结果更偏向 {matched_job_profile.title}，而学生理想岗位是 {ideal_job_profile.title}，"
+                f"需要额外补齐 {len(missing_skills)} 项核心技能。"
+            )
+
+        return {
+            "matched_job": {
+                "job_code": matched_job_profile.job_code,
+                "job_title": matched_job_profile.title,
+                "summary": matched_job_profile.summary,
+                "match_score": match_result.get("total_score"),
+                "strengths": self._clean_list(match_result.get("strengths"), limit=6),
+            },
+            "ideal_job": {
+                "job_code": ideal_job_profile.job_code,
+                "job_title": ideal_job_profile.title,
+                "summary": ideal_job_profile.summary,
+                "source": ideal_source,
+                "skill_requirements": ideal_skills,
+                "certificate_requirements": ideal_certificates,
+                "matched_skills": matched_skills,
+                "missing_skills": missing_skills,
+                "matched_certificates": matched_certificates,
+                "missing_certificates": missing_certificates,
+            },
+            "same_job": same_job,
+            "difference_summary": difference_summary,
+            "focus_recommendation": recommendation,
+        }
+
+    def _job_comparison_brief(self, content: dict[str, Any], fallback_job_code: str = "") -> dict[str, str | None]:
+        comparison = content.get("job_comparison") if isinstance(content, dict) else {}
+        comparison = comparison if isinstance(comparison, dict) else {}
+        matched = comparison.get("matched_job") if isinstance(comparison.get("matched_job"), dict) else {}
+        ideal = comparison.get("ideal_job") if isinstance(comparison.get("ideal_job"), dict) else {}
+        return {
+            "matched_job_code": self._clean_text(matched.get("job_code")) or fallback_job_code or None,
+            "matched_job_title": self._clean_text(matched.get("job_title")) or None,
+            "ideal_job_code": self._clean_text(ideal.get("job_code")) or fallback_job_code or None,
+            "ideal_job_title": self._clean_text(ideal.get("job_title")) or self._clean_text(matched.get("job_title")) or None,
+        }
+
     def _normalize_report_content(self, content: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(content or {})
 
@@ -141,6 +234,21 @@ class ReportService:
         )
         normalized["capability_profile"] = profile
 
+        comparison = dict(normalized.get("job_comparison") or {})
+        for key in ["matched_job", "ideal_job"]:
+            snapshot = dict(comparison.get(key) or {})
+            snapshot["strengths"] = self._clean_list(snapshot.get("strengths"), limit=6)
+            snapshot["skill_requirements"] = self._clean_list(snapshot.get("skill_requirements"), limit=12)
+            snapshot["certificate_requirements"] = self._clean_list(snapshot.get("certificate_requirements"), limit=8)
+            snapshot["matched_skills"] = self._clean_list(snapshot.get("matched_skills"), limit=10)
+            snapshot["missing_skills"] = self._clean_list(snapshot.get("missing_skills"), limit=10)
+            snapshot["matched_certificates"] = self._clean_list(snapshot.get("matched_certificates"), limit=6)
+            snapshot["missing_certificates"] = self._clean_list(snapshot.get("missing_certificates"), limit=6)
+            comparison[key] = snapshot
+        comparison["difference_summary"] = self._clean_text(comparison.get("difference_summary"))
+        comparison["focus_recommendation"] = self._clean_text(comparison.get("focus_recommendation"))
+        normalized["job_comparison"] = comparison
+
         target = dict(normalized.get("target_job_analysis") or {})
         target["skill_requirements"] = self._clean_list(target.get("skill_requirements"), limit=12)
         target["certificate_requirements"] = self._clean_list(target.get("certificate_requirements"), limit=6)
@@ -168,6 +276,7 @@ class ReportService:
         student = content.get("student_summary") or {}
         resume = content.get("resume_summary") or {}
         profile = content.get("capability_profile") or {}
+        comparison = content.get("job_comparison") or {}
         target = content.get("target_job_analysis") or {}
         matching = content.get("matching_analysis") or {}
         gap = content.get("gap_analysis") or {}
@@ -221,6 +330,21 @@ class ReportService:
             capability += f"- 画像完整度：{profile['completeness_score']:.0f}%\n"
         sections.append(f"## 三、能力画像\n{capability}\n")
 
+        comparison_lines = ""
+        matched_job = comparison.get("matched_job") if isinstance(comparison.get("matched_job"), dict) else {}
+        ideal_job = comparison.get("ideal_job") if isinstance(comparison.get("ideal_job"), dict) else {}
+        comparison_lines += self._line("当前较匹配岗位", matched_job.get("job_title"))
+        if isinstance(matched_job.get("match_score"), (int, float)):
+            comparison_lines += f"- 当前匹配得分：{matched_job['match_score']:.1f} 分\n"
+        if matched_job.get("strengths"):
+            comparison_lines += f"- 当前匹配优势：{'、'.join(matched_job['strengths'])}\n"
+        comparison_lines += self._line("理想岗位", ideal_job.get("job_title"))
+        if comparison.get("difference_summary"):
+            comparison_lines += f"- 对照结论：{comparison['difference_summary']}\n"
+        if comparison.get("focus_recommendation"):
+            comparison_lines += f"- 规划建议：{comparison['focus_recommendation']}\n"
+        sections.append(f"## 四、岗位对照\n{comparison_lines}\n")
+
         target_lines = (
             self._line("目标岗位", target.get("job_title"))
             + self._line("岗位摘要", target.get("summary"))
@@ -233,11 +357,14 @@ class ReportService:
             target_lines += f"- 待补齐技能：{'、'.join(target['missing_skills'])}\n"
         if target.get("certificate_requirements"):
             target_lines += f"- 证书要求：{'、'.join(target['certificate_requirements'])}\n"
-        sections.append(f"## 四、目标岗位分析\n{target_lines}\n")
+        sections.append(f"## 五、理想岗位分析\n{target_lines}\n")
 
         match_lines = ""
         if isinstance(matching.get("total_score"), (int, float)):
             match_lines += f"- 综合匹配得分：{matching['total_score']:.1f} 分\n"
+        match_lines += self._line("本次匹配岗位", matching.get("matched_job_title"))
+        if matching.get("same_as_ideal") is False:
+            match_lines += self._line("理想岗位", matching.get("ideal_job_title"))
         if matching.get("strengths"):
             match_lines += f"- 当前契合点：{'、'.join(matching['strengths'])}\n"
         dimensions = matching.get("dimensions") if isinstance(matching.get("dimensions"), list) else []
@@ -252,7 +379,7 @@ class ReportService:
                 if name and isinstance(score, (int, float)):
                     suffix = f"：{reasoning}" if reasoning else ""
                     match_lines += f"- {name}：{score:.1f} 分{suffix}\n"
-        sections.append(f"## 五、人岗匹配分析\n{match_lines}\n")
+        sections.append(f"## 六、人岗匹配分析\n{match_lines}\n")
 
         gap_lines = ""
         skill_gaps = [self._clean_text(item.get("name")) for item in gap.get("skill_gaps", []) if isinstance(item, dict)]
@@ -261,7 +388,7 @@ class ReportService:
             gap_lines += f"- 主要技能差距：{'、'.join(skill_gaps)}\n"
         if gap.get("suggestions"):
             gap_lines += "### 提升建议\n" + self._list_lines(gap["suggestions"])
-        sections.append(f"## 六、差距分析\n{gap_lines}\n")
+        sections.append(f"## 七、差距分析\n{gap_lines}\n")
 
         path_lines = ""
         primary_path = self._clean_list(career.get("primary_path"), limit=6)
@@ -281,10 +408,10 @@ class ReportService:
         rationale = self._clean_text(career.get("rationale"))
         if rationale:
             path_lines += f"- 路径依据：{rationale}\n"
-        sections.append(f"## 七、职业路径规划\n{path_lines}\n")
+        sections.append(f"## 八、职业路径规划\n{path_lines}\n")
 
-        sections.append(f"## 八、短期行动计划\n{self._list_lines(short_plan.get('items') or [])}\n")
-        sections.append(f"## 九、中期行动计划\n{self._list_lines(mid_plan.get('items') or [])}\n")
+        sections.append(f"## 九、短期行动计划\n{self._list_lines(short_plan.get('items') or [])}\n")
+        sections.append(f"## 十、中期行动计划\n{self._list_lines(mid_plan.get('items') or [])}\n")
 
         eval_lines = ""
         metrics = evaluation.get("metrics") if isinstance(evaluation.get("metrics"), list) else []
@@ -298,9 +425,9 @@ class ReportService:
             pieces = [piece for piece in [name, f"目标：{target}" if target else "", f"方式：{method}" if method else ""] if piece]
             if phase and pieces:
                 eval_lines += f"- {phase}：{'；'.join(pieces)}\n"
-        sections.append(f"## 十、评估周期\n{eval_lines}\n")
+        sections.append(f"## 十一、评估周期\n{eval_lines}\n")
 
-        sections.append("## 十一、教师建议\n教师点评由教师端补充，不在自动报告中编造。\n")
+        sections.append("## 十二、教师建议\n教师点评由教师端补充，不在自动报告中编造。\n")
 
         return "\n".join(sections).strip() + "\n"
 
@@ -498,11 +625,14 @@ class ReportService:
             and report.updated_at >= profile_updated_at
             and self._report_matches_current_resume(report, student_name, latest_ocr)
             and "学生基本情况" in report.markdown_content
+            and self._has_meaningful_data((report.content_json or {}).get("job_comparison"))
         ):
+            job_brief = self._job_comparison_brief(report.content_json, job_code)
             return {
                 "report_id": report.id,
                 "student_id": student_id,
                 "job_code": job_code,
+                **job_brief,
                 "content": report.content_json,
                 "markdown_content": report.markdown_content,
                 "status": report.status,
@@ -550,6 +680,7 @@ class ReportService:
                 "student_summary": {},
                 "resume_summary": {},
                 "capability_profile": {},
+                "job_comparison": {},
                 "target_job_analysis": {},
                 "matching_analysis": {},
                 "gap_analysis": {},
@@ -578,10 +709,12 @@ class ReportService:
             report.markdown_content = insufficient_md
             report.status = "insufficient_data"
             db.commit()
+            job_brief = self._job_comparison_brief(report.content_json, job_code)
             return {
                 "report_id": report.id,
                 "student_id": student_id,
                 "job_code": job_code,
+                **job_brief,
                 "content": report.content_json,
                 "markdown_content": report.markdown_content,
                 "status": report.status,
@@ -615,6 +748,15 @@ class ReportService:
                 snapshot = pv.snapshot_json if isinstance(pv.snapshot_json, dict) else {}
                 student_grade = snapshot.get("grade", student_grade)
 
+        ideal_job_profile, ideal_job_source = self._resolve_ideal_job_profile(db, student, job_profile)
+        job_comparison = self._build_job_comparison(
+            profile_payload=profile_payload,
+            matched_job_profile=job_profile,
+            ideal_job_profile=ideal_job_profile,
+            match_result=match_result,
+            ideal_source=ideal_job_source,
+        )
+
         llm_result = await self.llm_provider.generate_report(
             {
                 "student_name": student_name,
@@ -639,6 +781,14 @@ class ReportService:
                     "certificate_requirements": job_profile.certificate_requirements,
                 },
                 "job_title": job_profile.title,
+                "ideal_job_profile": {
+                    "job_code": ideal_job_profile.job_code,
+                    "title": ideal_job_profile.title,
+                    "summary": ideal_job_profile.summary,
+                    "skill_requirements": ideal_job_profile.skill_requirements,
+                    "certificate_requirements": ideal_job_profile.certificate_requirements,
+                },
+                "job_comparison": job_comparison,
                 "match_result": match_result,
                 "path_result": path_result,
             }
@@ -668,6 +818,33 @@ class ReportService:
         report.match_result_id = actual_match_result_id
         report.analysis_run_id = analysis_run_id
         normalized_content = self._normalize_report_content(llm_result["content"])
+        normalized_content["job_comparison"] = job_comparison
+        target_analysis = dict(normalized_content.get("target_job_analysis") or {})
+        target_analysis["job_code"] = ideal_job_profile.job_code
+        target_analysis["job_title"] = ideal_job_profile.title
+        target_analysis["summary"] = self._clean_text(target_analysis.get("summary")) or ideal_job_profile.summary
+        target_analysis["skill_requirements"] = ideal_job_profile.skill_requirements or []
+        target_analysis["certificate_requirements"] = ideal_job_profile.certificate_requirements or []
+        target_analysis["matched_skills"] = job_comparison["ideal_job"]["matched_skills"]
+        target_analysis["missing_skills"] = job_comparison["ideal_job"]["missing_skills"]
+        target_analysis["ideal_job_source"] = ideal_job_source
+        normalized_content["target_job_analysis"] = target_analysis
+        matching_analysis = dict(normalized_content.get("matching_analysis") or {})
+        matching_analysis["matched_job_code"] = job_profile.job_code
+        matching_analysis["matched_job_title"] = job_profile.title
+        matching_analysis["matched_job_score"] = match_result.get("total_score")
+        matching_analysis["ideal_job_code"] = ideal_job_profile.job_code
+        matching_analysis["ideal_job_title"] = ideal_job_profile.title
+        matching_analysis["same_as_ideal"] = job_comparison["same_job"]
+        normalized_content["matching_analysis"] = matching_analysis
+        gap_analysis = dict(normalized_content.get("gap_analysis") or {})
+        gap_suggestions = self._clean_list(gap_analysis.get("suggestions"), limit=8)
+        if not job_comparison["same_job"]:
+            bridge_suggestion = f"围绕理想岗位 {ideal_job_profile.title}，优先补齐：{'、'.join(job_comparison['ideal_job']['missing_skills'][:4]) or '核心项目与证书要求'}。"
+            if bridge_suggestion not in gap_suggestions:
+                gap_suggestions.append(bridge_suggestion)
+        gap_analysis["suggestions"] = gap_suggestions
+        normalized_content["gap_analysis"] = gap_analysis
         report.content_json = normalized_content
         report.markdown_content = self._build_standard_markdown(normalized_content)
         report.status = "generated"
@@ -690,10 +867,12 @@ class ReportService:
         )
         self._sync_growth_tasks(db, report.id, student_id, report.content_json)
         db.commit()
+        job_brief = self._job_comparison_brief(report.content_json, job_code)
         return {
             "report_id": report.id,
             "student_id": student_id,
             "job_code": job_code,
+            **job_brief,
             "content": report.content_json,
             "markdown_content": report.markdown_content,
             "status": report.status,
@@ -868,10 +1047,12 @@ class ReportService:
             )
         )
         db.commit()
+        job_brief = self._job_comparison_brief(report.content_json, report.target_job_code)
         return {
             "report_id": report.id,
             "student_id": report.student_id,
             "job_code": report.target_job_code,
+            **job_brief,
             "content": report.content_json,
             "markdown_content": polished,
             "status": report.status,

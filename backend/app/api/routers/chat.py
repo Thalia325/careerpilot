@@ -29,9 +29,12 @@ def _format_profile_score(value: float | int | None) -> str:
 def _build_user_context(db: Session, user_id: int) -> str:
     parts: list[str] = []
 
+    user = db.scalar(select(User).where(User.id == user_id))
     student = db.scalar(select(Student).where(Student.user_id == user_id))
     if student:
         info_lines: list[str] = []
+        if user and user.full_name:
+            info_lines.append(f"姓名/昵称：{user.full_name}")
         if student.major:
             info_lines.append(f"专业：{student.major}")
         if student.grade:
@@ -183,14 +186,22 @@ def _build_user_context(db: Session, user_id: int) -> str:
 
 def _fallback_greeting(db: Session, user_id: int) -> tuple[str, str]:
     """Return a (greeting, subline) tuple based on basic student info, no LLM call."""
+    user = db.scalar(select(User).where(User.id == user_id))
     student = db.scalar(select(Student).where(Student.user_id == user_id))
+    display_name = (user.full_name or "").strip() if user else ""
     greeting = "你好，想了解什么职业方向？"
     subline = "输入你感兴趣的岗位方向或上传简历，AI 帮你分析"
-    if student and student.career_goal:
+    if display_name and student and student.career_goal:
+        greeting = f"你好，{display_name}同学！来聊聊{student.career_goal}方向？"
+        subline = "上传简历或直接提问，AI 帮你深入分析"
+    elif display_name:
+        greeting = f"你好，{display_name}同学！想了解什么职业方向？"
+        subline = "上传简历或直接提问，AI 帮你规划职业路径"
+    elif student and student.career_goal:
         greeting = f"你好！来聊聊{student.career_goal}方向？"
         subline = "上传简历或直接提问，AI 帮你深入分析"
     elif student and student.major:
-        greeting = f"你好，{student.major}同学！想了解什么职业方向？"
+        greeting = "你好，想了解什么职业方向？"
         subline = "上传简历或直接提问，AI 帮你规划职业路径"
     return greeting, subline
 
@@ -233,11 +244,12 @@ def greeting(
         "请根据用户的背景信息和历史聊天记录，生成一句个性化、简短亲切的中文问候语，引导用户开始新的职业规划对话。\n"
         "要求：\n"
         "1. 问候语不超过30个字，自然口语化\n"
-        "2. 如果用户有明确的职业目标，围绕目标给出引导\n"
-        "3. 如果没有明确目标，根据专业或历史话题引导\n"
-        "4. 每次问候尽量不同，有新鲜感\n"
-        "5. 再生成一句简短的副标题（不超过25字），提示用户可以做什么\n"
-        "6. 严格按以下JSON格式返回，不要返回其他内容：\n"
+        "2. 如果称呼用户为“xx同学”，xx必须使用用户姓名/昵称，不能使用专业名称\n"
+        "3. 如果用户有明确的职业目标，围绕目标给出引导\n"
+        "4. 如果没有明确目标，根据专业或历史话题引导，但不要把专业当作称呼\n"
+        "5. 每次问候尽量不同，有新鲜感\n"
+        "6. 再生成一句简短的副标题（不超过25字），提示用户可以做什么\n"
+        "7. 严格按以下JSON格式返回，不要返回其他内容：\n"
         '{"greeting": "问候语", "subline": "副标题"}'
     )
 
@@ -247,6 +259,10 @@ def greeting(
         parsed = json.loads(raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip())
         greeting_text = parsed.get("greeting", fallback_greeting)
         subline_text = parsed.get("subline", fallback_subline)
+        student = db.scalar(select(Student).where(Student.user_id == current_user.id))
+        display_name = (current_user.full_name or "").strip()
+        if display_name and student and student.major:
+            greeting_text = str(greeting_text).replace(f"{student.major}同学", f"{display_name}同学")
         return GreetingResponse(greeting=greeting_text[:60], subline=subline_text[:50])
     except Exception as exc:
         logger.warning("Greeting generation failed for user %s: %s", current_user.id, exc)

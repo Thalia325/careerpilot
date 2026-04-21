@@ -11,6 +11,8 @@ httpx==0.28.1
 reportlab==4.3.1
 python-docx==1.1.2
 pypdf==6.10.0
+xlrd==2.0.2
+openpyxl==3.1.5
 neo4j==5.28.1
 boto3==1.37.34
 pytest==8.3.5

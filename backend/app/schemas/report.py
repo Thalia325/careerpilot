@@ -17,6 +17,7 @@ class ReportContent(BaseModel):
     student_summary: dict[str, Any]
     resume_summary: dict[str, Any]
     capability_profile: dict[str, Any]
+    job_comparison: dict[str, Any] = Field(default_factory=dict)
     target_job_analysis: dict[str, Any]
     matching_analysis: dict[str, Any]
     gap_analysis: dict[str, Any]
@@ -31,6 +32,10 @@ class ReportResponse(BaseModel):
     report_id: int
     student_id: int
     job_code: str
+    matched_job_code: str | None = None
+    matched_job_title: str | None = None
+    ideal_job_code: str | None = None
+    ideal_job_title: str | None = None
     content: ReportContent
     markdown_content: str
     status: str
@@ -70,4 +75,3 @@ class ReportExportRequest(BaseModel):
 class ReportExportResponse(BaseModel):
     report_id: int
     exported: ExportedFile
-

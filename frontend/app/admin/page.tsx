@@ -41,7 +41,7 @@ export default function AdminPage() {
     async function load() {
       try {
         const [usersRes, statsRes, trendsRes] = await Promise.all([
-          getAdminUsers(),
+          getAdminUsers({ limit: 50, sort: "newest" }),
           getAdminStatsOverview(),
           getAdminStatsTrends(14),
         ]);

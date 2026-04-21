@@ -1,0 +1,794 @@
+{
+  "meta": {
+    "dataset_name": "CareerPilot real resume-job draft cases",
+    "dataset_type": "real_auto_labeled_draft",
+    "owner": "Codex",
+    "note": "样本来自库内真实/准真实简历 OCR 与真实岗位 JD 自动配对，expected_matched_skills 为待人工抽查的草稿标签。",
+    "resume_case_count": 2,
+    "job_case_count": 1226,
+    "candidate_pair_count": 1236,
+    "selected_pair_count": 10
+  },
+  "cases": [
+    {
+      "student": {
+        "name": "周晓钰",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "C语言",
+          "Go",
+          "Excel",
+          "ECharts",
+          "计算机视觉",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "数据分析",
+        "education": "博士",
+        "majors": [],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析",
+          "数据清洗"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL",
+        "机器学习",
+        "数据分析",
+        "数据清洗",
+        "数据可视化"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "student_id": 44,
+        "job_code": "CC131321010J40837210609",
+        "company_name": "中国标准化研究院",
+        "location": "北京-海淀",
+        "resume_tracks": [
+          "backend",
+          "data",
+          "algorithm"
+        ],
+        "job_tracks": [
+          "data"
+        ],
+        "shared_tracks": [
+          "data"
+        ],
+        "target_job": "数据分析岗 、 数据处理岗 、 后端开发岗",
+        "project_samples": [
+          "经历",
+          "报告撰写 。"
+        ],
+        "internship_samples": [],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "周晓钰",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "C语言",
+          "Go",
+          "Excel",
+          "ECharts",
+          "计算机视觉",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "",
+        "majors": [],
+        "required_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "MySQL",
+          "Redis",
+          "Linux",
+          "Go"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "MySQL",
+          "Go"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "Java",
+        "SQL",
+        "MySQL",
+        "Go"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "student_id": 44,
+        "job_code": "CCL1480117890J40789837305",
+        "company_name": "外企德科数字技术有限公司",
+        "location": "深圳-龙岗区",
+        "resume_tracks": [
+          "backend",
+          "data",
+          "algorithm"
+        ],
+        "job_tracks": [
+          "backend"
+        ],
+        "shared_tracks": [
+          "backend"
+        ],
+        "target_job": "数据分析岗 、 数据处理岗 、 后端开发岗",
+        "project_samples": [
+          "经历",
+          "报告撰写 。"
+        ],
+        "internship_samples": [],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "周晓钰",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "C语言",
+          "Go",
+          "Excel",
+          "ECharts",
+          "计算机视觉",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "",
+        "majors": [],
+        "required_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "MySQL",
+          "Redis",
+          "Linux",
+          "Go"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "MySQL",
+          "Go"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "Java",
+        "SQL",
+        "MySQL",
+        "Go"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "student_id": 44,
+        "job_code": "CCL1480117890J40793862705",
+        "company_name": "外企德科数字技术有限公司",
+        "location": "上海-青浦区",
+        "resume_tracks": [
+          "backend",
+          "data",
+          "algorithm"
+        ],
+        "job_tracks": [
+          "backend"
+        ],
+        "shared_tracks": [
+          "backend"
+        ],
+        "target_job": "数据分析岗 、 数据处理岗 、 后端开发岗",
+        "project_samples": [
+          "经历",
+          "报告撰写 。"
+        ],
+        "internship_samples": [],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "周晓钰",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "C语言",
+          "Go",
+          "Excel",
+          "ECharts",
+          "计算机视觉",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "数据分析",
+        "education": "博士",
+        "majors": [
+          "计算机科学与技术",
+          "人工智能"
+        ],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析",
+          "数据清洗"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析",
+          "数据清洗"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL",
+        "机器学习",
+        "数据分析",
+        "数据清洗"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "student_id": 44,
+        "job_code": "CCL1290012410J40892236912",
+        "company_name": "融通人力资源开发有限公司",
+        "location": "北京-西城",
+        "resume_tracks": [
+          "backend",
+          "data",
+          "algorithm"
+        ],
+        "job_tracks": [
+          "data"
+        ],
+        "shared_tracks": [
+          "data"
+        ],
+        "target_job": "数据分析岗 、 数据处理岗 、 后端开发岗",
+        "project_samples": [
+          "经历",
+          "报告撰写 。"
+        ],
+        "internship_samples": [],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "未知学生",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "实施工程师",
+        "education": "硕士",
+        "majors": [
+          "自动化"
+        ],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "Excel",
+          "数据分析"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL",
+          "数据分析"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL",
+        "数据分析"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "student_id": 1,
+        "job_code": "CC230197010J40795878505",
+        "company_name": "南京高速齿轮制造有限公司",
+        "location": "南京-江宁区",
+        "resume_tracks": [
+          "frontend",
+          "backend",
+          "data",
+          "algorithm",
+          "ops",
+          "implementation"
+        ],
+        "job_tracks": [
+          "implementation"
+        ],
+        "shared_tracks": [
+          "implementation"
+        ],
+        "target_job": "",
+        "project_samples": [
+          "客户现场实习，负责处理数十万条主数据，包括数据对比、数据查重、数据迁移等，按时交付分析结果。",
+          "根据客户反馈定位问题代码，通过查阅官方文档与社区资料，提供系统部署方案，问题成功修复。"
+        ],
+        "internship_samples": [
+          "经历",
+          "生"
+        ],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "未知学生",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "实施工程师",
+        "education": "本科",
+        "majors": [],
+        "required_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "Oracle"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "Java",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "Java",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "student_id": 1,
+        "job_code": "CC408981010J40789707605",
+        "company_name": "山东北辰机电设备股份有限公司",
+        "location": "济南-长清区",
+        "resume_tracks": [
+          "frontend",
+          "backend",
+          "data",
+          "algorithm",
+          "ops",
+          "implementation"
+        ],
+        "job_tracks": [
+          "implementation"
+        ],
+        "shared_tracks": [
+          "implementation"
+        ],
+        "target_job": "",
+        "project_samples": [
+          "客户现场实习，负责处理数十万条主数据，包括数据对比、数据查重、数据迁移等，按时交付分析结果。",
+          "根据客户反馈定位问题代码，通过查阅官方文档与社区资料，提供系统部署方案，问题成功修复。"
+        ],
+        "internship_samples": [
+          "经历",
+          "生"
+        ],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "周晓钰",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "C语言",
+          "Go",
+          "Excel",
+          "ECharts",
+          "计算机视觉",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "算法工程师",
+        "education": "本科",
+        "majors": [
+          "软件工程",
+          "人工智能",
+          "自动化"
+        ],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "机器学习"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL",
+          "机器学习"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL",
+        "机器学习"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "student_id": 44,
+        "job_code": "CC285451210J40842261511",
+        "company_name": "中科创达软件股份有限公司",
+        "location": "北京-海淀",
+        "resume_tracks": [
+          "backend",
+          "data",
+          "algorithm"
+        ],
+        "job_tracks": [
+          "algorithm"
+        ],
+        "shared_tracks": [
+          "algorithm"
+        ],
+        "target_job": "数据分析岗 、 数据处理岗 、 后端开发岗",
+        "project_samples": [
+          "经历",
+          "报告撰写 。"
+        ],
+        "internship_samples": [],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "未知学生",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "前端开发",
+        "education": "本科",
+        "majors": [],
+        "required_skills": [
+          "JavaScript",
+          "Vue",
+          "HTML",
+          "CSS"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "JavaScript"
+        ]
+      },
+      "expected_matched_skills": [
+        "JavaScript",
+        "Vue",
+        "CSS"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "student_id": 1,
+        "job_code": "CC344767830J40784092115",
+        "company_name": "北京易速聘人力资源有限公司",
+        "location": "广州-越秀区",
+        "resume_tracks": [
+          "frontend",
+          "backend",
+          "data",
+          "algorithm",
+          "ops",
+          "implementation"
+        ],
+        "job_tracks": [
+          "frontend"
+        ],
+        "shared_tracks": [
+          "frontend"
+        ],
+        "target_job": "",
+        "project_samples": [
+          "客户现场实习，负责处理数十万条主数据，包括数据对比、数据查重、数据迁移等，按时交付分析结果。",
+          "根据客户反馈定位问题代码，通过查阅官方文档与社区资料，提供系统部署方案，问题成功修复。"
+        ],
+        "internship_samples": [
+          "经历",
+          "生"
+        ],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "未知学生",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "前端开发",
+        "education": "本科",
+        "majors": [
+          "软件工程"
+        ],
+        "required_skills": [
+          "JavaScript",
+          "TypeScript",
+          "React",
+          "Vue",
+          "HTML",
+          "CSS"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "JavaScript"
+        ]
+      },
+      "expected_matched_skills": [
+        "JavaScript",
+        "Vue",
+        "CSS"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "student_id": 1,
+        "job_code": "CC227750710J40595912706",
+        "company_name": "北京易才博普奥管理顾问有限公司",
+        "location": "成都-郫都区",
+        "resume_tracks": [
+          "frontend",
+          "backend",
+          "data",
+          "algorithm",
+          "ops",
+          "implementation"
+        ],
+        "job_tracks": [
+          "frontend"
+        ],
+        "shared_tracks": [
+          "frontend"
+        ],
+        "target_job": "",
+        "project_samples": [
+          "客户现场实习，负责处理数十万条主数据，包括数据对比、数据查重、数据迁移等，按时交付分析结果。",
+          "根据客户反馈定位问题代码，通过查阅官方文档与社区资料，提供系统部署方案，问题成功修复。"
+        ],
+        "internship_samples": [
+          "经历",
+          "生"
+        ],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    },
+    {
+      "student": {
+        "name": "未知学生",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "算法工程师",
+        "education": "本科",
+        "majors": [
+          "软件工程",
+          "人工智能",
+          "自动化"
+        ],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "机器学习"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "student_id": 1,
+        "job_code": "CC285451210J40842261511",
+        "company_name": "中科创达软件股份有限公司",
+        "location": "北京-海淀",
+        "resume_tracks": [
+          "frontend",
+          "backend",
+          "data",
+          "algorithm",
+          "ops",
+          "implementation"
+        ],
+        "job_tracks": [
+          "algorithm"
+        ],
+        "shared_tracks": [
+          "algorithm"
+        ],
+        "target_job": "",
+        "project_samples": [
+          "客户现场实习，负责处理数十万条主数据，包括数据对比、数据查重、数据迁移等，按时交付分析结果。",
+          "根据客户反馈定位问题代码，通过查阅官方文档与社区资料，提供系统部署方案，问题成功修复。"
+        ],
+        "internship_samples": [
+          "经历",
+          "生"
+        ],
+        "labeling_note": "expected_matched_skills 基于简历显式技能与 OCR 文本证据抽取；system_result 仅基于结构化技能字段命中，便于后续人工复核。"
+      }
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "meta": {
+    "dataset_name": "A13 team labeled cases",
+    "dataset_type": "team_labeled",
+    "owner": "Team",
+    "note": "将下面 10 条样本替换成团队真实标注数据后再运行评估脚本。"
+  },
+  "cases": [
+    {
+      "student": {
+        "name": "样本01",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": ["Java", "Spring Boot", "MySQL"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "Java开发工程师",
+        "education": "本科",
+        "majors": ["软件工程", "计算机科学与技术"],
+        "required_skills": ["Java", "Spring Boot", "MySQL"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["Java", "Spring Boot", "MySQL"]
+      },
+      "expected_matched_skills": ["Java", "Spring Boot", "MySQL"]
+    },
+    {
+      "student": {
+        "name": "样本02",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": ["JavaScript", "TypeScript", "React", "CSS"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "前端开发工程师",
+        "education": "本科",
+        "majors": ["软件工程", "计算机科学与技术"],
+        "required_skills": ["JavaScript", "TypeScript", "React", "CSS"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["JavaScript", "TypeScript", "React", "CSS"]
+      },
+      "expected_matched_skills": ["JavaScript", "TypeScript", "React", "CSS"]
+    },
+    {
+      "student": {
+        "name": "样本03",
+        "education": "本科",
+        "major": "信息安全",
+        "skills": ["Linux", "Python", "渗透测试", "漏洞分析"],
+        "certificates": ["网络工程师"]
+      },
+      "job": {
+        "title": "安全工程师",
+        "education": "本科",
+        "majors": ["信息安全", "网络工程"],
+        "required_skills": ["Linux", "Python", "渗透测试", "漏洞分析"],
+        "certificates": ["网络工程师"]
+      },
+      "system_result": {
+        "matched_skills": ["Linux", "Python", "渗透测试", "漏洞分析"]
+      },
+      "expected_matched_skills": ["Linux", "Python", "渗透测试", "漏洞分析"]
+    },
+    {
+      "student": {
+        "name": "样本04",
+        "education": "本科",
+        "major": "电子信息工程",
+        "skills": ["C", "单片机", "硬件调试", "电路设计"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "硬件测试工程师",
+        "education": "本科",
+        "majors": ["电子信息工程", "通信工程"],
+        "required_skills": ["C", "单片机", "硬件调试", "电路设计"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["C", "单片机", "硬件调试", "电路设计"]
+      },
+      "expected_matched_skills": ["C", "单片机", "硬件调试", "电路设计"]
+    },
+    {
+      "student": {
+        "name": "样本05",
+        "education": "本科",
+        "major": "人工智能",
+        "skills": ["Python", "PyTorch", "机器学习", "深度学习"],
+        "certificates": ["英语六级"]
+      },
+      "job": {
+        "title": "算法工程师",
+        "education": "本科",
+        "majors": ["人工智能", "计算机科学与技术"],
+        "required_skills": ["Python", "PyTorch", "机器学习", "深度学习"],
+        "certificates": ["英语六级"]
+      },
+      "system_result": {
+        "matched_skills": ["Python", "PyTorch", "机器学习", "深度学习"]
+      },
+      "expected_matched_skills": ["Python", "PyTorch", "机器学习", "深度学习"]
+    },
+    {
+      "student": {
+        "name": "样本06",
+        "education": "本科",
+        "major": "数据科学与大数据技术",
+        "skills": ["Python", "SQL", "数据分析", "机器学习"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "数据分析",
+        "education": "本科",
+        "majors": ["数据科学与大数据技术", "计算机科学与技术"],
+        "required_skills": ["Python", "SQL", "数据分析", "机器学习"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["Python", "SQL", "数据分析", "机器学习"]
+      },
+      "expected_matched_skills": ["Python", "SQL", "数据分析", "机器学习"]
+    },
+    {
+      "student": {
+        "name": "样本07",
+        "education": "本科",
+        "major": "网络工程",
+        "skills": ["Linux", "TCP/IP", "Python", "网络安全"],
+        "certificates": ["网络工程师"]
+      },
+      "job": {
+        "title": "运维工程师",
+        "education": "本科",
+        "majors": ["网络工程", "信息安全"],
+        "required_skills": ["Linux", "TCP/IP", "Python", "网络安全"],
+        "certificates": ["网络工程师"]
+      },
+      "system_result": {
+        "matched_skills": ["Linux", "TCP/IP", "Python", "网络安全"]
+      },
+      "expected_matched_skills": ["Linux", "TCP/IP", "Python", "网络安全"]
+    },
+    {
+      "student": {
+        "name": "样本08",
+        "education": "本科",
+        "major": "通信工程",
+        "skills": ["C++", "嵌入式", "Linux", "通信协议"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "C/C++",
+        "education": "本科",
+        "majors": ["通信工程", "电子信息工程"],
+        "required_skills": ["C++", "嵌入式", "Linux", "通信协议"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["C++", "嵌入式", "Linux", "通信协议"]
+      },
+      "expected_matched_skills": ["C++", "嵌入式", "Linux", "通信协议"]
+    },
+    {
+      "student": {
+        "name": "样本09",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": ["测试用例设计", "接口测试", "Linux", "MySQL"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "软件测试",
+        "education": "本科",
+        "majors": ["软件工程", "计算机科学与技术"],
+        "required_skills": ["测试用例设计", "接口测试", "Linux", "MySQL"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["测试用例设计", "接口测试", "Linux", "MySQL"]
+      },
+      "expected_matched_skills": ["测试用例设计", "接口测试", "Linux", "MySQL"]
+    },
+    {
+      "student": {
+        "name": "样本10",
+        "education": "本科",
+        "major": "信息管理与信息系统",
+        "skills": ["SQL", "BI", "需求分析", "Python"],
+        "certificates": ["英语四级"]
+      },
+      "job": {
+        "title": "产品专员/助理",
+        "education": "本科",
+        "majors": ["信息管理与信息系统", "计算机科学与技术"],
+        "required_skills": ["SQL", "BI", "需求分析", "Python"],
+        "certificates": ["英语四级"]
+      },
+      "system_result": {
+        "matched_skills": ["SQL", "BI", "需求分析", "Python"]
+      },
+      "expected_matched_skills": ["SQL", "BI", "需求分析", "Python"]
+    }
+  ]
+}

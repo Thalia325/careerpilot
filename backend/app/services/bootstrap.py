@@ -18,16 +18,22 @@ from app.services.agents.report_agent import ReportGenerationAgent
 from app.services.agents.resume_agent import ResumeParsingAgent
 from app.services.agents.tracking_agent import TrackingAgent
 from app.services.auth_service import ensure_demo_users
-from app.services.seed_demo_students import seed_demo_students
 from app.services.ingestion.file_ingestion import FileIngestionService
 from app.services.ingestion.job_import_service import JobImportService
+from app.services.interviews.mock_interview_service import MockInterviewService
 from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
 from app.services.paths.graph_query_service import GraphQueryService
-from app.services.reference import load_job_graph_seed
 from app.services.profiles.student_profile_service import StudentProfileService
+from app.services.reference import (
+    load_job_graph_seed,
+    load_job_postings_dataset,
+    resolve_job_dataset_path,
+)
 from app.services.reports.report_service import ReportService
 from app.services.scheduler.scheduler_service import SchedulerService
+from app.services.seed_demo_students import seed_demo_students
+
 
 @dataclass
 class ServiceContainer:
@@ -35,6 +41,7 @@ class ServiceContainer:
     job_import_service: JobImportService
     student_profile_service: StudentProfileService
     matching_service: MatchingService
+    mock_interview_service: MockInterviewService
     graph_query_service: GraphQueryService
     career_path_service: CareerPathService
     report_service: ReportService
@@ -49,32 +56,37 @@ def _create_llm_provider(settings):
         access_token=settings.ernie_access_token,
         base_url=settings.ernie_aistudio_base_url,
         model=settings.ernie_model,
+        allow_job_profile_mock_fallback=settings.job_profile_mock_fallback_enabled,
     )
 
 
 def _create_ocr_provider(settings):
-    return MockOCRProvider() if settings.ocr_provider == "mock" else PaddleOCRProvider(settings.paddle_ocr_service_url, settings.paddle_ocr_api_key)
+    if settings.ocr_provider == "mock":
+        return MockOCRProvider()
+    return PaddleOCRProvider(settings.paddle_ocr_service_url, settings.paddle_ocr_api_key)
 
 
 def _create_rag_provider(settings):
-    return MockRAGProvider() if settings.ragflow_provider == "mock" else RAGFlowProvider(settings.ragflow_base_url, settings.ragflow_api_key)
+    if settings.ragflow_provider == "mock":
+        return MockRAGProvider()
+    return RAGFlowProvider(settings.ragflow_base_url, settings.ragflow_api_key)
 
 
 def _create_graph_provider(settings):
-    return MockGraphProvider() if settings.graph_provider == "mock" else Neo4jGraphProvider(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
+    if settings.graph_provider == "mock":
+        return MockGraphProvider()
+    return Neo4jGraphProvider(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
 
 
 def _create_storage_provider(settings):
-    return (
-        LocalStorageProvider(settings.local_storage_path)
-        if settings.storage_provider == "local"
-        else MinIOStorageProvider(
-            settings.minio_endpoint,
-            settings.minio_access_key,
-            settings.minio_secret_key,
-            settings.minio_bucket,
-            settings.minio_secure,
-        )
+    if settings.storage_provider == "local":
+        return LocalStorageProvider(settings.local_storage_path)
+    return MinIOStorageProvider(
+        settings.minio_endpoint,
+        settings.minio_access_key,
+        settings.minio_secret_key,
+        settings.minio_bucket,
+        settings.minio_secure,
     )
 
 
@@ -91,6 +103,7 @@ def create_service_container() -> ServiceContainer:
 
     student_profile_service = StudentProfileService(llm_provider, file_service)
     matching_service = MatchingService()
+    mock_interview_service = MockInterviewService(matching_service)
     graph_query_service = GraphQueryService(graph_provider)
     career_path_service = CareerPathService(graph_query_service)
     report_service = ReportService(llm_provider, matching_service, career_path_service)
@@ -106,6 +119,7 @@ def create_service_container() -> ServiceContainer:
         job_import_service=job_import_service,
         student_profile_service=student_profile_service,
         matching_service=matching_service,
+        mock_interview_service=mock_interview_service,
         graph_query_service=graph_query_service,
         career_path_service=career_path_service,
         report_service=report_service,
@@ -122,17 +136,46 @@ def get_user_llm_provider(db, user_id: int):
         access_token=settings.ernie_access_token,
         base_url=settings.ernie_aistudio_base_url,
         model=settings.ernie_model,
+        allow_job_profile_mock_fallback=settings.job_profile_mock_fallback_enabled,
     )
 
 
 async def initialize_demo_data(db: Session, container: ServiceContainer) -> None:
+    settings = get_settings()
     ensure_demo_users(db)
     seed_demo_students(db)
-    # 每次启动都重新加载图谱数据（确保使用最新的图谱配置）
     await container.job_import_service.graph_provider.load_seed(load_job_graph_seed())
+
     has_profiles = db.scalar(select(JobProfile.id).limit(1))
     if not has_profiles:
-        await container.job_import_service.seed_templates(db)
+        dataset_path = resolve_job_dataset_path()
+        should_import_dataset = dataset_path.exists() and (
+            bool(settings.job_dataset_path) or dataset_path.name != "sample_jobs.csv"
+        )
+        if should_import_dataset:
+            rows = load_job_postings_dataset(str(dataset_path))
+            if rows:
+                await container.job_import_service.reimport_dataset(
+                    db,
+                    rows,
+                    clear_existing=False,
+                )
+            else:
+                await container.job_import_service.seed_templates(db)
+        else:
+            await container.job_import_service.seed_templates(db)
+
+    profiles = list(db.scalars(select(JobProfile).order_by(JobProfile.title)).all())
+    for profile in profiles:
+        await container.job_import_service.graph_provider.upsert_job_profile(
+            {
+                "job_code": profile.job_code,
+                "title": profile.title,
+                "summary": profile.summary,
+                "skill_requirements": profile.skill_requirements,
+            }
+        )
+
     if not container.scheduler_service.list_jobs(db):
         container.scheduler_service.create_job(
             db,

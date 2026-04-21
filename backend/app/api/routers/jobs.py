@@ -10,13 +10,141 @@ from app.models import JobPosting, JobProfile, User
 from app.schemas.common import APIResponse, Pagination
 from app.schemas.job import JobImportRequest, JobProfileGenerationRequest
 from app.services.bootstrap import ServiceContainer
-from app.services.reference import find_best_template, load_sample_job_postings
+from app.services.reference import find_best_template, load_job_postings_dataset
 
 router = APIRouter()
 
 
 def _list_value(value: object) -> list:
     return value if isinstance(value, list) else []
+
+
+EXPLORE_CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
+    (
+        "前端开发",
+        (
+            "前端", "web前端", "web 前端", "react", "vue", "javascript", "typescript",
+        ),
+    ),
+    (
+        "Java开发",
+        (
+            "java", "spring",
+        ),
+    ),
+    (
+        "C/C++开发",
+        (
+            "c/c++", "c++", "c语言", "嵌入式软件",
+        ),
+    ),
+    (
+        "软件测试",
+        (
+            "软件测试", "测试工程师", "质量管理/测试", "质量保证", "功能测试", "自动化测试",
+            "qa",
+        ),
+    ),
+    (
+        "硬件测试",
+        (
+            "硬件测试", "板卡测试", "电子测试",
+        ),
+    ),
+    (
+        "实施工程师",
+        (
+            "实施工程师", "实施顾问", "erp实施", "系统实施", "软件实施", "项目实施",
+        ),
+    ),
+    (
+        "技术支持",
+        (
+            "技术支持", "售后工程师", "客户支持", "服务工程师",
+        ),
+    ),
+    (
+        "运维工程师",
+        (
+            "运维", "devops", "sre", "系统运维",
+        ),
+    ),
+    (
+        "产品经理",
+        (
+            "产品经理", "产品专员", "产品助理", "需求分析", "业务分析",
+        ),
+    ),
+    (
+        "项目管理",
+        (
+            "项目经理", "项目主管", "项目专员", "项目助理", "项目管理", "项目招投标",
+            "招投标专员",
+        ),
+    ),
+    (
+        "算法工程师",
+        (
+            "算法", "机器学习", "深度学习", "计算机视觉", "自然语言", "nlp", "cv",
+        ),
+    ),
+    (
+        "数据分析",
+        (
+            "数据分析", "数据挖掘", "bi", "数据统计", "数据运营",
+        ),
+    ),
+    (
+        "网络安全",
+        (
+            "网络安全", "信息安全", "安全工程师", "渗透", "安全运维",
+        ),
+    ),
+    (
+        "网络工程师",
+        (
+            "网络工程师", "网络维护", "传输网络", "通信工程师",
+        ),
+    ),
+    (
+        "硬件工程师",
+        (
+            "硬件工程师", "计算机硬件维护", "硬件维护", "嵌入式硬件",
+        ),
+    ),
+    (
+        "售前工程师",
+        (
+            "售前", "解决方案工程师", "方案工程师",
+        ),
+    ),
+]
+
+
+EXPLORE_CONTEXT_CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
+    *EXPLORE_CATEGORY_RULES,
+]
+
+
+def _match_explore_category(blob: str, rules: list[tuple[str, tuple[str, ...]]]) -> str:
+    lowered_blob = blob.lower()
+    for category, keywords in rules:
+        if any(keyword.lower() in lowered_blob for keyword in keywords):
+            return category
+    return ""
+
+
+def _explore_category(row: dict, template: dict | None = None) -> str:
+    title_category = _match_explore_category(str(row.get("title", "")), EXPLORE_CATEGORY_RULES)
+    if title_category:
+        return title_category
+
+    text_parts = [
+        row.get("industry", ""),
+        row.get("description", ""),
+    ]
+    blob = " ".join(str(part) for part in text_parts if part).lower()
+    return _match_explore_category(blob, EXPLORE_CONTEXT_CATEGORY_RULES) or "其他岗位"
 
 
 def _job_explore_item(row: dict) -> dict:
@@ -32,7 +160,7 @@ def _job_explore_item(row: dict) -> dict:
     return {
         "job_code": row.get("job_code") or template.get("job_code") or title,
         "title": title,
-        "category": row.get("industry") or "其他",
+        "category": _explore_category(row, template),
         "industry": row.get("industry") or "",
         "location": row.get("location") or "",
         "salary_range": row.get("salary_range") or "暂无参考薪资",
@@ -49,7 +177,7 @@ def _job_explore_item(row: dict) -> dict:
         "capabilities": capabilities,
         "dimension_weights": dimension_weights,
         "explanations": explanations,
-        "source": "sample_jobs.csv",
+        "source": "job_dataset",
     }
 
 
@@ -74,7 +202,7 @@ def _db_job_explore_rows(db: Session) -> list[dict]:
 def _balanced_rows(rows: list[dict], limit: int) -> list[dict]:
     if not rows:
         return []
-    categories = [category for category in dict.fromkeys(row.get("industry") or "其他" for row in rows)]
+    categories = [category for category in dict.fromkeys(_explore_category(row) for row in rows)]
     per_category = max(1, limit // max(len(categories), 1))
     selected: list[dict] = []
     selected_codes: set[str] = set()
@@ -82,7 +210,7 @@ def _balanced_rows(rows: list[dict], limit: int) -> list[dict]:
     for category in categories:
         taken = 0
         for row in rows:
-            if (row.get("industry") or "其他") != category:
+            if _explore_category(row) != category:
                 continue
             code = row.get("job_code") or f"{row.get('title')}:{len(selected)}"
             if code in selected_codes:
@@ -166,7 +294,7 @@ def explore_jobs(
 ) -> APIResponse:
     require_role(current_user.role, "student", "admin", "teacher")
 
-    rows = load_sample_job_postings() or _db_job_explore_rows(db)
+    rows = load_job_postings_dataset() or _db_job_explore_rows(db)
     if keyword:
         lowered_keyword = keyword.lower()
         rows = [
@@ -174,12 +302,23 @@ def explore_jobs(
             if lowered_keyword in f"{row.get('title', '')} {row.get('industry', '')} {row.get('company_name', '')}".lower()
         ]
     if category and category != "全部":
-        rows = [row for row in rows if (row.get("industry") or "其他") == category]
+        rows = [row for row in rows if _explore_category(row) == category]
         rows = rows[:limit]
     else:
         rows = _balanced_rows(rows, limit)
 
     return APIResponse(data=[_job_explore_item(row) for row in rows])
+
+
+@router.post("/knowledge-base/export", response_model=APIResponse)
+def export_knowledge_base(
+    current_user: User = Depends(get_current_user),
+    container: ServiceContainer = Depends(get_container),
+    db: Session = Depends(get_db_session),
+) -> APIResponse:
+    require_role(current_user.role, "admin")
+    result = container.job_import_service.export_local_knowledge_base(db)
+    return APIResponse(data=result)
 
 
 @router.post("/profiles/generate", response_model=APIResponse)

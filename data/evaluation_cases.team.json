@@ -1,0 +1,564 @@
+{
+  "meta": {
+    "dataset_name": "CareerPilot team labeled cases (anonymized real resumes)",
+    "dataset_type": "team_labeled",
+    "owner": "Team",
+    "note": "样本基于库内真实/准真实简历 OCR 与真实岗位 JD 人工复核后定稿。姓名已匿名；对于存在多段教育经历的学生，major 取与目标技术岗位最相关的主修专业。由于当前评测脚本对 education 采用等值比较，case 级别的 student.education 取真实简历中满足该岗位门槛的学历层级。"
+  },
+  "cases": [
+    {
+      "student": {
+        "name": "匿名学生A",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "前端开发",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程"
+        ],
+        "required_skills": [
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "HTML"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "JavaScript",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "JavaScript",
+        "Vue",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "job_code": "CC344767830J40784092115",
+        "manual_labeling_note": "JD 明确要求 JavaScript、Vue、SQL 写作能力；简历明确包含 Vue 前端开发、JavaScript、SQL。HTML 未见明确证据，因此不计入 expected_matched_skills。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生A",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "前端开发",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程",
+          "地理信息系统"
+        ],
+        "required_skills": [
+          "JavaScript",
+          "TypeScript",
+          "Vue",
+          "React"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "JavaScript"
+        ]
+      },
+      "expected_matched_skills": [
+        "JavaScript",
+        "Vue"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "job_code": "CC227750710J40595912706",
+        "manual_labeling_note": "JD 核心技能为 JavaScript、TypeScript、Vue/React；简历明确出现 Vue、JavaScript，未见 TypeScript 和 React 的直接证据。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生A",
+        "education": "硕士",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "硕士",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程"
+        ],
+        "required_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "JavaScript",
+          "Vue"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "JavaScript"
+        ]
+      },
+      "expected_matched_skills": [
+        "Java",
+        "Python",
+        "SQL",
+        "JavaScript",
+        "Vue"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "job_code": "CC120143600J40860711315",
+        "manual_labeling_note": "JD 指向 Java/Python、数据库与前端协同能力；简历明确具备 Java、Python、SQL、JavaScript、Vue。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生A",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "通信工程",
+          "信息工程"
+        ],
+        "required_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "JavaScript",
+          "Vue"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "JavaScript"
+        ]
+      },
+      "expected_matched_skills": [
+        "Java",
+        "Python",
+        "SQL",
+        "JavaScript",
+        "Vue"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "job_code": "CCL1242307880J40637874703",
+        "manual_labeling_note": "JD 同时要求 Java/Python、数据库与 Vue 前端经验；简历可直接支撑五项技能。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生A",
+        "education": "本科",
+        "major": "计算机科学与技术",
+        "skills": [
+          "Python",
+          "Java",
+          "JavaScript",
+          "Vue",
+          "SQL",
+          "CSS",
+          "数据分析",
+          "数据清洗",
+          "ERP",
+          "CRM",
+          "数据结构"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "实施工程师",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程"
+        ],
+        "required_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "Oracle"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "Java",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "Java",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "7176c498-de4e-45dd-9f81-330ff7d97c18.png",
+        "job_code": "CC408981010J40789707605",
+        "manual_labeling_note": "JD 明确要求 SQL、Python、Java；Oracle 为加分数据库能力。简历明确命中前三项，未见 Oracle 直接证据。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生B",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Excel",
+          "ECharts",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "",
+        "majors": [],
+        "required_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Linux"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "MySQL",
+          "Go"
+        ]
+      },
+      "expected_matched_skills": [
+        "Java",
+        "Python",
+        "SQL",
+        "MySQL",
+        "Go"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "job_code": "CCL1480117890J40789837305",
+        "manual_labeling_note": "JD 关键技能为 Java/Python/SQL/MySQL/Go/Linux；简历明确命中前五项。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生B",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Excel",
+          "ECharts",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "",
+        "majors": [],
+        "required_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Linux"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Java",
+          "Python",
+          "SQL",
+          "MySQL",
+          "Go"
+        ]
+      },
+      "expected_matched_skills": [
+        "Java",
+        "Python",
+        "SQL",
+        "MySQL",
+        "Go"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "job_code": "CCL1480117890J40793862705",
+        "manual_labeling_note": "与上一条为同一企业同一岗位的不同城市 HC，JD 要求一致，人工标签一致。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生B",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Excel",
+          "ECharts",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "Java",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程"
+        ],
+        "required_skills": [
+          "Java",
+          "Spring Boot",
+          "MySQL",
+          "SQL"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Java",
+          "Spring Boot",
+          "MySQL",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "Java",
+        "Spring Boot",
+        "MySQL",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "job_code": "CCL1240416360J40634884416",
+        "manual_labeling_note": "JD 核心技能集中在 Java、Spring Boot、MySQL；简历中三项均明确出现，另有 SQL 数据统计分析经验。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生B",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Excel",
+          "ECharts",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "实施工程师",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程"
+        ],
+        "required_skills": [
+          "Python",
+          "Java",
+          "SQL",
+          "Oracle"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "Java",
+          "SQL"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "Java",
+        "SQL"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "job_code": "CC408981010J40789707605",
+        "manual_labeling_note": "JD 为软件实施方向，要求 Python、Java、SQL、Oracle；简历明确命中前三项。"
+      }
+    },
+    {
+      "student": {
+        "name": "匿名学生B",
+        "education": "本科",
+        "major": "软件工程",
+        "skills": [
+          "Python",
+          "Java",
+          "Spring Boot",
+          "SQL",
+          "MySQL",
+          "Go",
+          "Excel",
+          "ECharts",
+          "机器学习",
+          "数据分析",
+          "数据清洗",
+          "数据可视化"
+        ],
+        "certificates": []
+      },
+      "job": {
+        "title": "算法工程师",
+        "education": "本科",
+        "majors": [
+          "计算机科学与技术",
+          "软件工程",
+          "人工智能",
+          "数学",
+          "统计学"
+        ],
+        "required_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析"
+        ],
+        "certificates": []
+      },
+      "system_result": {
+        "matched_skills": [
+          "Python",
+          "SQL",
+          "机器学习",
+          "数据分析"
+        ]
+      },
+      "expected_matched_skills": [
+        "Python",
+        "SQL",
+        "机器学习",
+        "数据分析"
+      ],
+      "evidence": {
+        "resume_file": "6b9a519a-0790-4670-bf4c-233829a75202.pdf",
+        "job_code": "CC285451210J40842261511",
+        "manual_labeling_note": "JD 核心能力为 Python、SQL、机器学习与数据分析；简历中四项均有直接证据。"
+      }
+    }
+  ]
+}

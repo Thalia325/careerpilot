@@ -32,6 +32,37 @@ function exportedUrl(fileName: string): string {
   return `${root}/exports/${encodeURIComponent(fileName)}`;
 }
 
+async function downloadExportedFile(fileName: string): Promise<void> {
+  const url = exportedUrl(fileName);
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+}
+
 export default function LatestResultPage() {
   const router = useRouter();
   const [report, setReport] = useState<ReportDraft | null>(null);
@@ -120,7 +151,8 @@ export default function LatestResultPage() {
     try {
       const result = await exportReport(reportId, format);
       setExportResult(result);
-      setNotice(`${format.toUpperCase()} 导出完成`);
+      await downloadExportedFile(result.exported.file_name);
+      setNotice(`${format.toUpperCase()} 导出完成，已开始下载`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "导出失败");
     } finally {
@@ -292,7 +324,7 @@ export default function LatestResultPage() {
             {exportResult && (
               <div style={{ padding: 12, borderRadius: 8, background: "#eef6ff", marginBottom: 12 }}>
                 导出文件：
-                <a href={exportedUrl(exportResult.exported.file_name)} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
+                <a href={exportedUrl(exportResult.exported.file_name)} download={exportResult.exported.file_name} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
                   {exportResult.exported.file_name}
                 </a>
               </div>

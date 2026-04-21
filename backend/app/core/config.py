@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     ragflow_provider: Literal["mock", "ragflow"] = "mock"
     graph_provider: Literal["mock", "neo4j"] = "mock"
     storage_provider: Literal["local", "minio"] = "local"
+    job_profile_mock_fallback_enabled: bool = True
 
     ernie_api_key: str = ""
     ernie_access_token_encrypted: str = ""
@@ -60,6 +61,8 @@ class Settings(BaseSettings):
     ragflow_api_key: str = ""
 
     data_dir: Path = ROOT_DIR / "data"
+    job_dataset_path: str = ""
+    job_dataset_filtering_enabled: bool = True
 
     @property
     def ernie_access_token(self) -> str:

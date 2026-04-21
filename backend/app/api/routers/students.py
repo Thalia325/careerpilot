@@ -312,6 +312,33 @@ def update_target_job(
     }
 
 
+@router.delete("/me/target-job")
+def clear_target_job(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+):
+    require_role(current_user.role, "student")
+
+    student = db.scalar(select(Student).where(Student.user_id == current_user.id))
+    if not student:
+        return {"ok": True, "target_job_code": "", "target_job_title": ""}
+
+    student.target_job_code = ""
+    student.target_job_title = ""
+
+    latest_run = db.scalar(
+        select(AnalysisRun)
+        .where(AnalysisRun.student_id == student.id)
+        .order_by(AnalysisRun.id.desc())
+        .limit(1)
+    )
+    if latest_run and latest_run.status in ("pending", "running"):
+        latest_run.target_job_code = None
+
+    db.commit()
+    return {"ok": True, "target_job_code": "", "target_job_title": ""}
+
+
 @router.get("/me/recommended-jobs")
 def get_recommended_jobs(
     current_user: User = Depends(get_current_user),

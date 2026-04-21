@@ -583,12 +583,11 @@ class CareerPathService:
         }
 
     def _build_transition_paths(self, graph: dict, target_title: str) -> list[list[str]]:
-        paths = _unique_paths(graph.get("transition_paths", []) + TRANSITION_FALLBACKS.get(target_title, []))
+        paths = _unique_paths(graph.get("transition_paths", []))
         for cluster in graph.get("transition_clusters", []):
             paths.extend(_unique_paths(cluster.get("related_paths", [])))
-        related_titles = [target_title] + list(TRANSITION_FALLBACKS.keys())[:10]
-        for related_title in related_titles:
-            paths.extend(TRANSITION_FALLBACKS.get(related_title, []))
+        if not paths:
+            paths.extend(_unique_paths(TRANSITION_FALLBACKS.get(target_title, [])))
         return _unique_paths(paths)
 
     def _build_transition_graph(
@@ -608,12 +607,11 @@ class CareerPathService:
         role_paths = []
         for title in role_order:
             title_paths = [path for path in paths if path[0] == title or title in path]
-            title_paths.extend(TRANSITION_FALLBACKS.get(title, []))
+            if not title_paths:
+                title_paths.extend(TRANSITION_FALLBACKS.get(title, []))
             unique = _unique_paths(title_paths)
-            if len(unique) < 2:
-                unique.extend(_unique_paths([[title, target_title], [title, "数据产品经理"]]))
             unique = [path for path in _unique_paths(unique) if path[0] == title or title in path][:3]
-            if len(unique) < 2:
+            if not unique:
                 continue
             role_paths.append({
                 **_job_info(title, profiles_by_title),
@@ -627,26 +625,6 @@ class CareerPathService:
                     for path in unique[:3]
                 ],
             })
-
-        if len(role_paths) < 5:
-            for title in TRANSITION_FALLBACKS:
-                if any(item["title"] == title for item in role_paths):
-                    continue
-                unique = _unique_paths(TRANSITION_FALLBACKS[title])
-                role_paths.append({
-                    **_job_info(title, profiles_by_title),
-                    "paths": [
-                        {
-                            "steps": path,
-                            "relation": "换岗",
-                            "description": f"{path[0]} 可向 {path[-1]} 转换，重点补齐目标岗位技能。",
-                            "skill_bridge": _job_info(path[-1], profiles_by_title)["skills"][:4],
-                        }
-                        for path in unique[:3]
-                    ],
-                })
-                if len(role_paths) >= 5:
-                    break
 
         nodes = [_job_info(title, profiles_by_title) for title in role_order]
         edges = [

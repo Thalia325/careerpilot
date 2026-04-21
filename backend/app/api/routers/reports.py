@@ -21,6 +21,10 @@ from app.services.bootstrap import ServiceContainer
 router = APIRouter()
 
 
+def _report_job_brief(container: ServiceContainer, report: CareerReport) -> dict[str, str | None]:
+    return container.report_service._job_comparison_brief(report.content_json or {}, report.target_job_code)
+
+
 @router.get("/latest", response_model=ReportResponse)
 def get_latest_report(
     current_user: User = Depends(get_current_user),
@@ -64,6 +68,7 @@ def get_latest_report(
         report_id=report.id,
         student_id=report.student_id,
         job_code=report.target_job_code,
+        **_report_job_brief(container, report),
         content=report.content_json,
         markdown_content=report.markdown_content,
         status=report.status,
@@ -110,6 +115,7 @@ def get_report(
         report_id=report.id,
         student_id=report.student_id,
         job_code=report.target_job_code,
+        **_report_job_brief(container, report),
         content=report.content_json,
         markdown_content=report.markdown_content,
         status=report.status,
