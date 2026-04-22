@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from html import escape
 import re
 from pathlib import Path
 
@@ -74,6 +75,24 @@ def _strip_inline_md(text: str) -> str:
     text = re.sub(r"\*(.+?)\*", r"\1", text)
     text = re.sub(r"`(.+?)`", r"\1", text)
     return text
+
+
+def _inline_markdown_to_html(text: str) -> str:
+    """Convert inline markdown to safe HTML."""
+    parts = re.split(r"(\*\*.+?\*\*|\*.+?\*|`.+?`)", text)
+    html_parts: list[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith("**") and part.endswith("**"):
+            html_parts.append(f"<strong>{escape(part[2:-2])}</strong>")
+        elif part.startswith("*") and part.endswith("*"):
+            html_parts.append(f"<em>{escape(part[1:-1])}</em>")
+        elif part.startswith("`") and part.endswith("`"):
+            html_parts.append(f"<code>{escape(part[1:-1])}</code>")
+        else:
+            html_parts.append(escape(part))
+    return "".join(html_parts)
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +264,150 @@ def export_markdown_to_docx(markdown_content: str, output_path: Path) -> None:
         _add_inline_runs(p, text)
 
     doc.save(str(output_path))
+
+
+def export_markdown_to_html(markdown_content: str, output_path: Path) -> None:
+    """Render markdown content as a browser-friendly HTML preview."""
+    blocks = _parse_markdown_blocks(markdown_content)
+    title = "CareerPilot 报告预览"
+    body_parts: list[str] = []
+    in_list = False
+
+    for block in blocks:
+        btype = block["type"]
+        text = block.get("text", "")
+
+        if btype != "bullet" and in_list:
+            body_parts.append("</ul>")
+            in_list = False
+
+        if btype == "hr":
+            body_parts.append("<hr />")
+            continue
+
+        if btype == "heading":
+            level = min(block["level"], 4)
+            if level == 1 and title == "CareerPilot 报告预览":
+                title = _strip_inline_md(text) or title
+            body_parts.append(f"<h{level}>{_inline_markdown_to_html(text)}</h{level}>")
+            continue
+
+        if btype == "bullet":
+            if not in_list:
+                body_parts.append("<ul>")
+                in_list = True
+            body_parts.append(f"<li>{_inline_markdown_to_html(text)}</li>")
+            continue
+
+        if btype == "quote":
+            body_parts.append(f"<blockquote>{_inline_markdown_to_html(text)}</blockquote>")
+            continue
+
+        body_parts.append(f"<p>{_inline_markdown_to_html(text)}</p>")
+
+    if in_list:
+        body_parts.append("</ul>")
+
+    html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{escape(title)}</title>
+  <style>
+    :root {{
+      color-scheme: light;
+      --bg: #f5f8fc;
+      --panel: #ffffff;
+      --border: rgba(15, 23, 42, 0.08);
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #0f74da;
+      --quote-bg: #f8fbff;
+      --quote-border: rgba(15, 116, 218, 0.24);
+      --code-bg: #eff6ff;
+    }}
+    * {{
+      box-sizing: border-box;
+    }}
+    body {{
+      margin: 0;
+      padding: 32px 16px;
+      background: linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
+      color: var(--text);
+      font: 16px/1.8 "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    }}
+    main {{
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 48px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }}
+    h1, h2, h3, h4 {{
+      line-height: 1.4;
+      margin: 1.25em 0 0.6em;
+    }}
+    h1 {{
+      margin-top: 0;
+      font-size: 2rem;
+      color: var(--accent);
+    }}
+    h2 {{
+      font-size: 1.45rem;
+    }}
+    h3 {{
+      font-size: 1.15rem;
+    }}
+    p, ul, blockquote {{
+      margin: 0 0 1em;
+    }}
+    ul {{
+      padding-left: 1.5em;
+    }}
+    li + li {{
+      margin-top: 0.35em;
+    }}
+    blockquote {{
+      padding: 14px 16px;
+      border-left: 4px solid var(--quote-border);
+      background: var(--quote-bg);
+      color: var(--muted);
+      border-radius: 10px;
+    }}
+    code {{
+      padding: 0.12em 0.4em;
+      border-radius: 6px;
+      background: var(--code-bg);
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 0.92em;
+    }}
+    hr {{
+      border: 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.35);
+      margin: 1.5em 0;
+    }}
+    @media (max-width: 720px) {{
+      body {{
+        padding: 16px 10px;
+      }}
+      main {{
+        padding: 24px 18px;
+        border-radius: 14px;
+      }}
+    }}
+  </style>
+</head>
+<body>
+  <main>
+    {''.join(body_parts)}
+  </main>
+</body>
+</html>
+"""
+    output_path.write_text(html, encoding="utf-8")
 
 
 def _add_inline_runs(paragraph, text: str) -> None:

@@ -238,6 +238,33 @@ async def test_report_bound_to_context_ids(db_session):
 
 
 @pytest.mark.asyncio
+async def test_report_auto_binds_latest_profile_version_and_generation_meta(db_session):
+    """Report generation should bind the latest profile version even when not provided explicitly."""
+    container = create_service_container()
+    await initialize_demo_data(db_session, container)
+    profile = await container.student_profile_service.generate_profile(
+        db_session,
+        student_id=1,
+        uploaded_file_ids=[],
+        manual_input=ManualStudentInput(
+            target_job="前端开发工程师",
+            self_introduction="测试",
+            skills=["React"],
+        ),
+    )
+
+    result = await container.report_service.generate_report(db_session, 1, "J-FE-001")
+
+    assert result["profile_version_id"] == profile["profile_version_id"]
+    report = db_session.get(CareerReport, result["report_id"])
+    generation_meta = report.content_json["generation_meta"]
+    assert generation_meta["llm_provider"] == "mock"
+    assert generation_meta["ocr_provider"] == "mock"
+    assert generation_meta["profile_version_id"] == profile["profile_version_id"]
+    assert report.profile_version_id == profile["profile_version_id"]
+
+
+@pytest.mark.asyncio
 async def test_report_reads_snapshot_not_latest(db_session):
     """Report viewing should return the snapshot content, not re-assemble."""
     container = create_service_container()

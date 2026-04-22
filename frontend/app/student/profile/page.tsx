@@ -61,9 +61,11 @@ export default function StudentProfilePage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [studentId, setStudentId] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const sess = await getStudentSession();
       if (!sess.student_id) { setLoading(false); return; }
@@ -94,7 +96,9 @@ export default function StudentProfilePage() {
           }
         }
       }
-    } catch {} finally { setLoading(false); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载画像数据失败");
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -102,6 +106,7 @@ export default function StudentProfilePage() {
   const handleGenerate = async () => {
     if (!studentId || files.length === 0 || generating) return;
     setGenerating(true);
+    setError("");
     try {
       const fileIds = files.map((f) => f.id);
       const result = await generateStudentProfile(studentId, fileIds);
@@ -110,7 +115,7 @@ export default function StudentProfilePage() {
       setVersions(v);
       setSelectedVersion(null);
     } catch (err) {
-      console.error("Generate profile failed:", err);
+      setError(err instanceof Error ? err.message : "生成画像失败");
     } finally {
       setGenerating(false);
     }
@@ -148,6 +153,12 @@ export default function StudentProfilePage() {
           </button>
         </div>
       </div>
+
+      {error ? (
+        <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, border: "1px solid rgba(220,38,38,0.18)", background: "rgba(220,38,38,0.06)", color: "#b91c1c" }}>
+          {error}
+        </div>
+      ) : null}
 
       {files.length === 0 && (
         <EmptyState

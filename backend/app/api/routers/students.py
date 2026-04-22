@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.errors import require_role, raise_resource_forbidden
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,63 @@ from app.services.matching.recommendation import (
     generate_recommendation_reason,
     score_recommended_job,
 )
+from app.services.reference import (
+    filter_student_facing_job_profiles,
+    is_student_facing_computer_job,
+    job_profile_snapshot,
+    normalize_posting_snapshot,
+)
 from app.schemas.job import RecommendedJobItem, RecommendedJobsResponse
 
 router = APIRouter()
+
+
+def _student_facing_profiles(db: Session) -> list[JobProfile]:
+    profiles = filter_student_facing_job_profiles(
+        list(db.scalars(select(JobProfile).order_by(JobProfile.updated_at.desc(), JobProfile.id.desc())).all())
+    )
+    posting_by_code = {
+        item.job_code: normalize_posting_snapshot(
+            {
+                "job_code": item.job_code,
+                "title": item.title,
+                "location": item.location,
+                "salary_range": item.salary_range,
+                "company_name": item.company_name,
+                "industry": item.industry,
+                "company_size": item.company_size,
+                "ownership_type": item.ownership_type,
+                "description": item.description,
+                "company_intro": item.company_intro,
+            }
+        )
+        for item in db.scalars(select(JobPosting)).all()
+    }
+    filtered: list[JobProfile] = []
+    seen_job_codes: set[str] = set()
+    for profile in profiles:
+        posting = posting_by_code.get(profile.job_code)
+        if not posting:
+            continue
+        if profile.job_code in seen_job_codes:
+            continue
+        if not is_student_facing_computer_job(job_profile_snapshot(profile)):
+            continue
+        if not is_student_facing_computer_job(posting):
+            continue
+        filtered.append(profile)
+        seen_job_codes.add(profile.job_code)
+    return filtered
+
+
+def _career_goal_profile(db: Session, career_goal: str) -> JobProfile | None:
+    lowered_goal = career_goal.strip().lower()
+    if not lowered_goal:
+        return None
+    for profile in _student_facing_profiles(db):
+        if lowered_goal in profile.title.lower():
+            return profile
+    return None
 
 
 class StudentInfoUpdate(BaseModel):
@@ -152,11 +206,7 @@ def resolve_target_job(db: Session, student: Student) -> tuple[str, str]:
 
     # 2. 已确认推荐岗位 (career_goal mapped)
     if student.career_goal:
-        jp = db.scalar(
-            select(JobProfile)
-            .where(func.lower(JobProfile.title).contains(student.career_goal.lower()))
-            .limit(1)
-        )
+        jp = _career_goal_profile(db, student.career_goal)
         if jp:
             return jp.job_code, jp.title
 
@@ -210,11 +260,7 @@ def get_current_student(
     suggested_job_code = None
     suggested_job_title = None
     if student.career_goal:
-        jp = db.scalar(
-            select(JobProfile)
-            .where(func.lower(JobProfile.title).contains(student.career_goal.lower()))
-            .limit(1)
-        )
+        jp = _career_goal_profile(db, student.career_goal)
         if jp:
             suggested_job_code = jp.job_code
             suggested_job_title = jp.title
@@ -354,9 +400,26 @@ def get_recommended_jobs(
 
     jobs = []
 
-    all_profiles = list(db.scalars(select(JobProfile)).all())
-    postings = {
+    all_profiles = _student_facing_profiles(db)
+    raw_postings = {
         item.job_code: item
+        for item in db.scalars(select(JobPosting)).all()
+    }
+    postings = {
+        item.job_code: normalize_posting_snapshot(
+            {
+                "job_code": item.job_code,
+                "title": item.title,
+                "location": item.location,
+                "salary_range": item.salary_range,
+                "company_name": item.company_name,
+                "industry": item.industry,
+                "company_size": item.company_size,
+                "ownership_type": item.ownership_type,
+                "description": item.description,
+                "company_intro": item.company_intro,
+            }
+        )
         for item in db.scalars(select(JobPosting)).all()
     }
     experience = extract_resume_experience_context(db, current_user.id, source_summary=student_profile.source_summary if student_profile else "")
@@ -368,10 +431,10 @@ def get_recommended_jobs(
         scored_profiles = []
 
         for jp in all_profiles:
-            posting = postings.get(jp.job_code)
+            posting = raw_postings.get(jp.job_code)
             scoring = score_recommended_job(student_profile, jp, experience, posting)
             final_score = scoring["score"]
-            scored_profiles.append((final_score, scoring, jp, posting))
+            scored_profiles.append((final_score, scoring, jp, postings.get(jp.job_code)))
 
         scored_profiles.sort(
             key=lambda item: (
@@ -408,8 +471,8 @@ def get_recommended_jobs(
         )
 
         for _, scoring, jp, posting in diversified_profiles:
-            company_name = posting.company_name if posting else "推荐岗位"
-            salary_range = posting.salary_range if posting and posting.salary_range else ""
+            company_name = posting["company_name"] if posting else "推荐岗位"
+            salary_range = posting["salary_range"] if posting and posting.get("salary_range") else ""
             skills = jp.skill_requirements[:5] if jp.skill_requirements else []
             matched = list(dict.fromkeys(
                 scoring["matched_skills"]
@@ -431,11 +494,12 @@ def get_recommended_jobs(
                 title=jp.title,
                 company=company_name,
                 salary=salary_range,
-                location=posting.location if posting else "",
-                industry=posting.industry if posting else "",
-                company_size=posting.company_size if posting else "",
-                ownership_type=posting.ownership_type if posting else "",
-                summary=jp.summary or (posting.description if posting else ""),
+                location=posting["location"] if posting else "",
+                industry=posting["industry"] if posting else "",
+                industry_group=posting["industry_group"] if posting else "",
+                company_size=posting["company_size"] if posting else "",
+                ownership_type=posting["ownership_type"] if posting else "",
+                summary=jp.summary or (posting["description"] if posting else ""),
                 tags=skills,
                 matched_tags=matched,
                 missing_tags=missing,

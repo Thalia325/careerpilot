@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import re
 import base64
@@ -82,6 +84,55 @@ def _normalize_ocr_text(text: str) -> str:
 
 def _normalize_for_match(text: str) -> str:
     return re.sub(r"\s+", "", _normalize_ocr_text(text).lower())
+
+
+def ocr_result_needs_refresh(ocr: dict[str, Any] | None) -> bool:
+    if not ocr:
+        return True
+    raw_text = str(ocr.get("raw_text") or "").lstrip()
+    structured = ocr.get("structured_json") or {}
+    if not raw_text:
+        return not isinstance(structured, dict) or not any(
+            structured.get(key)
+            for key in (
+                "name",
+                "school",
+                "major",
+                "grade",
+                "graduation_year",
+                "target_job",
+                "skills",
+                "projects",
+                "internships",
+                "certificates",
+                "competitions",
+                "self_evaluation",
+                "gpa",
+            )
+        )
+    head = raw_text[:2000]
+    return (
+        head.startswith("%PDF")
+        or head.startswith("PK")
+        or "\x00" in head
+        or head.count("\ufffd") > 10
+        or (
+            not structured.get("skills")
+            and bool(re.search(r"(?i)p\s*y\s*t\s*h\s*o\s*n|j\s*a\s*v\s*a|s\s*q\s*l|e\s*x\s*c\s*e\s*l", head))
+        )
+    )
+
+
+def is_reusable_ocr_result(ocr: dict[str, Any] | None) -> bool:
+    if not isinstance(ocr, dict):
+        return False
+    raw_text = ocr.get("raw_text")
+    structured = ocr.get("structured_json")
+    if not isinstance(raw_text, str) or not raw_text.strip():
+        return False
+    if not isinstance(structured, dict):
+        return False
+    return not ocr_result_needs_refresh(ocr)
 
 
 def _extract_gpa(text: str) -> Optional[float]:
@@ -267,6 +318,7 @@ def _empty_ocr_result(document_type: str, message: str) -> dict[str, Any]:
 
 
 class MockOCRProvider(BaseOCRProvider):
+    provider_name = "mock"
     SKILL_CANDIDATES = [
         "Python",
         "JavaScript",
@@ -358,16 +410,125 @@ class MockOCRProvider(BaseOCRProvider):
 
 
 class PaddleOCRProvider(BaseOCRProvider):
+    provider_name = "paddle"
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"}
+    RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
-    def __init__(self, service_url: str, api_key: str = "") -> None:
+    def __init__(
+        self,
+        service_url: str,
+        api_key: str = "",
+        *,
+        timeout_seconds: float = 60.0,
+        max_retries: int = 5,
+        retry_base_delay_seconds: float = 2.0,
+    ) -> None:
         self.service_url = service_url.rstrip("/")
         self.api_key = api_key
+        self.timeout_seconds = timeout_seconds
+        self.max_retries = max(1, max_retries)
+        self.retry_base_delay_seconds = max(0.0, retry_base_delay_seconds)
 
     @classmethod
     def _file_type(cls, file_name: str) -> int:
         lowered = file_name.lower()
         return 1 if any(lowered.endswith(ext) for ext in cls.IMAGE_EXTENSIONS) else 0
+
+    @staticmethod
+    def _response_error_code(response: httpx.Response) -> int | None:
+        try:
+            payload = response.json()
+        except (ValueError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        value = payload.get("errorCode")
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _should_retry_http_error(self, response: httpx.Response) -> bool:
+        if response.status_code in self.RETRYABLE_STATUS_CODES:
+            return True
+        if self._response_error_code(response) == 10010:
+            return True
+        body_text = response.text
+        return "任务提交队列已满" in body_text or "队列已满" in body_text
+
+    def _retry_delay_seconds(self, attempt: int) -> float:
+        return self.retry_base_delay_seconds * attempt
+
+    async def _post_with_retry(
+        self,
+        client: httpx.AsyncClient,
+        *,
+        file_name: str,
+        payload: dict[str, Any],
+        headers: dict[str, str],
+    ) -> httpx.Response:
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.info(
+                    "PaddleOCR request: POST %s file=%s attempt=%s/%s",
+                    self.service_url,
+                    file_name,
+                    attempt,
+                    self.max_retries,
+                )
+                response = await client.post(
+                    self.service_url,
+                    json=payload,
+                    headers=headers,
+                )
+                response.raise_for_status()
+                return response
+            except httpx.HTTPStatusError as exc:
+                body_text = exc.response.text[:500]
+                if attempt < self.max_retries and self._should_retry_http_error(exc.response):
+                    delay = self._retry_delay_seconds(attempt)
+                    logger.warning(
+                        "PaddleOCR transient HTTP error: file=%s status=%d attempt=%s/%s retry_in=%.1fs body=%s",
+                        file_name,
+                        exc.response.status_code,
+                        attempt,
+                        self.max_retries,
+                        delay,
+                        body_text,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+            except httpx.TimeoutException:
+                if attempt < self.max_retries:
+                    delay = self._retry_delay_seconds(attempt)
+                    logger.warning(
+                        "PaddleOCR timeout: file=%s url=%s attempt=%s/%s retry_in=%.1fs",
+                        file_name,
+                        self.service_url,
+                        attempt,
+                        self.max_retries,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+            except httpx.RequestError as exc:
+                if attempt < self.max_retries:
+                    delay = self._retry_delay_seconds(attempt)
+                    logger.warning(
+                        "PaddleOCR connection error: file=%s url=%s attempt=%s/%s retry_in=%.1fs err=%s",
+                        file_name,
+                        self.service_url,
+                        attempt,
+                        self.max_retries,
+                        delay,
+                        exc,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise
+        raise OCRServiceError("OCR 鏈嶅姟寮傚父锛岃绋嶅悗閲嶈瘯")
 
     async def _normalize_layout_parsing_result(
         self,
@@ -416,10 +577,9 @@ class PaddleOCRProvider(BaseOCRProvider):
         document_type: str = "resume",
         raw_text: Optional[str] = None,
     ) -> dict[str, Any]:
-        local_text = raw_text or _extract_text_from_office_file(file_name, content_bytes)
-        if local_text:
-            logger.info("Using local text extraction before PaddleOCR: file=%s", file_name)
-            return await MockOCRProvider().parse_document(file_name, content_bytes, document_type, raw_text=local_text)
+        if raw_text is not None:
+            logger.info("Using provided raw text for OCR normalization: file=%s", file_name)
+            return await MockOCRProvider().parse_document(file_name, content_bytes, document_type, raw_text=raw_text)
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -432,11 +592,11 @@ class PaddleOCRProvider(BaseOCRProvider):
             "useChartRecognition": False,
         }
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                logger.info("PaddleOCR request: POST %s file=%s", self.service_url, file_name)
-                response = await client.post(
-                    self.service_url,
-                    json=payload,
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                response = await self._post_with_retry(
+                    client,
+                    file_name=file_name,
+                    payload=payload,
                     headers=headers,
                 )
                 response.raise_for_status()

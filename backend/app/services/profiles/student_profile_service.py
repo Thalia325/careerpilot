@@ -2,17 +2,23 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.integrations.llm.providers import BaseLLMProvider
 from app.models import Student, StudentProfile, StudentProfileEvidence, ProfileVersion, UploadedFile
 from app.schemas.profile import ManualStudentInput
 from app.services.ingestion.file_ingestion import FileIngestionService
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _ocr_needs_refresh(ocr: dict | None) -> bool:
@@ -30,7 +36,7 @@ def _ocr_needs_refresh(ocr: dict | None) -> bool:
         or head.count("\ufffd") > 10
         or (
             not structured.get("skills")
-            and bool(re.search(r"(?i)p\s*y\s*t\s*h\s*o\s*n|j\s*a\s*v\s*a|s\s*q\s*l|e\s*x\s*c\s*e\s*l|数\s*据\s*分\s*析", head))
+            and bool(re.search(r"(?i)p\s*y\s*t\s*h\s*o\s*n|j\s*a\s*v\s*a|s\s*q\s*l|e\s*x\s*c\s*e\s*l|?\s*?\s*?\s*?", head))
         )
     )
 
@@ -39,6 +45,7 @@ class StudentProfileService:
     def __init__(self, llm_provider: BaseLLMProvider, file_service: FileIngestionService) -> None:
         self.llm_provider = llm_provider
         self.file_service = file_service
+        self.settings = get_settings()
 
     async def generate_profile(
         self,
@@ -67,8 +74,14 @@ class StudentProfileService:
         }
         evidence_items: list[dict] = []
         file_summaries: list[dict] = []
-        uploaded_files = [db.get(UploadedFile, fid) for fid in uploaded_file_ids]
-        uploaded_files = [f for f in uploaded_files if f]
+        uploaded_files: list[UploadedFile] = []
+        for fid in uploaded_file_ids:
+            uploaded = db.get(UploadedFile, fid)
+            if not uploaded:
+                raise ValueError(f"上传文件不存在: {fid}")
+            if uploaded.owner_id != student.user_id:
+                raise ValueError(f"上传文件不属于当前学生: {fid}")
+            uploaded_files.append(uploaded)
 
         # Apply mode filtering: only use explicitly provided files
         if uploaded_files and mode == "current_resume":
@@ -83,15 +96,29 @@ class StudentProfileService:
 
         processed_any_file = False
         file_errors: list[str] = []
+        processed_file_ids: list[int] = []
 
         for uploaded in uploaded_files:
             try:
                 ocr = uploaded.meta_json.get("ocr") if uploaded.meta_json else None
-                if _ocr_needs_refresh(ocr):
+                needs_refresh = _ocr_needs_refresh(ocr)
+                if self.settings.force_profile_ocr_refresh or needs_refresh:
                     document_type = "resume" if uploaded.file_type == "resume" else uploaded.file_type
-                    ocr = await self.file_service.parse_uploaded_file(db, uploaded.id, document_type)
+                    recent_cache_ttl_seconds = (
+                        self.settings.ocr_recent_cache_ttl_seconds
+                        if self.settings.force_profile_ocr_refresh and not needs_refresh
+                        else None
+                    )
+                    ocr = await self.file_service.parse_uploaded_file(
+                        db,
+                        uploaded.id,
+                        document_type,
+                        force_refresh=self.settings.force_profile_ocr_refresh or needs_refresh,
+                        recent_cache_ttl_seconds=recent_cache_ttl_seconds,
+                    )
                 structured = ocr["structured_json"]
                 processed_any_file = True
+                processed_file_ids.append(uploaded.id)
                 # 优先使用OCR解析的专业信息，覆盖学生基本信息中的专业
                 if structured.get("major"):
                     merged["major"] = structured.get("major")
@@ -159,6 +186,16 @@ class StudentProfileService:
             "major_source": "OCR解析" if merged["major"] else "学生基本信息",
         }
         llm_result = await self.llm_provider.generate_student_profile(llm_payload)
+        generation_meta = {
+            "generated_at": _utc_now_iso(),
+            "llm_provider": self.settings.llm_provider,
+            "ocr_provider": self.settings.ocr_provider,
+            "mode": mode,
+            "uploaded_file_ids": uploaded_file_ids,
+            "processed_file_ids": processed_file_ids,
+            "manual_input_used": manual_input is not None,
+            "force_profile_ocr_refresh": self.settings.force_profile_ocr_refresh,
+        }
         profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
         if not profile:
             profile = StudentProfile(student_id=student_id)
@@ -173,7 +210,10 @@ class StudentProfileService:
         profile.completeness_score = llm_result["completeness_score"]
         profile.competitiveness_score = llm_result["competitiveness_score"]
         profile.willingness_json = llm_result["willingness"]
-        profile.evidence_summary = {"sources": merged["source_summary"]}
+        profile.evidence_summary = {
+            "sources": merged["source_summary"],
+            "generation_meta": generation_meta,
+        }
         db.execute(delete(StudentProfileEvidence).where(StudentProfileEvidence.student_profile_id == profile.id))
         combined_evidence = evidence_items + llm_result["evidence"]
         for evidence in combined_evidence:
@@ -208,6 +248,7 @@ class StudentProfileService:
             "willingness": profile.willingness_json,
             "uploaded_file_ids": uploaded_file_ids,
             "mode": mode,
+            "generation_meta": generation_meta,
         }
         pv = ProfileVersion(
             student_id=student_id,
@@ -241,6 +282,12 @@ class StudentProfileService:
         profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student_id))
         if not profile:
             return None
+        latest_version = db.scalar(
+            select(ProfileVersion)
+            .where(ProfileVersion.student_id == student_id)
+            .order_by(ProfileVersion.version_no.desc())
+            .limit(1)
+        )
         evidence = list(
             db.scalars(select(StudentProfileEvidence).where(StudentProfileEvidence.student_profile_id == profile.id)).all()
         )
@@ -256,4 +303,5 @@ class StudentProfileService:
             "competitiveness_score": profile.competitiveness_score,
             "willingness": profile.willingness_json,
             "evidence": [{"source": item.source, "excerpt": item.excerpt, "confidence": item.confidence} for item in evidence],
+            "profile_version_id": latest_version.id if latest_version else None,
         }

@@ -141,6 +141,17 @@ class TestProfileVersionFields:
         assert "completeness_score" in snapshot
         assert "competitiveness_score" in snapshot
 
+    def test_version_snapshot_contains_generation_meta(self, client: TestClient, prepare_database):
+        file_id = _upload_and_parse(client)
+        _generate_profile(client, [file_id])
+        resp = client.get("/api/v1/student-profiles/1/versions", headers=_auth_headers())
+        versions = resp.json()["items"]
+        generation_meta = versions[0]["snapshot"]["generation_meta"]
+        assert generation_meta["llm_provider"] == "mock"
+        assert generation_meta["ocr_provider"] == "mock"
+        assert generation_meta["force_profile_ocr_refresh"] is True
+        assert generation_meta["uploaded_file_ids"] == [file_id]
+
     def test_version_contains_evidence_snapshot(self, client: TestClient, prepare_database):
         file_id = _upload_and_parse(client)
         _generate_profile(client, [file_id])

@@ -108,12 +108,12 @@ def register_user(
     teacher_code: str = "",
 ) -> User:
     if db.scalar(select(User).where(User.username == username)):
-        raise ValueError("用户名已存在")
+        raise ValueError("账号已存在")
     teacher = None
     if role == "student" and teacher_code.strip():
         teacher = _find_teacher_by_code(db, teacher_code)
         if not teacher:
-            raise ValueError("未找到对应老师，请检查老师用户名或邮箱")
+            raise ValueError("未找到对应老师，请检查老师账号或绑定邮箱")
 
     user = User(
         username=username,

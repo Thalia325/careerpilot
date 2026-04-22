@@ -91,6 +91,7 @@ class RecommendedJobItem(BaseModel):
     location: str = ""
     salary: str = ""
     industry: str = ""
+    industry_group: str = ""
     company_size: str = ""
     ownership_type: str = ""
     match_score: float

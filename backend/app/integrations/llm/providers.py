@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -12,6 +13,22 @@ from openai import OpenAI
 from app.services.reference import find_best_template
 
 logger = logging.getLogger(__name__)
+
+
+class LLMGenerationError(Exception):
+    def __init__(self, operation: str, message: str, retryable: bool = True) -> None:
+        self.operation = operation
+        self.message = message
+        self.retryable = retryable
+        super().__init__(message)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "error_code": "llm_generation_failed",
+            "message": self.message,
+            "retryable": self.retryable,
+            "operation": self.operation,
+        }
 
 
 class BaseLLMProvider(ABC):
@@ -33,6 +50,8 @@ class BaseLLMProvider(ABC):
 
 
 class MockLLMProvider(BaseLLMProvider):
+    provider_name = "mock"
+
     async def generate_job_profile(self, job_posting: dict[str, Any]) -> dict[str, Any]:
         template = find_best_template(job_posting["title"])
         return {
@@ -361,6 +380,8 @@ class MockLLMProvider(BaseLLMProvider):
 
 
 class ErnieLLMProvider(BaseLLMProvider):
+    provider_name = "ernie"
+
     def __init__(
         self,
         access_token: str,
@@ -373,7 +394,7 @@ class ErnieLLMProvider(BaseLLMProvider):
         self.model = model
         self.allow_job_profile_mock_fallback = allow_job_profile_mock_fallback
         self.mock = MockLLMProvider()
-        self.client = OpenAI(api_key=access_token, base_url=base_url, timeout=60.0) if access_token else None
+        self.client = OpenAI(api_key=access_token, base_url=base_url, timeout=120.0) if access_token else None
 
     @staticmethod
     def _extract_json(text: str) -> dict[str, Any]:
@@ -388,9 +409,11 @@ class ErnieLLMProvider(BaseLLMProvider):
         if fenced:
             return json.loads(fenced.group(1))
         first = text.find("{")
-        last = text.rfind("}")
-        if first >= 0 and last > first:
-            return json.loads(text[first : last + 1])
+        if first >= 0:
+            decoder = json.JSONDecoder()
+            parsed, _ = decoder.raw_decode(text[first:])
+            if isinstance(parsed, dict):
+                return parsed
         raise ValueError("no json object found")
 
     @staticmethod
@@ -483,11 +506,23 @@ class ErnieLLMProvider(BaseLLMProvider):
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    temperature=0.2,
-                    max_tokens=1200,
+                    stream=True,
+                    extra_body={
+                        "web_search": {
+                            "enable": True,
+                        }
+                    },
+                    max_completion_tokens=65536,
                 )
-                message = completion.choices[0].message
-                return message.content or getattr(message, "reasoning_content", "") or ""
+                chunks: list[str] = []
+                for chunk in completion:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+                    content = getattr(delta, "content", None)
+                    if content:
+                        chunks.append(content)
+                return "".join(chunks).strip()
             except Exception as exc:
                 last_error = exc
                 error_text = str(exc)
@@ -512,6 +547,68 @@ class ErnieLLMProvider(BaseLLMProvider):
                 time.sleep(sleep_seconds)
         raise RuntimeError(f"ERNIE chat failed after retries: {last_error}")
 
+    def _chat_with_options(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        enable_web_search: bool,
+        max_completion_tokens: int,
+        timeout_seconds: float,
+    ) -> str:
+        if not self.client:
+            raise RuntimeError("AI Studio Access Token 未配置")
+        last_error: Exception | None = None
+        for attempt in range(1, 5):
+            try:
+                completion = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    stream=True,
+                    extra_body={
+                        "web_search": {
+                            "enable": enable_web_search,
+                        }
+                    },
+                    max_completion_tokens=max_completion_tokens,
+                    timeout=timeout_seconds,
+                )
+                chunks: list[str] = []
+                for chunk in completion:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+                    content = getattr(delta, "content", None)
+                    if content:
+                        chunks.append(content)
+                return "".join(chunks).strip()
+            except Exception as exc:
+                last_error = exc
+                error_text = str(exc)
+                should_retry = any(
+                    marker in error_text
+                    for marker in (
+                        "璁块棶杩囦簬棰戠箒",
+                        "Too Many Requests",
+                        "rate limit",
+                        "429",
+                    )
+                )
+                if not should_retry or attempt == 4:
+                    raise
+                sleep_seconds = attempt * 10
+                logger.warning(
+                    "ERNIE chat throttled on attempt %s/4, retrying in %ss: %s",
+                    attempt,
+                    sleep_seconds,
+                    exc,
+                )
+                time.sleep(sleep_seconds)
+        raise RuntimeError(f"ERNIE chat failed after retries: {last_error}")
+
     def _repair_json(self, invalid_response: str) -> dict[str, Any]:
         repair_system_prompt = (
             "You repair model output into exactly one valid JSON object. "
@@ -519,7 +616,13 @@ class ErnieLLMProvider(BaseLLMProvider):
             "Keep the original fields and values whenever possible."
         )
         repair_user_prompt = json.dumps({"invalid_response": invalid_response}, ensure_ascii=False)
-        repaired = self._chat(repair_system_prompt, repair_user_prompt)
+        repaired = self._chat_with_options(
+            repair_system_prompt,
+            repair_user_prompt,
+            enable_web_search=False,
+            max_completion_tokens=4096,
+            timeout_seconds=90.0,
+        )
         return self._extract_json(repaired)
 
     def _request_json(
@@ -528,10 +631,19 @@ class ErnieLLMProvider(BaseLLMProvider):
         user_prompt: str,
         *,
         response_label: str,
+        enable_web_search: bool = False,
+        max_completion_tokens: int = 8192,
+        timeout_seconds: float = 120.0,
     ) -> dict[str, Any]:
         last_error: Exception | None = None
 
-        raw_content = self._chat(system_prompt, user_prompt)
+        raw_content = self._chat_with_options(
+            system_prompt,
+            user_prompt,
+            enable_web_search=enable_web_search,
+            max_completion_tokens=max_completion_tokens,
+            timeout_seconds=timeout_seconds,
+        )
         try:
             return self._extract_json(raw_content)
         except Exception as exc:
@@ -550,7 +662,13 @@ class ErnieLLMProvider(BaseLLMProvider):
             "Do not wrap it in markdown. "
             "Do not output any text before or after the JSON."
         )
-        raw_content = self._chat(retry_system_prompt, user_prompt)
+        raw_content = self._chat_with_options(
+            retry_system_prompt,
+            user_prompt,
+            enable_web_search=enable_web_search,
+            max_completion_tokens=max_completion_tokens,
+            timeout_seconds=timeout_seconds,
+        )
         try:
             return self._extract_json(raw_content)
         except Exception as exc:
@@ -579,11 +697,19 @@ class ErnieLLMProvider(BaseLLMProvider):
         )
         user_prompt = json.dumps(job_posting, ensure_ascii=False)
         try:
-            parsed = self._request_json(system_prompt, user_prompt, response_label="job profile")
+            parsed = self._request_json(
+                system_prompt,
+                user_prompt,
+                response_label="job profile",
+                enable_web_search=False,
+                max_completion_tokens=8192,
+                timeout_seconds=120.0,
+            )
             return self._normalize_job_profile(parsed, job_posting["title"], job_posting["job_code"])
         except Exception as exc:
             if not self.allow_job_profile_mock_fallback:
-                raise
+                logger.error("ERNIE job profile generation failed: %s", exc)
+                raise LLMGenerationError("job_profile", f"ERNIE 岗位画像生成失败：{exc}") from exc
             logger.warning("ERNIE job profile generation failed, fallback to mock: %s", exc)
             return await self.mock.generate_job_profile(job_posting)
 
@@ -605,11 +731,18 @@ class ErnieLLMProvider(BaseLLMProvider):
         )
         user_prompt = json.dumps(payload, ensure_ascii=False)
         try:
-            parsed = self._request_json(system_prompt, user_prompt, response_label="student profile")
+            parsed = self._request_json(
+                system_prompt,
+                user_prompt,
+                response_label="student profile",
+                enable_web_search=False,
+                max_completion_tokens=8192,
+                timeout_seconds=120.0,
+            )
             return self._normalize_student_profile(parsed)
         except Exception as exc:
-            logger.warning("ERNIE student profile generation failed, fallback to mock: %s", exc)
-            return await self.mock.generate_student_profile(payload)
+            logger.error("ERNIE student profile generation failed: %s", exc)
+            raise LLMGenerationError("student_profile", f"ERNIE 学生画像生成失败：{exc}") from exc
 
     async def generate_report(self, payload: dict[str, Any]) -> dict[str, Any]:
         system_prompt = (
@@ -639,11 +772,19 @@ class ErnieLLMProvider(BaseLLMProvider):
         )
         user_prompt = json.dumps(payload, ensure_ascii=False)
         try:
-            parsed = self._request_json(system_prompt, user_prompt, response_label="report")
+            parsed = self._request_json(
+                system_prompt,
+                user_prompt,
+                response_label="report",
+                enable_web_search=False,
+                max_completion_tokens=12000,
+                timeout_seconds=240.0,
+            )
             return parsed
         except Exception as exc:
-            logger.warning("ERNIE report generation failed, fallback to mock: %s", exc)
+            logger.warning("ERNIE report generation failed, fallback to mock report: %s", exc)
             return await self.mock.generate_report(payload)
+            raise LLMGenerationError("report", f"ERNIE 报告生成失败：{exc}") from exc
 
     async def polish_markdown(self, markdown_content: str) -> str:
         system_prompt = (
@@ -652,13 +793,19 @@ class ErnieLLMProvider(BaseLLMProvider):
             "要求保留标题结构，增强可读性、完整性和职业规划语气。"
         )
         try:
-            polished = self._chat(system_prompt, markdown_content).strip()
+            polished = self._chat_with_options(
+                system_prompt,
+                markdown_content,
+                enable_web_search=False,
+                max_completion_tokens=8192,
+                timeout_seconds=120.0,
+            ).strip()
             if not polished:
                 raise ValueError("empty polished content")
             return polished
         except Exception as exc:
-            logger.warning("ERNIE markdown polish failed, fallback to mock: %s", exc)
-            return await self.mock.polish_markdown(markdown_content)
+            logger.error("ERNIE markdown polish failed: %s", exc)
+            raise LLMGenerationError("polish_markdown", f"ERNIE 报告润色失败：{exc}") from exc
 
 
 async def safe_ping_http(url: str) -> bool:

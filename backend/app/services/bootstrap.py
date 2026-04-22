@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -11,7 +11,7 @@ from app.integrations.llm.providers import ErnieLLMProvider, MockLLMProvider
 from app.integrations.ocr.providers import MockOCRProvider, PaddleOCRProvider
 from app.integrations.ragflow.providers import MockRAGProvider, RAGFlowProvider
 from app.integrations.storage.providers import LocalStorageProvider, MinIOStorageProvider
-from app.models import JobProfile
+from app.models import JobPosting, JobProfile
 from app.services.agents.controller import MainControllerAgent
 from app.services.agents.job_profile_agent import JobProfileAgent
 from app.services.agents.report_agent import ReportGenerationAgent
@@ -49,6 +49,19 @@ class ServiceContainer:
     controller_agent: MainControllerAgent
 
 
+def _validate_ai_settings(settings) -> None:
+    if not settings.strict_ai_providers:
+        return
+    if settings.llm_provider != "ernie":
+        raise RuntimeError("STRICT_AI_PROVIDERS enabled: LLM_PROVIDER must be 'ernie'")
+    if settings.ocr_provider != "paddle":
+        raise RuntimeError("STRICT_AI_PROVIDERS enabled: OCR_PROVIDER must be 'paddle'")
+    if not settings.ernie_access_token:
+        raise RuntimeError("STRICT_AI_PROVIDERS enabled: ERNIE credentials are missing")
+    if not settings.paddle_ocr_service_url:
+        raise RuntimeError("STRICT_AI_PROVIDERS enabled: PADDLE_OCR_SERVICE_URL is missing")
+
+
 def _create_llm_provider(settings):
     if settings.llm_provider == "mock":
         return MockLLMProvider()
@@ -56,14 +69,22 @@ def _create_llm_provider(settings):
         access_token=settings.ernie_access_token,
         base_url=settings.ernie_aistudio_base_url,
         model=settings.ernie_model,
-        allow_job_profile_mock_fallback=settings.job_profile_mock_fallback_enabled,
+        allow_job_profile_mock_fallback=(
+            settings.job_profile_mock_fallback_enabled and not settings.strict_ai_providers
+        ),
     )
 
 
 def _create_ocr_provider(settings):
     if settings.ocr_provider == "mock":
         return MockOCRProvider()
-    return PaddleOCRProvider(settings.paddle_ocr_service_url, settings.paddle_ocr_api_key)
+    return PaddleOCRProvider(
+        settings.paddle_ocr_service_url,
+        settings.paddle_ocr_api_key,
+        timeout_seconds=settings.paddle_ocr_timeout_seconds,
+        max_retries=settings.paddle_ocr_max_retries,
+        retry_base_delay_seconds=settings.paddle_ocr_retry_base_delay_seconds,
+    )
 
 
 def _create_rag_provider(settings):
@@ -92,6 +113,7 @@ def _create_storage_provider(settings):
 
 def create_service_container() -> ServiceContainer:
     settings = get_settings()
+    _validate_ai_settings(settings)
     llm_provider = _create_llm_provider(settings)
     ocr_provider = _create_ocr_provider(settings)
     rag_provider = _create_rag_provider(settings)
@@ -106,7 +128,7 @@ def create_service_container() -> ServiceContainer:
     mock_interview_service = MockInterviewService(matching_service)
     graph_query_service = GraphQueryService(graph_provider)
     career_path_service = CareerPathService(graph_query_service)
-    report_service = ReportService(llm_provider, matching_service, career_path_service)
+    report_service = ReportService(llm_provider, matching_service, career_path_service, file_service)
     scheduler_service = SchedulerService(settings.scheduler_timezone)
 
     resume_agent = ResumeParsingAgent(file_service)
@@ -130,13 +152,16 @@ def create_service_container() -> ServiceContainer:
 
 def get_user_llm_provider(db, user_id: int):
     settings = get_settings()
+    _validate_ai_settings(settings)
     if settings.llm_provider == "mock":
         return MockLLMProvider()
     return ErnieLLMProvider(
         access_token=settings.ernie_access_token,
         base_url=settings.ernie_aistudio_base_url,
         model=settings.ernie_model,
-        allow_job_profile_mock_fallback=settings.job_profile_mock_fallback_enabled,
+        allow_job_profile_mock_fallback=(
+            settings.job_profile_mock_fallback_enabled and not settings.strict_ai_providers
+        ),
     )
 
 
@@ -146,24 +171,43 @@ async def initialize_demo_data(db: Session, container: ServiceContainer) -> None
     seed_demo_students(db)
     await container.job_import_service.graph_provider.load_seed(load_job_graph_seed())
 
+    dataset_path = resolve_job_dataset_path()
+    should_import_dataset = dataset_path.exists() and (
+        bool(settings.job_dataset_path) or dataset_path.name != "sample_jobs.csv"
+    )
+    dataset_rows = load_job_postings_dataset(str(dataset_path)) if should_import_dataset else []
+
+    existing_posting_count = db.scalar(select(func.count()).select_from(JobPosting)) or 0
+    sampled_industries = [
+        item
+        for item in db.scalars(select(JobPosting.industry).limit(300)).all()
+        if isinstance(item, str)
+    ]
+    has_dirty_postings = any(any(char.isdigit() for char in industry) for industry in sampled_industries)
+    if dataset_rows and (existing_posting_count != len(dataset_rows) or has_dirty_postings):
+        container.job_import_service.sync_postings_snapshot(db, dataset_rows)
+
     has_profiles = db.scalar(select(JobProfile.id).limit(1))
     if not has_profiles:
-        dataset_path = resolve_job_dataset_path()
-        should_import_dataset = dataset_path.exists() and (
-            bool(settings.job_dataset_path) or dataset_path.name != "sample_jobs.csv"
-        )
-        if should_import_dataset:
-            rows = load_job_postings_dataset(str(dataset_path))
-            if rows:
-                await container.job_import_service.reimport_dataset(
-                    db,
-                    rows,
-                    clear_existing=False,
-                )
-            else:
-                await container.job_import_service.seed_templates(db)
+        if dataset_rows:
+            await container.job_import_service.reimport_dataset(
+                db,
+                dataset_rows,
+                clear_existing=False,
+            )
         else:
             await container.job_import_service.seed_templates(db)
+    elif dataset_rows:
+        linked_profile_count = db.scalar(
+            select(func.count(func.distinct(JobProfile.job_code)))
+            .select_from(JobProfile)
+            .join(JobPosting, JobPosting.job_code == JobProfile.job_code)
+        ) or 0
+        expected_profile_count = len({row["title"] for row in dataset_rows})
+        if linked_profile_count < expected_profile_count:
+            await container.job_import_service.generate_aggregated_profiles(db)
+
+    container.job_import_service.ensure_profile_integrity(db)
 
     profiles = list(db.scalars(select(JobProfile).order_by(JobProfile.title)).all())
     for profile in profiles:

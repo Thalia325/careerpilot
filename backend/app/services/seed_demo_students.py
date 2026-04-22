@@ -22,6 +22,7 @@ from app.models import (
     Student,
     StudentProfile,
     Teacher,
+    TeacherComment,
     TeacherStudentLink,
     UploadedFile,
     User,
@@ -213,6 +214,14 @@ _STUDENT_TEMPLATES = [
     ("夏雨萱", "食品科学与工程", "大三", "化学与材料学院", "J-FDQ-001", "食品安全/质量管理", 72, True, True, "edited", "in_progress", 70),
 ]
 
+# Keep the teacher demo roster focused on computer-related majors only.
+# These are the first 35 templates in the curated demo list.
+COMPUTER_RELATED_DEMO_STUDENT_COUNT = 35
+DEMO_STUDENT_TEMPLATES = _STUDENT_TEMPLATES[:COMPUTER_RELATED_DEMO_STUDENT_COUNT]
+ALLOWED_DEMO_STUDENT_USERNAMES = {
+    f"demo_student_{idx:03d}" for idx in range(1, COMPUTER_RELATED_DEMO_STUDENT_COUNT + 1)
+}
+
 # Skills pool per major direction
 _SKILLS_POOL = {
     "J-FE-001": ["JavaScript", "TypeScript", "React", "Vue.js", "HTML", "CSS", "Webpack", "Next.js", "Node.js", "小程序开发"],
@@ -357,15 +366,509 @@ def _random_datetime(days_ago_min: int, days_ago_max: int) -> datetime:
     return now - timedelta(days=days_ago, hours=hours_offset, minutes=minutes_offset)
 
 
-def seed_demo_students(db: Session) -> int:
-    """Create 35 simulated students with full data chain.
+def _pick_deterministic(items: list[str], count: int, offset: int) -> list[str]:
+    if not items or count <= 0:
+        return []
+    count = min(count, len(items))
+    start = offset % len(items)
+    rotated = list(items[start:]) + list(items[:start])
+    return rotated[:count]
 
-    Idempotent: skips if demo students already exist (checks for user
-    'demo_student_001').
-    Returns the number of students created.
-    """
+
+def _clamp_score(value: float) -> float:
+    return round(max(0.0, min(100.0, value)), 1)
+
+
+def _ensure_demo_job_profiles(db: Session) -> dict[str, JobProfile]:
+    job_profiles: dict[str, JobProfile] = {
+        jp.job_code: jp for jp in db.scalars(select(JobProfile)).all()
+    }
+    used_jobs = {
+        template[4]: template[5]
+        for template in _STUDENT_TEMPLATES
+    }
+    for job_code, job_title in used_jobs.items():
+        if job_code in job_profiles:
+            continue
+        profile = JobProfile(
+            job_code=job_code,
+            title=job_title,
+            summary=f"{job_title}岗位要求与能力模型",
+            skill_requirements=_SKILLS_POOL.get(job_code, _SKILLS_POOL["J-FE-001"])[:5],
+            certificate_requirements=[],
+            dimension_weights={
+                "basic_requirements": 0.15,
+                "professional_skills": 0.45,
+                "professional_literacy": 0.2,
+                "development_potential": 0.2,
+            },
+        )
+        db.add(profile)
+        db.flush()
+        job_profiles[job_code] = profile
+    return job_profiles
+
+
+def _repair_existing_demo_students(db: Session) -> int:
+    """Backfill missing analysis data for already seeded demo students."""
+    job_profiles = _ensure_demo_job_profiles(db)
+    teacher_user = db.scalar(select(User).where(User.username == "teacher_demo"))
+    teacher = None
+    if teacher_user:
+        teacher = db.scalar(select(Teacher).where(Teacher.user_id == teacher_user.id))
+        if not teacher:
+            teacher = Teacher(
+                user_id=teacher_user.id,
+                department="计算机学院",
+                title="就业指导老师",
+            )
+            db.add(teacher)
+            db.flush()
+
+    touched_students = 0
+    now = datetime.now(timezone.utc)
+
+    for idx, (
+        name, major, grade, school, job_code, job_title,
+        score_bucket, has_resume, has_profile, report_status,
+        growth_task_status, completeness,
+    ) in enumerate(DEMO_STUDENT_TEMPLATES, start=1):
+        username = f"demo_student_{idx:03d}"
+        user = db.scalar(select(User).where(User.username == username))
+        if not user:
+            user = User(
+                username=username,
+                password_hash=hash_password("demo123"),
+                role="student",
+                full_name=name,
+                email=f"{username}@careerpilot.local",
+            )
+            db.add(user)
+            db.flush()
+            touched_students += 1
+        else:
+            changed = False
+            if user.password_hash == "":
+                user.password_hash = hash_password("demo123")
+                changed = True
+            if user.role != "student":
+                user.role = "student"
+                changed = True
+            if user.full_name != name:
+                user.full_name = name
+                changed = True
+            expected_email = f"{username}@careerpilot.local"
+            if user.email != expected_email:
+                user.email = expected_email
+                changed = True
+            if changed:
+                touched_students += 1
+
+        student = db.scalar(select(Student).where(Student.user_id == user.id))
+        if not student:
+            student = Student(
+                user_id=user.id,
+                major=major,
+                grade=grade,
+                career_goal=job_title,
+                target_job_code=job_code,
+                target_job_title=job_title,
+                learning_preferences={"preferred_roles": [job_title]},
+            )
+            db.add(student)
+            db.flush()
+            touched_students += 1
+        else:
+            changed = False
+            if student.major != major:
+                student.major = major
+                changed = True
+            if student.grade != grade:
+                student.grade = grade
+                changed = True
+            if student.career_goal != job_title:
+                student.career_goal = job_title
+                changed = True
+            if student.target_job_code != job_code:
+                student.target_job_code = job_code
+                changed = True
+            if student.target_job_title != job_title:
+                student.target_job_title = job_title
+                changed = True
+            preferred_roles = (student.learning_preferences or {}).get("preferred_roles", [])
+            if preferred_roles != [job_title]:
+                student.learning_preferences = {"preferred_roles": [job_title]}
+                changed = True
+            if changed:
+                touched_students += 1
+
+        uploaded_at = now - timedelta(days=max(8, 92 - idx), hours=idx % 7, minutes=idx % 29)
+        profile_at = now - timedelta(days=max(6, 76 - idx), hours=idx % 5, minutes=idx % 17)
+        match_at = now - timedelta(days=max(4, 54 - idx), hours=idx % 4, minutes=idx % 13)
+        report_at = now - timedelta(days=max(2, 32 - idx), hours=idx % 3, minutes=idx % 11)
+        task_at = now - timedelta(days=max(1, 18 - idx), hours=idx % 6, minutes=idx % 19)
+
+        resume = db.scalar(
+            select(UploadedFile)
+            .where(UploadedFile.owner_id == user.id, UploadedFile.file_type == "resume")
+            .order_by(UploadedFile.created_at.desc())
+            .limit(1)
+        )
+        if has_resume and not resume:
+            resume = UploadedFile(
+                owner_id=user.id,
+                file_type="resume",
+                file_name=f"resume_{name}.pdf",
+                content_type="application/pdf",
+                storage_key=f"demos/{username}/resume.pdf",
+                url=f"/uploads/demos/{username}/resume.pdf",
+                meta_json={"ocr": {"status": "completed"}},
+            )
+            resume.created_at = uploaded_at
+            resume.updated_at = uploaded_at
+            db.add(resume)
+            db.flush()
+            touched_students += 1
+
+        uploaded_file_id = resume.id if resume else None
+
+        profile = db.scalar(select(StudentProfile).where(StudentProfile.student_id == student.id))
+        selected_skills: list[str] = []
+        if has_profile:
+            skills = _SKILLS_POOL.get(job_code, _SKILLS_POOL["J-FE-001"])
+            skill_count = max(2, min(len(skills), int(round(len(skills) * completeness / 100))))
+            selected_skills = _pick_deterministic(skills, skill_count, idx)
+            cert_count = min(3, max(0, int(completeness // 35)))
+            selected_certs = _pick_deterministic(_CERTIFICATES_POOL, cert_count, idx)
+            projects = _PROJECT_TEMPLATES.get(job_code, _PROJECT_TEMPLATES["J-FE-001"])
+            project_count = min(len(projects), max(1, int(completeness // 30)))
+            selected_projects = _pick_deterministic(projects, project_count, idx)
+            internship_company = _INTERNSHIP_COMPANIES[idx % len(_INTERNSHIP_COMPANIES)]
+            internships = [f"{internship_company} - {job_title}实习生"] if internship_company else []
+            capability_scores = {
+                "innovation": _clamp_score(score_bucket - 4 + (idx % 5) * 1.5),
+                "learning": _clamp_score(score_bucket - 2 + (idx % 4) * 1.8),
+                "resilience": _clamp_score(score_bucket - 6 + (idx % 6) * 1.6),
+                "communication": _clamp_score(score_bucket - 5 + (idx % 3) * 2.0),
+                "internship": _clamp_score(score_bucket - 8 + (idx % 5) * 2.3),
+            }
+
+            if not profile:
+                profile = StudentProfile(
+                    student_id=student.id,
+                    source_summary=f"{name}，{school}{major}专业{grade}学生，目标岗位：{job_title}",
+                    skills_json=selected_skills,
+                    certificates_json=selected_certs,
+                    projects_json=selected_projects,
+                    internships_json=internships,
+                    capability_scores=capability_scores,
+                    completeness_score=float(completeness),
+                    competitiveness_score=_clamp_score(score_bucket - 3),
+                    evidence_summary={},
+                )
+                profile.created_at = profile_at
+                profile.updated_at = profile_at
+                db.add(profile)
+                db.flush()
+                touched_students += 1
+            else:
+                profile.source_summary = f"{name}，{school}{major}专业{grade}学生，目标岗位：{job_title}"
+                profile.skills_json = selected_skills
+                profile.certificates_json = selected_certs
+                profile.projects_json = selected_projects
+                profile.internships_json = internships
+                profile.capability_scores = capability_scores
+                profile.completeness_score = float(completeness)
+                profile.competitiveness_score = _clamp_score(score_bucket - 3)
+                if not profile.created_at:
+                    profile.created_at = profile_at
+                touched_students += 1
+
+        analysis_run = None
+        if has_profile and profile:
+            analysis_run = db.scalar(
+                select(AnalysisRun)
+                .where(AnalysisRun.student_id == student.id, AnalysisRun.target_job_code == job_code)
+                .order_by(AnalysisRun.created_at.desc())
+                .limit(1)
+            )
+            if not analysis_run:
+                analysis_run = AnalysisRun(
+                    student_id=student.id,
+                    status="completed",
+                    current_step="reported" if report_status else "matched",
+                    uploaded_file_ids=[uploaded_file_id] if uploaded_file_id else [],
+                    resume_file_id=uploaded_file_id,
+                    target_job_code=job_code,
+                )
+                analysis_run.created_at = profile_at
+                analysis_run.updated_at = profile_at
+                db.add(analysis_run)
+                db.flush()
+                touched_students += 1
+            else:
+                analysis_run.status = "completed"
+                analysis_run.current_step = "reported" if report_status else "matched"
+                analysis_run.uploaded_file_ids = [uploaded_file_id] if uploaded_file_id else []
+                analysis_run.resume_file_id = uploaded_file_id
+                analysis_run.target_job_code = job_code
+
+        match_result = None
+        if has_profile and profile and job_code in job_profiles:
+            job_profile = job_profiles[job_code]
+            total_score = float(score_bucket)
+            strengths = [f"具备{skill}技能基础" for skill in selected_skills[:3]] if total_score >= 70 else []
+            gap_pool = [skill for skill in _SKILLS_POOL.get(job_code, []) if skill not in selected_skills]
+            if not gap_pool:
+                gap_pool = _SKILLS_POOL.get(job_code, [])[-3:]
+            gap_count = min(3, max(1, int((100 - total_score) // 15) + 1)) if total_score < 85 else 1
+            gaps = [
+                {"item": skill, "description": f"建议系统学习 {skill} 并结合岗位项目补足证据"}
+                for skill in _pick_deterministic(gap_pool, gap_count, idx)
+            ]
+            if total_score >= 85:
+                suggestions = ["继续打磨项目亮点", "重点准备面试表达与项目复盘"]
+            elif total_score >= 70:
+                suggestions = ["补强核心技能短板", "尽快补充目标岗位相关实习或项目经历"]
+            elif total_score >= 60:
+                suggestions = ["围绕目标岗位重构学习计划", "优先完成一段可量化的项目实践"]
+            else:
+                suggestions = ["建议重新评估岗位方向匹配度", "先完成基础能力建设后再冲刺目标岗位"]
+
+            match_result = db.scalar(
+                select(MatchResult)
+                .where(MatchResult.student_id == student.id, MatchResult.target_job_code == job_code)
+                .order_by(MatchResult.created_at.desc())
+                .limit(1)
+            )
+            if not match_result:
+                match_result = MatchResult(
+                    student_profile_id=profile.id,
+                    job_profile_id=job_profile.id,
+                    total_score=total_score,
+                    summary=f"{name}与{job_title}岗位的综合匹配度为{total_score}分。",
+                    strengths_json=strengths,
+                    gaps_json=gaps,
+                    suggestions_json=suggestions,
+                    student_id=student.id,
+                    target_job_code=job_code,
+                    analysis_run_id=analysis_run.id if analysis_run else None,
+                )
+                match_result.created_at = match_at
+                match_result.updated_at = match_at
+                db.add(match_result)
+                db.flush()
+                touched_students += 1
+            else:
+                match_result.student_profile_id = profile.id
+                match_result.job_profile_id = job_profile.id
+                match_result.total_score = total_score
+                match_result.summary = f"{name}与{job_title}岗位的综合匹配度为{total_score}分。"
+                match_result.strengths_json = strengths
+                match_result.gaps_json = gaps
+                match_result.suggestions_json = suggestions
+                match_result.student_id = student.id
+                match_result.target_job_code = job_code
+                match_result.analysis_run_id = analysis_run.id if analysis_run else None
+                if not match_result.created_at:
+                    match_result.created_at = match_at
+
+            if analysis_run:
+                analysis_run.match_result_id = match_result.id
+
+            if not db.scalar(
+                select(MatchDimensionScore.id)
+                .where(MatchDimensionScore.match_result_id == match_result.id)
+                .limit(1)
+            ):
+                weights = job_profile.dimension_weights or {
+                    "basic_requirements": 0.15,
+                    "professional_skills": 0.45,
+                    "professional_literacy": 0.2,
+                    "development_potential": 0.2,
+                }
+                dimensions = {
+                    "basic_requirements": _clamp_score(total_score - 3 + (idx % 5) * 1.2),
+                    "professional_skills": _clamp_score(total_score - 1 + (idx % 4) * 1.4),
+                    "professional_literacy": _clamp_score(total_score - 4 + (idx % 3) * 1.5),
+                    "development_potential": _clamp_score(total_score - 2 + (idx % 6) * 1.1),
+                }
+                for dimension, score in dimensions.items():
+                    dimension_score = MatchDimensionScore(
+                        match_result_id=match_result.id,
+                        dimension=dimension,
+                        score=score,
+                        weight=weights.get(dimension, 0.2),
+                        reasoning=f"{dimension}维度得分 {score} 分。",
+                        evidence_json={},
+                    )
+                    dimension_score.created_at = match_at
+                    dimension_score.updated_at = match_at
+                    db.add(dimension_score)
+
+        report = None
+        if has_profile and report_status and match_result:
+            report = db.scalar(
+                select(CareerReport)
+                .where(CareerReport.student_id == student.id, CareerReport.target_job_code == job_code)
+                .order_by(CareerReport.created_at.desc())
+                .limit(1)
+            )
+            content_json = {
+                "student_summary": f"{name}，{school}{major}专业{grade}在读，目标岗位为{job_title}。",
+                "capability_profile": {
+                    "skills": selected_skills[:4],
+                    "completeness": completeness,
+                },
+                "matching_analysis": {
+                    "total_score": score_bucket,
+                    "target_job": job_title,
+                    "strengths": match_result.strengths_json or [],
+                    "gaps": match_result.gaps_json or [],
+                },
+            }
+            markdown_content = (
+                f"# {name}的职业规划报告\n\n"
+                f"## 学生基本情况\n{name}，{school}{major}专业{grade}在读。\n\n"
+                f"## 目标岗位\n{job_title}\n\n"
+                f"## 匹配分析\n综合匹配度：{score_bucket}分。\n\n"
+                f"## 优势亮点\n"
+                + ("\n".join([f"- {item}" for item in (match_result.strengths_json or ["基础能力较扎实"])]) or "- 基础能力较扎实")
+                + "\n\n## 差距分析\n"
+                + ("\n".join([f"- {gap.get('item', '核心能力')}: {gap.get('description', '')}" for gap in (match_result.gaps_json or [])]) or "- 建议补强核心技能。")
+                + "\n\n## 行动计划\n1. 完成目标岗位核心能力补强\n2. 增加项目或实习经历\n3. 定期复盘并更新成长任务\n\n## 教师建议\n可结合教师点评安排下一阶段跟进。"
+            )
+
+            if not report:
+                report = CareerReport(
+                    student_id=student.id,
+                    target_job_code=job_code,
+                    status=report_status,
+                    content_json=content_json,
+                    markdown_content=markdown_content,
+                    match_result_id=match_result.id,
+                    analysis_run_id=analysis_run.id if analysis_run else None,
+                )
+                report.created_at = report_at
+                report.updated_at = report_at
+                db.add(report)
+                db.flush()
+                touched_students += 1
+            else:
+                report.status = report_status
+                report.content_json = content_json
+                report.markdown_content = markdown_content
+                report.match_result_id = match_result.id
+                report.analysis_run_id = analysis_run.id if analysis_run else None
+                if not report.created_at:
+                    report.created_at = report_at
+
+            if analysis_run:
+                analysis_run.report_id = report.id
+                analysis_run.current_step = "reported"
+
+        if has_profile and growth_task_status:
+            existing_tasks = db.scalars(
+                select(GrowthTask)
+                .where(GrowthTask.student_id == student.id)
+                .order_by(GrowthTask.created_at.asc(), GrowthTask.id.asc())
+            ).all()
+            if not existing_tasks:
+                task = GrowthTask(
+                    student_id=student.id,
+                    report_id=report.id if report else None,
+                    title=f"{job_title}：补齐岗位核心技能",
+                    phase="短期",
+                    deadline=now + timedelta(days=7 + idx),
+                    metric="完成度100%",
+                    status=growth_task_status,
+                )
+                task.created_at = task_at
+                task.updated_at = task.created_at
+                db.add(task)
+                touched_students += 1
+            else:
+                for task_idx, task in enumerate(existing_tasks):
+                    task.report_id = report.id if report else task.report_id
+                    task.metric = "完成度100%"
+                    if task_idx == 0:
+                        task.title = f"{job_title}：补齐岗位核心技能"
+                        task.phase = "短期"
+                        task.deadline = now + timedelta(days=7 + idx)
+                        task.status = growth_task_status
+                    else:
+                        task.status = "completed"
+                        if not task.deadline:
+                            task.deadline = now + timedelta(days=21 + idx + task_idx * 7)
+
+        if report and teacher_user and not db.scalar(
+            select(TeacherComment.id).where(TeacherComment.report_id == report.id).limit(1)
+        ):
+            priority = "high" if score_bucket < 70 else "normal"
+            follow_up_status = growth_task_status if growth_task_status in {"pending", "in_progress", "completed", "overdue"} else None
+            comment = TeacherComment(
+                teacher_id=teacher_user.id,
+                student_id=student.id,
+                report_id=report.id,
+                analysis_run_id=analysis_run.id if analysis_run else None,
+                comment=(
+                    "当前报告已生成，建议优先围绕 "
+                    f"{job_title} 的核心能力补强，并在下一次复盘前完成至少一项可量化成果。"
+                ),
+                priority=priority,
+                visible_to_student=True,
+                follow_up_status=follow_up_status,
+                next_follow_up_date=now + timedelta(days=10 + idx % 7),
+            )
+            comment.created_at = report.updated_at or report_at
+            comment.updated_at = comment.created_at
+            if score_bucket >= 85 and idx % 3 == 0:
+                comment.student_read_at = comment.created_at + timedelta(days=1)
+            db.add(comment)
+            touched_students += 1
+
+        if teacher and not db.scalar(
+            select(TeacherStudentLink.id).where(
+                TeacherStudentLink.teacher_id == teacher.id,
+                TeacherStudentLink.student_id == student.id,
+                TeacherStudentLink.status == "active",
+            ).limit(1)
+        ):
+            db.add(TeacherStudentLink(
+                teacher_id=teacher.id,
+                student_id=student.id,
+                is_primary=True,
+                source="manual",
+                status="active",
+            ))
+            touched_students += 1
+
+    if teacher:
+        roster_links = db.scalars(
+            select(TeacherStudentLink)
+            .where(
+                TeacherStudentLink.teacher_id == teacher.id,
+                TeacherStudentLink.status == "active",
+            )
+        ).all()
+        for link in roster_links:
+            roster_student = db.scalar(select(Student).where(Student.id == link.student_id))
+            roster_user = db.scalar(select(User).where(User.id == roster_student.user_id)) if roster_student else None
+            username = roster_user.username if roster_user else ""
+            if username and username != "student_demo" and (
+                not username.startswith("demo_student_")
+                or username not in ALLOWED_DEMO_STUDENT_USERNAMES
+            ):
+                link.status = "inactive"
+
+    db.commit()
+    return touched_students
+
+
+def seed_demo_students(db: Session) -> int:
+    """Create demo students or repair an incomplete demo data chain."""
     if db.scalar(select(User).where(User.username == "demo_student_001")):
-        return 0
+        return _repair_existing_demo_students(db)
 
     # Pre-load or create job profiles for FK references
     job_profiles: dict[str, JobProfile] = {}
@@ -373,7 +876,7 @@ def seed_demo_students(db: Session) -> int:
         job_profiles[jp.job_code] = jp
 
     # Ensure a JobProfile exists for every job_code used in templates
-    used_job_codes = {t[4] for t in _STUDENT_TEMPLATES}  # job_code is index 4
+    used_job_codes = {t[4] for t in DEMO_STUDENT_TEMPLATES}  # job_code is index 4
     for jcode, jtitle in TARGET_JOBS:
         if jcode in used_job_codes and jcode not in job_profiles:
             jp = JobProfile(
@@ -400,7 +903,7 @@ def seed_demo_students(db: Session) -> int:
         name, major, grade, school, job_code, job_title,
         score_bucket, has_resume, has_profile, report_status,
         growth_task_status, completeness,
-    ) in enumerate(_STUDENT_TEMPLATES, start=1):
+    ) in enumerate(DEMO_STUDENT_TEMPLATES, start=1):
         # --- User ---
         seq = f"{idx:03d}"
         username = f"demo_student_{seq}"
@@ -654,22 +1157,20 @@ def seed_demo_students(db: Session) -> int:
                 "J-FDQ-001": ["学习食品安全法规", "完成质量检测实训", "学习HACCP体系"],
                 "J-CON-001": ["完成行业研究分析", "学习咨询方法论", "参加案例竞赛"],
             }
-            titles = task_titles.get(job_code, ["完成技能提升计划", "参加实践活动"])
-            phases = ["短期", "中期"]
-            for i, title in enumerate(titles):
-                deadline = now + timedelta(days=random.randint(7, 60))
-                task = GrowthTask(
-                    student_id=student.id,
-                    report_id=report.id if report else None,
-                    title=title,
-                    phase=phases[i] if i < len(phases) else "中期",
-                    deadline=deadline,
-                    metric="完成度100%",
-                    status=growth_task_status if i == 0 else random.choice(GROWTH_TASK_STATUSES),
-                )
-                task.created_at = _random_datetime(3, 50)
-                task.updated_at = task.created_at
-                db.add(task)
+            title = task_titles.get(job_code, ["完成技能提升计划"])[0]
+            deadline = now + timedelta(days=random.randint(7, 60))
+            task = GrowthTask(
+                student_id=student.id,
+                report_id=report.id if report else None,
+                title=title,
+                phase="短期",
+                deadline=deadline,
+                metric="完成度100%",
+                status=growth_task_status,
+            )
+            task.created_at = _random_datetime(3, 50)
+            task.updated_at = task.created_at
+            db.add(task)
 
         created_count += 1
 
@@ -686,7 +1187,7 @@ def seed_demo_students(db: Session) -> int:
         demo_student_ids = db.scalars(
             select(Student.id).where(
                 Student.user_id.in_(
-                    select(User.id).where(User.username.like("demo_student_%"))
+                    select(User.id).where(User.username.in_(sorted(ALLOWED_DEMO_STUDENT_USERNAMES)))
                 )
             )
         ).all()

@@ -1,4 +1,7 @@
+import io
+
 import pytest
+from docx import Document
 
 from app.integrations.ocr.providers import (
     MockOCRProvider,
@@ -6,6 +9,15 @@ from app.integrations.ocr.providers import (
     OCRServiceError,
     OCRNetworkError,
 )
+
+
+def _build_docx(text: str) -> bytes:
+    doc = Document()
+    for line in text.splitlines():
+        doc.add_paragraph(line)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 
 
 @pytest.mark.asyncio
@@ -164,3 +176,106 @@ async def test_paddle_ocr_raises_network_error_on_connection_error(monkeypatch):
         await provider.parse_document("test.pdf", b"content")
     assert exc_info.value.error_code == "network_error"
     assert exc_info.value.retryable is True
+
+
+@pytest.mark.asyncio
+async def test_paddle_ocr_calls_remote_service_even_for_docx_with_text(monkeypatch):
+    """Uploaded DOCX files should still hit PaddleOCR instead of short-circuiting to local parsing."""
+    from app.integrations.ocr.providers import PaddleOCRProvider
+
+    calls: list[dict] = []
+
+    class MockResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "raw_text": "姓名：张三\n技能：Python",
+                "layout_blocks": [{"section": "page_0", "text": "姓名：张三\n技能：Python"}],
+                "structured_json": {
+                    "document_type": "resume",
+                    "name": "张三",
+                    "school": "",
+                    "major": "",
+                    "grade": "",
+                    "graduation_year": "",
+                    "target_job": "",
+                    "skills": ["Python"],
+                    "projects": [],
+                    "internships": [],
+                    "certificates": [],
+                    "competitions": [],
+                    "self_evaluation": "",
+                    "gpa": None,
+                },
+            }
+
+    async def mock_post(self, url, **kwargs):
+        calls.append({"url": url, "payload": kwargs.get("json")})
+        return MockResponse()
+
+    monkeypatch.setattr("httpx.AsyncClient.post", mock_post)
+    provider = PaddleOCRProvider(service_url="http://localhost:9999")
+
+    result = await provider.parse_document(
+        "resume.docx",
+        _build_docx("姓名：张三\n技能：Python"),
+        document_type="resume",
+    )
+
+    assert len(calls) == 1
+    assert calls[0]["payload"]["fileType"] == 0
+    assert result["structured_json"]["name"] == "张三"
+@pytest.mark.asyncio
+async def test_paddle_ocr_retries_queue_full_then_succeeds(monkeypatch):
+    """PaddleOCRProvider should retry transient 503 queue-full responses and return parsed text."""
+    import httpx
+
+    from app.integrations.ocr.providers import PaddleOCRProvider
+
+    attempts: list[int] = []
+
+    async def mock_post(self, url, **kwargs):
+        attempts.append(len(attempts) + 1)
+        request = httpx.Request("POST", url)
+        if len(attempts) == 1:
+            return httpx.Response(
+                503,
+                request=request,
+                json={"errorCode": 10010, "errorMsg": "任务提交队列已满，请稍后重试"},
+            )
+        return httpx.Response(
+            200,
+            request=request,
+            json={
+                "result": {
+                    "layoutParsingResults": [
+                        {
+                            "markdown": {
+                                "text": "姓名：张三\n技能：Python SQL\n项目：职业规划系统",
+                            }
+                        }
+                    ]
+                }
+            },
+        )
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr("httpx.AsyncClient.post", mock_post)
+    monkeypatch.setattr("asyncio.sleep", no_sleep)
+    provider = PaddleOCRProvider(
+        service_url="http://localhost:9999",
+        max_retries=3,
+        retry_base_delay_seconds=0.01,
+    )
+
+    result = await provider.parse_document("resume.pdf", b"content", document_type="resume")
+
+    assert attempts == [1, 2]
+    assert result["structured_json"]["name"] == "张三"
+    assert "Python" in result["structured_json"]["skills"]

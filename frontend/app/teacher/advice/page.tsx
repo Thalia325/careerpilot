@@ -11,7 +11,7 @@ const teacherNavItems = [
   { href: "/teacher/info", label: "个人信息", icon: <Icon name="user" size={18} /> },
   { href: "/teacher/reports", label: "学生报告查看", icon: <Icon name="clipboard" size={18} /> },
   { href: "/teacher/overview", label: "班级数据概览", icon: <Icon name="chart" size={18} /> },
-  { href: "/teacher/advice", label: "指导建议", icon: <Icon name="chat" size={18} /> },
+  { href: "/teacher/advice", label: "状态跟进", icon: <Icon name="chat" size={18} /> },
   { href: "/teacher/roster", label: "花名册管理", icon: <Icon name="users" size={18} /> },
 ];
 
@@ -89,14 +89,14 @@ export default function TeacherAdvicePage() {
       <div className="workspace-topbar">
         <div className="workspace-topbar__left">
           <button className="hamburger-btn" onClick={() => setDrawerOpen(true)} aria-label="打开菜单"><Icon name="menu" size={20} /></button>
-          <span className="workspace-topbar__title">指导建议</span>
+          <span className="workspace-topbar__title">状态跟进</span>
         </div>
         <div className="workspace-topbar__right">
           <button className="workspace-topbar__logout" onClick={handleLogout}>退出</button>
         </div>
       </div>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px" }}>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0 0 16px" }}>指导建议</h1>
+        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0 0 16px" }}>状态跟进</h1>
         {loading ? (
           <div style={{ textAlign: "center", padding: 32, color: "var(--subtle)" }}>加载中...</div>
         ) : adviceItems.length > 0 ? (
@@ -133,7 +133,7 @@ export default function TeacherAdvicePage() {
                       <textarea
                         value={notes}
                         onChange={e => setNotes(e.target.value)}
-                        placeholder="输入指导建议或跟进备注..."
+                        placeholder="输入跟进备注..."
                         style={{ width: "100%", minHeight: 60, padding: 8, borderRadius: 6, border: "1px solid #d1d5db", fontSize: "0.85rem", resize: "vertical" }}
                       />
                     </div>
@@ -190,7 +190,7 @@ export default function TeacherAdvicePage() {
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: "center", padding: 32, color: "var(--subtle)" }}>暂无指导建议</div>
+          <div style={{ textAlign: "center", padding: 32, color: "var(--subtle)" }}>暂无状态跟进</div>
         )}
       </div>
     </div>

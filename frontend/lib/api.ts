@@ -1,4 +1,4 @@
-import { demoJobTemplates, demoMatching, demoPath, demoReportMarkdown, demoStudentProfile, type JobDetail } from "./demo-data";
+import { demoJobTemplates, demoMatching, demoPath, demoStudentProfile, type JobDetail } from "./demo-data";
 export type { JobDetail };
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -44,6 +44,13 @@ export type MockInterviewEvaluation = {
   focus_summary: string[];
   feedback: MockInterviewFeedbackItem[];
   next_actions: string[];
+};
+export type KnowledgeHit = {
+  title: string;
+  snippet: string;
+  doc_type: string;
+  source_ref: string;
+  score?: number | null;
 };
 export type SchedulerJobItem = {
   job_name: string;
@@ -118,7 +125,24 @@ export class APIError extends Error {
 
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
-  const token = localStorage.getItem("token");
+  const readCookie = (name: string): string => {
+    const cookie = document.cookie
+      .split(";")
+      .map((item) => item.trim())
+      .find((item) => item.startsWith(`${name}=`));
+    if (!cookie) return "";
+    const [, value = ""] = cookie.split("=", 2);
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  };
+
+  const token =
+    localStorage.getItem("token") ||
+    readCookie("auth_token") ||
+    readCookie("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -323,6 +347,7 @@ export type JobExploreItem = Omit<JobDetail, "category"> & {
   job_code?: string;
   category: string;
   industry?: string;
+  industry_group?: string;
   location?: string;
   company_name?: string;
   company_size?: string;
@@ -349,39 +374,16 @@ export async function generateReport(
   jobCode: string,
   context?: { analysis_run_id?: number | null; profile_version_id?: number | null; match_result_id?: number | null },
 ): Promise<ReportDraft> {
-  try {
-    return await request<ReportDraft>("/reports/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        student_id: studentId,
-        job_code: jobCode,
-        analysis_run_id: context?.analysis_run_id ?? null,
-        profile_version_id: context?.profile_version_id ?? null,
-        match_result_id: context?.match_result_id ?? null,
-      })
-    });
-  } catch (error) {
-    if (error instanceof APIError && error.isNetworkError && process.env.NODE_ENV === "development") {
-      console.warn("[Fallback] Using demo data for report due to network error");
-      return {
-        report_id: 1,
-        student_id: studentId,
-        job_code: jobCode,
-        matched_job_code: jobCode,
-        matched_job_title: null,
-        ideal_job_code: jobCode,
-        ideal_job_title: null,
-        markdown_content: demoReportMarkdown,
-        content: {},
-        status: "draft",
-        path_recommendation_id: null,
-        profile_version_id: null,
-        match_result_id: null,
-        analysis_run_id: null,
-      };
-    }
-    throw error;
-  }
+  return request<ReportDraft>("/reports/generate", {
+    method: "POST",
+    body: JSON.stringify({
+      student_id: studentId,
+      job_code: jobCode,
+      analysis_run_id: context?.analysis_run_id ?? null,
+      profile_version_id: context?.profile_version_id ?? null,
+      match_result_id: context?.match_result_id ?? null,
+    })
+  });
 }
 
 export async function getReport(reportId: number): Promise<ReportDraft> {
@@ -405,6 +407,7 @@ export type ReportExportResult = {
     format: string;
     path: string;
     file_name: string;
+    preview_file_name?: string | null;
   };
 };
 
@@ -494,9 +497,9 @@ function generateDemoChatReply(message: string): string {
 请描述你的问题，我会尽力为你解答！`;
 }
 
-export async function sendChatMessage(message: string): Promise<{ reply: string }> {
+export async function sendChatMessage(message: string): Promise<{ reply: string; knowledge_hits?: KnowledgeHit[] }> {
   try {
-    return await request<{ reply: string }>("/chat", {
+    return await request<{ reply: string; knowledge_hits?: KnowledgeHit[] }>("/chat", {
       method: "POST",
       body: JSON.stringify({ message })
     });
@@ -507,6 +510,10 @@ export async function sendChatMessage(message: string): Promise<{ reply: string 
     }
     throw error;
   }
+}
+
+export async function searchKnowledge(query: string): Promise<{ query: string; items: KnowledgeHit[] }> {
+  return request<{ query: string; items: KnowledgeHit[] }>(`/chat/knowledge/search?query=${encodeURIComponent(query)}`);
 }
 
 export async function getGreeting(): Promise<{ greeting: string; subline: string }> {
@@ -1089,6 +1096,7 @@ export type RecommendedJob = {
   salary: string;
   location?: string;
   industry?: string;
+  industry_group?: string;
   company_size?: string;
   ownership_type?: string;
   summary?: string;

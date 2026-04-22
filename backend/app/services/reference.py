@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -11,14 +12,19 @@ from typing import Any
 from app.core.config import get_settings
 
 
+CURATED_DATASET_CANDIDATE_NAMES = (
+    "a13_jobs_augmented.csv",
+    "a13_jobs_supplement.csv",
+)
+
 DATASET_CANDIDATE_NAMES = (
+    *CURATED_DATASET_CANDIDATE_NAMES,
     "official_jobs.xls",
     "official_jobs.xlsx",
     "official_jobs.csv",
     "a13_jobs.xls",
     "a13_jobs.xlsx",
     "a13_jobs.csv",
-    "a13_jobs_augmented.csv",
     "sample_jobs.csv",
 )
 
@@ -284,6 +290,166 @@ TECH_EXCEPTION_KEYWORDS = (
     "测试",
 )
 
+STUDENT_FACING_INCLUDE_KEYWORDS = (
+    "前端开发",
+    "后端开发",
+    "全栈",
+    "测试工程",
+    "测试开发",
+    "数据分析",
+    "数据工程师",
+    "算法工程师",
+    "ai 算法",
+    "人工智能算法",
+    "运维工程",
+    "devops",
+    "sre",
+    "网络安全",
+    "安全工程师",
+    "网络工程师",
+    "java",
+    "python",
+    "c++",
+    "c#",
+    "go开发",
+    "嵌入式",
+    "通信工程师",
+    "硬件工程师",
+    "硬件测试",
+    "芯片",
+    "fpga",
+    "技术支持工程师",
+    "实施工程师",
+    "解决方案工程师",
+    "软件开发",
+    "软件工程师",
+)
+
+STUDENT_FACING_EXCLUDE_KEYWORDS = (
+    "产品经理",
+    "产品专员",
+    "产品助理",
+    "ui/ux",
+    "ux",
+    "ue",
+    "设计师",
+    "设计",
+    "视觉",
+    "交互",
+    "运营",
+    "市场",
+    "广告",
+    "销售",
+    "财务",
+    "会计",
+    "法务",
+    "审计",
+    "培训",
+    "讲师",
+    "人力",
+    "行政",
+    "客服",
+    "采购",
+    "供应链",
+    "翻译",
+    "职业规划",
+    "scrum",
+    "敏捷",
+    "咨询",
+    "顾问",
+    "专员",
+    "电气",
+    "食品",
+    "仓储",
+    "物流",
+    "风控",
+    "风险控制",
+    "质量管理",
+    "招投标",
+    "招标",
+    "投标",
+    "选址",
+    "门店",
+)
+
+STUDENT_FACING_SKILL_KEYWORDS = (
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "react",
+    "vue",
+    "next.js",
+    "node",
+    "fastapi",
+    "spring",
+    "sql",
+    "mysql",
+    "postgresql",
+    "redis",
+    "docker",
+    "kubernetes",
+    "linux",
+    "算法",
+    "机器学习",
+    "深度学习",
+    "pytorch",
+    "spark",
+    "etl",
+    "airflow",
+)
+
+INDUSTRY_ALIAS_MAP: dict[str, str] = {
+    "it服务": "IT服务",
+    "互联网": "互联网",
+    "计算机软件": "计算机软件",
+    "计算机硬件": "计算机硬件",
+    "云计算/大数据": "云计算/大数据",
+    "人工智能": "人工智能",
+    "网络/信息安全": "网络/信息安全",
+    "物联网": "物联网",
+    "电子/半导体/集成电路": "电子/半导体/集成电路",
+    "电子设备制造": "电子设备制造",
+    "通信/网络设备": "通信/网络设备",
+    "专业技术服务": "专业技术服务",
+    "企业服务": "企业服务",
+    "咨询服务": "咨询服务",
+    "仪器仪表制造": "仪器仪表制造",
+    "电气机械/电力设备": "电气机械/电力设备",
+    "电力/水利/热力/燃气": "电力/水利/热力/燃气",
+}
+
+OWNERSHIP_ALIAS_MAP: dict[str, str] = {
+    "股份制企业": "股份制企业",
+    "民营": "民营",
+    "民营公司": "民营",
+    "上市公司": "上市公司",
+    "已上市": "上市公司",
+    "国企": "国企",
+    "国有企业": "国企",
+    "外商独资": "外商独资",
+    "合资": "合资",
+    "未融资": "未融资",
+    "天使轮": "天使轮",
+    "a轮": "A轮",
+    "b轮": "B轮",
+    "c轮": "C轮",
+}
+
+
+INDUSTRY_GROUP_RULES: list[tuple[str, tuple[str, ...]]] = [
+    ("AI/大数据", ("人工智能", "云计算", "大数据", "数据服务", "数据智能")),
+    ("硬件/半导体", ("半导体", "集成电路", "电子", "计算机硬件", "仪器仪表制造")),
+    ("通信/网络", ("通信", "网络设备", "网络/信息安全", "信息安全", "物联网")),
+    ("金融科技/数据", ("银行", "保险", "证券", "基金", "信托", "期货")),
+    ("医疗信息化", ("医疗设备", "器械", "医药制造", "卫生服务", "生物工程")),
+    ("制造业数字化", ("汽车研发", "制造", "工业自动化", "电气机械", "电力设备", "船舶", "航空", "航天", "火车制造")),
+    ("能源/电力数字化", ("电力", "水利", "热力", "燃气", "环保", "矿产", "采掘")),
+    ("教育/科研信息化", ("学术", "科研", "在线教育")),
+    ("软件/互联网", ("计算机软件", "互联网", "IT服务", "电子商务")),
+    ("企业服务/咨询", ("专业技术服务", "企业服务", "咨询服务", "人力资源服务")),
+]
+
 
 def _load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as file:
@@ -293,7 +459,7 @@ def _load_json(path: Path) -> Any:
 def _normalize_text(value: Any) -> str:
     if value is None:
         return ""
-    text = str(value).strip()
+    text = unicodedata.normalize("NFKC", str(value)).strip()
     if text.lower() in {"nan", "none", "null"}:
         return ""
     return text
@@ -301,6 +467,113 @@ def _normalize_text(value: Any) -> str:
 
 def _collapse_text(value: Any) -> str:
     return re.sub(r"\s+", " ", _normalize_text(value)).lower()
+
+
+def _split_multi_value_text(value: Any) -> list[str]:
+    text = _normalize_text(value)
+    if not text:
+        return []
+    text = text.replace("，", ",").replace("、", ",").replace("；", ",").replace("|", ",")
+    return [part.strip() for part in re.split(r"[,]+", text) if part and part.strip()]
+
+
+def _unique_ordered(parts: list[str]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        key = part.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(part)
+    return ordered
+
+
+def _normalize_location_value(value: Any) -> str:
+    text = _normalize_text(value)
+    if not text:
+        return ""
+    return re.sub(r"\s+", "", text.replace("—", "-").replace("--", "-"))
+
+
+def _normalize_company_size_value(value: Any) -> str:
+    parts = [part for part in _split_multi_value_text(value) if not re.fullmatch(r"\d{6,}", part)]
+    if not parts:
+        return _normalize_text(value)
+    return _unique_ordered(parts)[0]
+
+
+def _normalize_ownership_type_value(value: Any) -> str:
+    parts = [part for part in _split_multi_value_text(value) if not re.fullmatch(r"\d{6,}", part)]
+    if not parts:
+        return _normalize_text(value)
+    normalized = [OWNERSHIP_ALIAS_MAP.get(part.lower(), part) for part in parts]
+    return _unique_ordered(normalized)[0]
+
+
+def normalize_industry_value(value: Any) -> str:
+    normalized: list[str] = []
+    for part in _split_multi_value_text(value):
+        cleaned = re.sub(r"\s+", "", part)
+        if not cleaned or re.fullmatch(r"\d{6,}", cleaned):
+            continue
+        normalized.append(INDUSTRY_ALIAS_MAP.get(cleaned.lower(), cleaned))
+    if not normalized:
+        return _normalize_text(value)
+    return " / ".join(_unique_ordered(normalized)[:4])
+
+
+def split_industry_tags(value: Any) -> list[str]:
+    text = normalize_industry_value(value)
+    if not text:
+        return []
+    return _unique_ordered(
+        [part.strip() for part in re.split(r"\s*/\s*", text) if part and part.strip()]
+    )
+
+
+def summarize_industry_tags(value: Any, limit: int = 3) -> str:
+    tags = split_industry_tags(value)
+    if not tags:
+        return ""
+    return " / ".join(tags[:limit])
+
+
+def derive_industry_group(value: Any) -> str:
+    tags = split_industry_tags(value)
+    if not tags:
+        return "其他技术行业"
+    merged = " ".join(tags).lower()
+    for group, keywords in INDUSTRY_GROUP_RULES:
+        if any(keyword.lower() in merged for keyword in keywords):
+            return group
+    return "其他技术行业"
+
+
+def normalize_posting_snapshot(row: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(row)
+    normalized["title"] = normalize_job_title(normalized.get("title"))
+    normalized["location"] = _normalize_location_value(normalized.get("location"))
+    normalized["salary_range"] = _normalize_text(normalized.get("salary_range"))
+    normalized["company_name"] = _normalize_text(normalized.get("company_name"))
+    normalized["industry"] = normalize_industry_value(normalized.get("industry"))
+    normalized["industry_group"] = derive_industry_group(normalized.get("industry"))
+    normalized["company_size"] = _normalize_company_size_value(normalized.get("company_size"))
+    normalized["ownership_type"] = _normalize_ownership_type_value(normalized.get("ownership_type"))
+    normalized["description"] = _normalize_text(normalized.get("description"))
+    normalized["company_intro"] = _normalize_text(normalized.get("company_intro"))
+    normalized["job_code"] = _normalize_text(normalized.get("job_code"))
+    return normalized
+
+
+def job_profile_snapshot(profile: Any) -> dict[str, Any]:
+    return {
+        "title": getattr(profile, "title", ""),
+        "summary": getattr(profile, "summary", ""),
+        "description": getattr(profile, "summary", ""),
+        "skills": getattr(profile, "skill_requirements", []) or [],
+        "job_code": getattr(profile, "job_code", ""),
+    }
 
 
 def _pick_value(row: dict[str, Any], aliases: tuple[str, ...]) -> str:
@@ -344,7 +617,7 @@ def normalize_job_dataset_row(row: dict[str, Any]) -> dict[str, Any] | None:
     normalized = {field: _pick_value(row, aliases) for field, aliases in JOB_FIELD_ALIASES.items()}
     if not any(normalized.values()):
         return None
-    normalized["title"] = normalize_job_title(normalized["title"])
+    normalized = normalize_posting_snapshot(normalized)
     if not normalized["title"]:
         return None
     normalized["source_url"] = normalized["source_url"].replace("http://", "https://")
@@ -391,6 +664,47 @@ def is_computer_related_job(row: dict[str, Any]) -> bool:
 
 def filter_computer_related_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [row for row in rows if is_computer_related_job(row)]
+
+
+def _template_skill_blob(row: dict[str, Any]) -> str:
+    skills = row.get("skills")
+    if isinstance(skills, list):
+        return " ".join(_normalize_text(item) for item in skills)
+    return _normalize_text(skills)
+
+
+def is_student_facing_computer_job(row: dict[str, Any]) -> bool:
+    title = _collapse_text(normalize_job_title(row.get("title")))
+    if not title:
+        return False
+    if any(keyword in title for keyword in STUDENT_FACING_EXCLUDE_KEYWORDS):
+        return False
+
+    merged_text = " ".join(
+        filter(
+            None,
+            (
+                title,
+                _collapse_text(row.get("summary")),
+                _collapse_text(row.get("description")),
+                _collapse_text(_template_skill_blob(row)),
+            ),
+        )
+    )
+    if any(keyword in title for keyword in STUDENT_FACING_INCLUDE_KEYWORDS):
+        return True
+    title_supports_fallback = any(keyword in title for keyword in ("工程师", "开发", "分析师"))
+    return title_supports_fallback and sum(
+        1 for keyword in STUDENT_FACING_SKILL_KEYWORDS if keyword in merged_text
+    ) >= 3
+
+
+def filter_student_facing_job_templates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [row for row in rows if is_student_facing_computer_job(row)]
+
+
+def filter_student_facing_job_profiles(profiles: list[Any]) -> list[Any]:
+    return [profile for profile in profiles if is_student_facing_computer_job(job_profile_snapshot(profile))]
 
 
 def _load_csv_rows(path: Path) -> list[dict[str, Any]]:
@@ -442,6 +756,11 @@ def _load_xlsx_rows(path: Path) -> list[dict[str, Any]]:
 
 def resolve_job_dataset_path(explicit_path: str | None = None) -> Path:
     settings = get_settings()
+    if settings.job_dataset_prefer_curated_local:
+        for candidate in CURATED_DATASET_CANDIDATE_NAMES:
+            path = settings.data_dir / candidate
+            if path.exists():
+                return path
     if explicit_path:
         path = Path(explicit_path).expanduser()
         if path.exists():
@@ -513,7 +832,7 @@ def get_job_dataset_metadata(dataset_path: str | None = None) -> dict[str, Any]:
         "filtered_row_count": len(filtered_rows),
         "excluded_row_count": max(len(raw_rows) - len(filtered_rows), 0),
         "computer_related_only": True,
-        "source": "official" if path.name != "sample_jobs.csv" else "sample",
+        "source": "sample" if path.name == "sample_jobs.csv" else ("curated" if path.name in CURATED_DATASET_CANDIDATE_NAMES else "official"),
     }
 
 

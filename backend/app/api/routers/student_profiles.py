@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import ensure_student_owns_resource, get_container, get_current_user, get_db_session
 from app.core.errors import require_role
+from app.integrations.llm.providers import LLMGenerationError
 from app.models import ProfileVersion, User
 from app.schemas.profile import StudentProfileGenerateRequest, StudentProfileOut, ProfileVersionOut
 from app.services.bootstrap import ServiceContainer
@@ -32,6 +33,8 @@ async def generate_student_profile(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except LLMGenerationError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=e.to_dict())
     return StudentProfileOut(**result)
 
 
@@ -112,4 +115,3 @@ def _version_to_dict(v: ProfileVersion) -> dict:
 
 def _version_to_out(v: ProfileVersion) -> ProfileVersionOut:
     return ProfileVersionOut(**_version_to_dict(v))
-

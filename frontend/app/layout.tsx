@@ -1,6 +1,12 @@
-import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { ReactNode } from "react";
+import fs from "node:fs";
+import path from "node:path";
+
+const globalStyles = fs.readFileSync(
+  path.join(process.cwd(), "app", "globals.css"),
+  "utf8",
+);
 
 export const metadata: Metadata = {
   title: {
@@ -30,6 +36,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN">
       <head>
         <meta charSet="utf-8" />
+        <style
+          id="careerpilot-globals"
+          dangerouslySetInnerHTML={{ __html: globalStyles }}
+        />
       </head>
       <body>
         <a href="#main-content" className="skip-to-main">
@@ -40,4 +50,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-

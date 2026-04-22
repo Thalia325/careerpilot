@@ -51,7 +51,7 @@ export default function RegisterPage() {
     setError("");
 
     if (username.length < 3) {
-      setError("用户名至少3个字符");
+      setError("账号至少3个字符");
       return;
     }
 
@@ -147,13 +147,13 @@ export default function RegisterPage() {
             {error && <div className="login-form__error">{error}</div>}
 
             <div>
-              <label htmlFor="username">用户名</label>
+              <label htmlFor="username">账号</label>
               <input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="自定义用户名（至少3个字符）"
+                placeholder="自定义账号（至少3个字符）"
                 required
               />
             </div>
@@ -171,13 +171,17 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email">邮箱</label>
+              <label htmlFor="email">{activeRole === "teacher" ? "绑定邮箱" : "邮箱"}</label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="用于账号通知和老师绑定"
+                placeholder={
+                  activeRole === "teacher"
+                    ? "建议填写常用邮箱，便于学生通过邮箱绑定你"
+                    : "用于账号通知和绑定老师"
+                }
                 required
               />
             </div>
@@ -190,7 +194,7 @@ export default function RegisterPage() {
                   type="text"
                   value={teacherCode}
                   onChange={(e) => setTeacherCode(e.target.value)}
-                  placeholder="填写老师用户名或邮箱，可稍后由管理员绑定"
+                  placeholder="填写老师账号或绑定邮箱，可稍后由管理员绑定"
                 />
               </div>
             )}

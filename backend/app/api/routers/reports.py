@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import ensure_student_owns_resource, get_container, get_current_user, get_db_session
 from app.api.routers.students import resolve_target_job
 from app.core.errors import require_role
+from app.integrations.llm.providers import LLMGenerationError
 from app.models import CareerReport, Student, UploadedFile, User
 from app.schemas.report import (
     ReportCheckRequest,
@@ -156,6 +157,8 @@ async def generate_report(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except LLMGenerationError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=e.to_dict())
     return ReportResponse(**result)
 
 
@@ -174,7 +177,10 @@ async def polish_report(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="报告不存在")
     ensure_student_owns_resource(current_user, db, report.student_id)
 
-    result = await container.report_service.polish_report(db, payload.report_id, payload.markdown_content)
+    try:
+        result = await container.report_service.polish_report(db, payload.report_id, payload.markdown_content)
+    except LLMGenerationError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=e.to_dict())
     return ReportResponse(**result)
 
 

@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     graph_provider: Literal["mock", "neo4j"] = "mock"
     storage_provider: Literal["local", "minio"] = "local"
     job_profile_mock_fallback_enabled: bool = True
+    strict_ai_providers: bool = True
+    force_profile_ocr_refresh: bool = True
+    force_report_regeneration: bool = True
+    force_report_ocr_refresh: bool = True
+    auto_bind_latest_profile_version: bool = True
+    ocr_recent_cache_ttl_seconds: int = 900
 
     ernie_api_key: str = ""
     ernie_access_token_encrypted: str = ""
@@ -57,12 +63,16 @@ class Settings(BaseSettings):
     ernie_model: str = "ernie-5.0-thinking-preview"
     paddle_ocr_service_url: str = "https://rdj6r9sbc98duaa1.aistudio-app.com/layout-parsing"
     paddle_ocr_api_key_encrypted: str = ""
+    paddle_ocr_timeout_seconds: float = 60.0
+    paddle_ocr_max_retries: int = 5
+    paddle_ocr_retry_base_delay_seconds: float = 2.0
     ragflow_base_url: str = ""
     ragflow_api_key: str = ""
 
     data_dir: Path = ROOT_DIR / "data"
     job_dataset_path: str = ""
     job_dataset_filtering_enabled: bool = True
+    job_dataset_prefer_curated_local: bool = True
 
     @property
     def ernie_access_token(self) -> str:

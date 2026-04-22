@@ -1,9 +1,11 @@
 """Tests for US-008: standardized recommended job fields and recommendation reasons."""
 
+import re
 import pytest
 
 from app.schemas.job import RecommendedJobItem, RecommendedJobsResponse
 from app.schemas.profile import ManualStudentInput
+from app.api.routers.students import _student_facing_profiles
 from app.services.bootstrap import create_service_container, initialize_demo_data
 from app.services.matching.recommendation import generate_recommendation_reason
 
@@ -144,6 +146,7 @@ class TestRecommendedJobItemSchema:
         assert item.location == ""
         assert item.salary == ""
         assert item.industry == ""
+        assert item.industry_group == ""
         assert item.company_size == ""
         assert item.ownership_type == ""
         assert item.matched_tags == []
@@ -231,7 +234,7 @@ class TestRecommendedJobsAPI:
         job = data["items"][0]
         required_fields = [
             "job_code", "title", "company", "location", "salary",
-            "industry", "company_size", "ownership_type", "match_score",
+            "industry", "industry_group", "company_size", "ownership_type", "match_score",
             "matched_tags", "missing_tags", "reason",
         ]
         for field in required_fields:
@@ -274,7 +277,7 @@ class TestRecommendedJobsAPI:
 
     @pytest.mark.asyncio
     async def test_recommended_jobs_returns_ranked_candidates_below_old_threshold(self, client, db_session):
-        """Recommendations should not be truncated to only 60+ scores."""
+        """Recommendations should cover the available student-facing catalog, not only a tiny head list."""
         container = create_service_container()
         await initialize_demo_data(db_session, container)
 
@@ -295,10 +298,66 @@ class TestRecommendedJobsAPI:
         resp = client.get("/api/v1/students/me/recommended-jobs", headers=_auth_headers())
         assert resp.status_code == 200
         items = resp.json()["items"]
+        available_profiles = _student_facing_profiles(db_session)
 
         assert len(items) >= 3
         assert items == sorted(items, key=lambda item: item["match_score"], reverse=True)
-        assert any(item["match_score"] < 60 for item in items)
+        assert len(items) == min(30, len(available_profiles))
+
+    @pytest.mark.asyncio
+    async def test_recommended_jobs_metadata_is_normalized(self, client, db_session):
+        container = create_service_container()
+        await initialize_demo_data(db_session, container)
+
+        await container.student_profile_service.generate_profile(
+            db_session,
+            student_id=1,
+            uploaded_file_ids=[],
+            manual_input=ManualStudentInput(
+                target_job="前端开发工程师",
+                self_introduction="专注 Web 前端开发",
+                skills=["JavaScript", "React", "TypeScript", "HTML", "CSS"],
+                certificates=[],
+                projects=["电商平台前端"],
+                internships=["前端实习"],
+            ),
+        )
+
+        resp = client.get("/api/v1/students/me/recommended-jobs", headers=_auth_headers())
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        if not items:
+            pytest.skip("No recommended jobs returned")
+
+        assert all(not re.search(r"\d{6,}", item.get("industry", "")) for item in items)
+
+    @pytest.mark.asyncio
+    async def test_recommended_jobs_are_unique_by_job_code(self, client, db_session):
+        container = create_service_container()
+        await initialize_demo_data(db_session, container)
+
+        await container.student_profile_service.generate_profile(
+            db_session,
+            student_id=1,
+            uploaded_file_ids=[],
+            manual_input=ManualStudentInput(
+                target_job="后端开发工程师",
+                self_introduction="有服务端开发和数据处理经历",
+                skills=["Python", "FastAPI", "SQL", "Redis"],
+                certificates=[],
+                projects=["任务调度平台", "数据清洗脚本"],
+                internships=["后端开发实习"],
+            ),
+        )
+
+        resp = client.get("/api/v1/students/me/recommended-jobs", headers=_auth_headers())
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        if not items:
+            pytest.skip("No recommended jobs returned")
+
+        job_codes = [item["job_code"] for item in items]
+        assert len(job_codes) == len(set(job_codes))
 
     @pytest.mark.asyncio
     async def test_recommended_jobs_empty_without_profile(self, client, db_session):

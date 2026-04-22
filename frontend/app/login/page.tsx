@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 
@@ -10,7 +9,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/
 const roles = [
   { key: "student", label: "学生" },
   { key: "teacher", label: "教师" },
-  { key: "admin", label: "管理员" }
+  { key: "admin", label: "管理员" },
 ] as const;
 
 type RoleKey = typeof roles[number]["key"];
@@ -18,7 +17,7 @@ type RoleKey = typeof roles[number]["key"];
 const roleRedirects: Record<RoleKey, string> = {
   student: "/student",
   teacher: "/teacher",
-  admin: "/admin"
+  admin: "/admin",
 };
 
 function setCookie(name: string, value: string, days: number = 7) {
@@ -28,7 +27,6 @@ function setCookie(name: string, value: string, days: number = 7) {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
   const isDevelopment = process.env.NODE_ENV === "development";
   const [activeRole, setActiveRole] = useState<RoleKey>("student");
   const [username, setUsername] = useState("");
@@ -36,6 +34,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const redirectToRoleHome = (role: RoleKey) => {
+    window.location.replace(roleRedirects[role]);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +48,12 @@ export default function LoginPage() {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, role: activeRole })
+        body: JSON.stringify({ username, password, role: activeRole }),
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        const detail = body?.detail || "登录失败，请检查用户名和密码";
+        const detail = body?.detail || "登录失败，请检查账号和密码";
         throw new Error(detail);
       }
 
@@ -74,9 +76,10 @@ export default function LoginPage() {
       }
       localStorage.removeItem("chat_messages");
       setCookie("auth_token", token);
+      setCookie("token", token);
       setCookie("user_role", role);
 
-      router.replace(roleRedirects[role]);
+      redirectToRoleHome(role);
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录出错，请重试");
     } finally {
@@ -88,20 +91,28 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-card__header">
+          <p style={{ marginBottom: 12 }}>
+            <Link href="/" style={{ color: "var(--color-primary, #4f46e5)", textDecoration: "underline" }}>
+              返回首页
+            </Link>
+          </p>
           <span className="landing-hero-section__badge">CareerPilot</span>
           <h1>欢迎使用职航智策</h1>
           <p>AI 职业规划助手，助力你的职业发展</p>
         </div>
 
         <div className="login-tabs">
-          {roles.map((r) => (
+          {roles.map((role) => (
             <button
-              key={r.key}
-              className={`login-tab ${activeRole === r.key ? "active" : ""}`}
-              onClick={() => { setActiveRole(r.key); setError(""); }}
+              key={role.key}
+              className={`login-tab ${activeRole === role.key ? "active" : ""}`}
+              onClick={() => {
+                setActiveRole(role.key);
+                setError("");
+              }}
               type="button"
             >
-              {r.label}
+              {role.label}
             </button>
           ))}
         </div>
@@ -111,13 +122,13 @@ export default function LoginPage() {
             {error && <div className="login-form__error">{error}</div>}
 
             <div>
-              <label htmlFor="username">用户名</label>
+              <label htmlFor="username">账号</label>
               <input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="输入用户名"
+                placeholder="输入账号"
                 required
               />
             </div>
@@ -135,7 +146,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(v => !v)}
+                  onClick={() => setShowPassword((value) => !value)}
                   className="password-toggle"
                   tabIndex={-1}
                   aria-label={showPassword ? "隐藏密码" : "显示密码"}
@@ -154,7 +165,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p style={{ textAlign: "center", marginTop: 16, fontSize: 14, color: "var(--color-text-secondary, #888)" }}>
+          <p
+            style={{
+              textAlign: "center",
+              marginTop: 16,
+              fontSize: 14,
+              color: "var(--color-text-secondary, #888)",
+            }}
+          >
             还没有账号？{" "}
             <Link href="/register" style={{ color: "var(--color-primary, #4f46e5)", textDecoration: "underline" }}>
               立即注册
@@ -181,10 +199,10 @@ export default function LoginPage() {
                   localStorage.setItem("user_id", "dev-bypass");
                   localStorage.setItem("username", `dev-${activeRole}`);
                   localStorage.removeItem("chat_messages");
-                  router.replace(roleRedirects[activeRole]);
+                  redirectToRoleHome(activeRole);
                 }}
               >
-                开发模式直接进入（{roles.find(r => r.key === activeRole)?.label}）
+                开发模式直接进入（{roles.find((role) => role.key === activeRole)?.label}）
               </button>
             </div>
           )}

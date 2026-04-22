@@ -13,6 +13,7 @@ os.environ.setdefault("OCR_PROVIDER", "mock")
 os.environ.setdefault("RAGFLOW_PROVIDER", "mock")
 os.environ.setdefault("GRAPH_PROVIDER", "mock")
 os.environ.setdefault("STORAGE_PROVIDER", "local")
+os.environ.setdefault("STRICT_AI_PROVIDERS", "false")
 
 from app.db.base import Base
 

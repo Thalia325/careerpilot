@@ -9,6 +9,7 @@ from app.services.reports.exporters import (
     _parse_markdown_blocks,
     _strip_inline_md,
     export_markdown_to_docx,
+    export_markdown_to_html,
     export_markdown_to_pdf,
 )
 
@@ -193,6 +194,19 @@ class TestExportDOCX:
             assert "计算机科学与技术" in full_text
 
 
+class TestExportHTML:
+    def test_html_preview_created(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "report.preview.html"
+            export_markdown_to_html(SAMPLE_MARKDOWN, output)
+            assert output.exists()
+            html = output.read_text(encoding="utf-8")
+            assert "<!DOCTYPE html>" in html
+            assert "CareerPilot" in html
+            assert "<ul>" in html
+            assert "<blockquote>" in html
+
+
 # ---------------------------------------------------------------------------
 # API integration tests
 # ---------------------------------------------------------------------------
@@ -248,16 +262,17 @@ class TestExportAPI:
         assert data["report_id"] == report_id
         assert data["exported"]["format"] == "docx"
         assert data["exported"]["file_name"].endswith(".docx")
+        assert data["exported"]["preview_file_name"] == f"career_report_{report_id}.preview.html"
 
     def test_export_nonexistent_report(self, client):
-        """Export with invalid report_id returns 500 via ValueError."""
+        """Export with invalid report_id returns 404 before reaching the exporter."""
         headers = {"Authorization": "Bearer dev-bypass"}
         resp = client.post(
             "/api/v1/reports/export",
             json={"report_id": 99999, "format": "pdf"},
             headers=headers,
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 404
 
     def test_exported_file_downloadable(self, client):
         """The exported file is accessible via /exports/{filename}."""
@@ -285,3 +300,29 @@ class TestExportAPI:
         dl_resp = client.get(f"/exports/{file_name}")
         assert dl_resp.status_code == 200
         assert len(dl_resp.content) > 0
+
+    def test_docx_preview_file_downloadable(self, client):
+        """DOCX export also generates a browser-friendly HTML preview."""
+        headers = {"Authorization": "Bearer dev-bypass"}
+        gen_resp = client.post(
+            "/api/v1/reports/generate",
+            json={"student_id": 1, "job_code": "J-FE-001"},
+            headers=headers,
+        )
+        if gen_resp.status_code != 200:
+            pytest.skip(f"Report generation failed: {gen_resp.status_code}")
+
+        report_id = gen_resp.json()["report_id"]
+        export_resp = client.post(
+            "/api/v1/reports/export",
+            json={"report_id": report_id, "format": "docx"},
+            headers=headers,
+        )
+        assert export_resp.status_code == 200
+        preview_file_name = export_resp.json()["exported"]["preview_file_name"]
+        assert preview_file_name == f"career_report_{report_id}.preview.html"
+
+        dl_resp = client.get(f"/exports/{preview_file_name}")
+        assert dl_resp.status_code == 200
+        assert "text/html" in dl_resp.headers["content-type"]
+        assert "CareerPilot" in dl_resp.text

@@ -16,6 +16,7 @@ import {
   getMatching,
   getPathPlan,
   generateReport,
+  getLatestReport,
   getGreeting,
   updateTargetJob,
   clearTargetJob,
@@ -82,6 +83,32 @@ const PIPELINE_STEP_LABELS: Record<string, string> = {
   pathed: "已规划路径",
   reported: "已出报告",
 };
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function parseOCRWithRetry(
+  uploadedFileId: number,
+  documentType: string = "resume",
+  maxAttempts: number = 3,
+) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await parseOCR(uploadedFileId, documentType);
+    } catch (error) {
+      lastError = error;
+      const isRetryable =
+        error instanceof APIError
+          ? Boolean(error.retryable ?? (error.isNetworkError || error.statusCode >= 500))
+          : false;
+      if (!isRetryable || attempt >= maxAttempts) {
+        throw error;
+      }
+      await delay(1500 * attempt);
+    }
+  }
+  throw lastError ?? new Error("OCR 解析失败");
+}
 
 function getUserId(): number | null {
   if (typeof window === "undefined") return null;
@@ -186,6 +213,28 @@ export default function StudentMainPage() {
     } catch {}
   }, []);
 
+  const applyExistingReportState = useCallback((report: {
+    report_id: number;
+    job_code: string;
+    profile_version_id: number | null;
+    match_result_id: number | null;
+    path_recommendation_id: number | null;
+  }) => {
+    setReportId(report.report_id);
+    setProfileVersionId(report.profile_version_id ?? null);
+    setMatchResultId(report.match_result_id ?? null);
+    setPathRecommendationId(report.path_recommendation_id ?? null);
+    setPipelineCompletedSteps(new Set(PIPELINE_STEP_KEYS));
+    setPipelineCurrent("reported");
+    setPipelineError(null);
+    setPipelineErrorDetail(undefined);
+    setPipelineDone(true);
+    setIncompleteRunData(false);
+    if (report.job_code) {
+      setJobCode(report.job_code);
+    }
+  }, []);
+
   useEffect(() => {
     refreshFiles();
     loadGreeting();
@@ -202,10 +251,33 @@ export default function StudentMainPage() {
       })
       .catch(() => {});
 
-    // Restore pipeline state from latest analysis run
+    // Restore pipeline state from the latest analysis run.
+    // If a real report already exists, prefer it over stale final-step failures.
     (async () => {
       try {
-        const run = await getLatestAnalysis();
+        const [run, latestReport] = await Promise.all([
+          getLatestAnalysis().catch(() => null),
+          getLatestReport().catch(() => null),
+        ]);
+
+        const shouldUseExistingReport =
+          !!latestReport &&
+          (
+            !run ||
+            (run.status === "completed" && !run.report_id) ||
+            (run.status === "failed" && (run.failed_step === "reported" || run.current_step === "reported")) ||
+            (run.status === "running" && run.current_step === "reported")
+          );
+
+        if (shouldUseExistingReport && latestReport) {
+          applyExistingReportState(latestReport);
+          return;
+        }
+
+        if (!run) {
+          return;
+        }
+
         if (run.status === "completed") {
           const completed = new Set<string>();
           for (const [key, done] of Object.entries(run.step_results ?? {})) {
@@ -262,7 +334,7 @@ export default function StudentMainPage() {
         // No previous run — start fresh
       }
     })();
-  }, [refreshFiles, loadGreeting]);
+  }, [refreshFiles, loadGreeting, applyExistingReportState]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -430,7 +502,7 @@ export default function StudentMainPage() {
               break;
             case "parsed":
               for (const fid of fileIds) {
-                await parseOCR(fid, "resume");
+                await parseOCRWithRetry(fid, "resume");
               }
               break;
             case "profiled": {

@@ -25,6 +25,7 @@ class ExportedFile(BaseModel):
     format: str
     path: str
     file_name: str
+    preview_file_name: str | None = None
 
 
 class TimestampedModel(BaseModel):

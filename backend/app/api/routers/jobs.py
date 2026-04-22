@@ -10,7 +10,12 @@ from app.models import JobPosting, JobProfile, User
 from app.schemas.common import APIResponse, Pagination
 from app.schemas.job import JobImportRequest, JobProfileGenerationRequest
 from app.services.bootstrap import ServiceContainer
-from app.services.reference import find_best_template, load_job_postings_dataset
+from app.services.reference import (
+    filter_student_facing_job_profiles,
+    find_best_template,
+    load_job_postings_dataset,
+    normalize_posting_snapshot,
+)
 
 router = APIRouter()
 
@@ -162,6 +167,7 @@ def _job_explore_item(row: dict) -> dict:
         "title": title,
         "category": _explore_category(row, template),
         "industry": row.get("industry") or "",
+        "industry_group": row.get("industry_group") or "",
         "location": row.get("location") or "",
         "salary_range": row.get("salary_range") or "暂无参考薪资",
         "company_name": row.get("company_name") or "",
@@ -183,18 +189,20 @@ def _job_explore_item(row: dict) -> dict:
 
 def _db_job_explore_rows(db: Session) -> list[dict]:
     return [
-        {
-            "job_code": item.job_code,
-            "title": item.title,
-            "location": item.location,
-            "salary_range": item.salary_range,
-            "company_name": item.company_name,
-            "industry": item.industry,
-            "company_size": item.company_size,
-            "ownership_type": item.ownership_type,
-            "description": item.description,
-            "company_intro": item.company_intro,
-        }
+        normalize_posting_snapshot(
+            {
+                "job_code": item.job_code,
+                "title": item.title,
+                "location": item.location,
+                "salary_range": item.salary_range,
+                "company_name": item.company_name,
+                "industry": item.industry,
+                "company_size": item.company_size,
+                "ownership_type": item.ownership_type,
+                "description": item.description,
+                "company_intro": item.company_intro,
+            }
+        )
         for item in db.scalars(select(JobPosting).order_by(JobPosting.industry, JobPosting.title)).all()
     ]
 
@@ -261,8 +269,9 @@ def list_jobs(
     require_role(current_user.role, "student", "admin", "teacher")
 
     query = select(JobProfile).order_by(JobProfile.title)
-    total = db.query(JobProfile).count()
-    items = list(db.scalars(query.offset(skip).limit(limit)).all())
+    items = filter_student_facing_job_profiles(list(db.scalars(query).all()))
+    total = len(items)
+    items = items[skip: skip + limit]
     return APIResponse(
         data={
             "items": [

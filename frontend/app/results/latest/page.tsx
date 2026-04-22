@@ -32,6 +32,11 @@ function exportedUrl(fileName: string): string {
   return `${root}/exports/${encodeURIComponent(fileName)}`;
 }
 
+function previewUrl(exportResult: ReportExportResult | null): string | null {
+  const fileName = exportResult?.exported.preview_file_name;
+  return fileName ? exportedUrl(fileName) : null;
+}
+
 async function downloadExportedFile(fileName: string): Promise<void> {
   const url = exportedUrl(fileName);
 
@@ -327,6 +332,11 @@ export default function LatestResultPage() {
                 <a href={exportedUrl(exportResult.exported.file_name)} download={exportResult.exported.file_name} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>
                   {exportResult.exported.file_name}
                 </a>
+                {previewUrl(exportResult) ? (
+                  <a href={previewUrl(exportResult) ?? "#"} target="_blank" rel="noreferrer" style={{ marginLeft: 12 }}>
+                    网页版预览
+                  </a>
+                ) : null}
               </div>
             )}
 

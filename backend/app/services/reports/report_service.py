@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from ast import literal_eval
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -11,12 +12,37 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.integrations.llm.providers import BaseLLMProvider
 from app.models import AnalysisRun, CareerReport, GrowthTask, JobProfile, MatchDimensionScore, MatchResult, PathRecommendation, ProfileVersion, ReportVersion, Student, StudentProfile, UploadedFile
+from app.services.ingestion.file_ingestion import FileIngestionService
 from app.services.matching.recommendation import _resume_relevance
 from app.services.matching.matching_service import MatchingService
 from app.services.paths.career_path_service import CareerPathService
-from app.services.reports.exporters import export_markdown_to_docx, export_markdown_to_pdf
+from app.services.reports.exporters import export_markdown_to_docx, export_markdown_to_html, export_markdown_to_pdf
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _ocr_needs_refresh(ocr: dict | None) -> bool:
+    if not ocr:
+        return True
+    text = str(ocr.get("raw_text") or "").lstrip()
+    if not text:
+        return False
+    head = text[:2000]
+    structured = ocr.get("structured_json") or {}
+    return (
+        head.startswith("%PDF")
+        or head.startswith("PK")
+        or "\x00" in head
+        or head.count("\ufffd") > 10
+        or (
+            not structured.get("skills")
+            and bool(re.search(r"(?i)p\s*y\s*t\s*h\s*o\s*n|j\s*a\s*v\s*a|s\s*q\s*l|e\s*x\s*c\s*e\s*l|?\s*?\s*?\s*?", head))
+        )
+    )
 
 
 class ReportService:
@@ -31,10 +57,12 @@ class ReportService:
         llm_provider: BaseLLMProvider,
         matching_service: MatchingService,
         career_path_service: CareerPathService,
+        file_service: FileIngestionService | None = None,
     ) -> None:
         self.llm_provider = llm_provider
         self.matching_service = matching_service
         self.career_path_service = career_path_service
+        self.file_service = file_service
         self.settings = get_settings()
 
     UNAVAILABLE_VALUES = {
@@ -512,6 +540,80 @@ class ReportService:
                 return ocr
         return {}
 
+    def _latest_profile_version(self, db: Session, student_id: int) -> ProfileVersion | None:
+        return db.scalar(
+            select(ProfileVersion)
+            .where(ProfileVersion.student_id == student_id)
+            .order_by(ProfileVersion.version_no.desc())
+            .limit(1)
+        )
+
+    def _resolve_report_resume_file(
+        self,
+        db: Session,
+        profile_version: ProfileVersion | None,
+        owner_id: int,
+        source_summary: str = "",
+    ) -> UploadedFile | None:
+        if profile_version:
+            files = [db.get(UploadedFile, fid) for fid in (profile_version.uploaded_file_ids or [])]
+            resume_files = [file for file in files if file and file.file_type == "resume"]
+            if resume_files:
+                resume_files.sort(key=lambda file: (file.created_at, file.id), reverse=True)
+                return resume_files[0]
+
+        uploads = list(
+            db.scalars(
+                select(UploadedFile)
+                .where(UploadedFile.owner_id == owner_id)
+                .where(UploadedFile.file_type == "resume")
+                .order_by(UploadedFile.created_at.desc(), UploadedFile.id.desc())
+                .limit(8)
+            ).all()
+        )
+        if not uploads:
+            return None
+        if source_summary:
+            source_names = {item.strip() for item in source_summary.split("?") if item.strip()}
+            sourced_uploads = [upload for upload in uploads if upload.file_name in source_names]
+            if sourced_uploads:
+                uploads = sourced_uploads
+        uploads.sort(key=lambda file: (file.created_at, file.id), reverse=True)
+        return uploads[0]
+
+    async def _load_latest_resume_ocr(
+        self,
+        db: Session,
+        student: Student,
+        profile_version: ProfileVersion | None,
+        job_profile: JobProfile | None,
+        source_summary: str,
+    ) -> tuple[dict, int | None]:
+        if self.settings.force_report_ocr_refresh and self.file_service:
+            resume_file = self._resolve_report_resume_file(db, profile_version, student.user_id, source_summary)
+            if resume_file:
+                cached_ocr = (resume_file.meta_json or {}).get("ocr") if resume_file.meta_json else None
+                needs_refresh = _ocr_needs_refresh(cached_ocr)
+                refreshed = await self.file_service.parse_uploaded_file(
+                    db,
+                    resume_file.id,
+                    "resume",
+                    force_refresh=True,
+                    recent_cache_ttl_seconds=(
+                        self.settings.ocr_recent_cache_ttl_seconds if not needs_refresh else None
+                    ),
+                )
+                return refreshed, resume_file.id
+
+        latest_ocr = self._resume_ocr_from_profile_version(db, profile_version)
+        if latest_ocr:
+            resume_file = self._resolve_report_resume_file(db, profile_version, student.user_id, source_summary)
+            return latest_ocr, resume_file.id if resume_file else None
+
+        latest_ocr = self._latest_resume_ocr(db, student.user_id, job_profile, source_summary)
+        resume_file = self._resolve_report_resume_file(db, profile_version, student.user_id, source_summary)
+        return latest_ocr, resume_file.id if resume_file else None
+
     def _match_result_from_db(self, db: Session, match_result_id: int, student_id: int, job_code: str) -> dict:
         match = db.get(MatchResult, match_result_id)
         if not match or match.student_id != student_id or match.target_job_code != job_code:
@@ -581,24 +683,33 @@ class ReportService:
         if not student or not student_profile or not job_profile:
             raise ValueError("生成报告前请先准备学生画像与岗位画像")
 
-        # Resolve context IDs from analysis_run if not explicitly provided
+        run = None
         if analysis_run_id:
             run = db.get(AnalysisRun, analysis_run_id)
-            if run:
-                if not profile_version_id:
-                    profile_version_id = run.profile_version_id
-                if not match_result_id:
-                    match_result_id = run.match_result_id
+            if not run or run.student_id != student_id:
+                raise ValueError("分析运行不存在或不属于当前学生")
+            if not profile_version_id:
+                profile_version_id = run.profile_version_id
+            if not match_result_id:
+                match_result_id = run.match_result_id
+
+        if not profile_version_id and self.settings.auto_bind_latest_profile_version:
+            latest_profile_version = self._latest_profile_version(db, student_id)
+            if latest_profile_version:
+                profile_version_id = latest_profile_version.id
 
         profile_version = db.get(ProfileVersion, profile_version_id) if profile_version_id else None
         if profile_version_id and (not profile_version or profile_version.student_id != student_id):
             raise ValueError("画像版本不存在或不属于当前学生")
         profile_payload = self._profile_payload(student_profile, profile_version)
-        latest_ocr = self._resume_ocr_from_profile_version(db, profile_version)
-        if not latest_ocr:
-            latest_ocr = self._latest_resume_ocr(db, student.user_id, job_profile, str(profile_payload.get("source_summary") or ""))
+        latest_ocr, refreshed_resume_file_id = await self._load_latest_resume_ocr(
+            db,
+            student,
+            profile_version,
+            job_profile,
+            str(profile_payload.get("source_summary") or ""),
+        )
         student_name = self._student_name_from_ocr(student, latest_ocr)
-        profile_updated_at = profile_version.updated_at if profile_version else student_profile.updated_at
 
         # If analysis_run_id is provided, look for a report bound to that specific run
         # to support multiple reports per student+job (different analysis runs)
@@ -618,11 +729,10 @@ class ReportService:
             )
         if (
             report
+            and not self.settings.force_report_regeneration
             and report.content_json
             and report.markdown_content
             and report.updated_at
-            and profile_updated_at
-            and report.updated_at >= profile_updated_at
             and self._report_matches_current_resume(report, student_name, latest_ocr)
             and "学生基本情况" in report.markdown_content
             and self._has_meaningful_data((report.content_json or {}).get("job_comparison"))
@@ -656,7 +766,9 @@ class ReportService:
         if analysis_run_id:
             run = db.get(AnalysisRun, analysis_run_id)
             if run and run.path_recommendation_id:
-                path_rec = db.get(PathRecommendation, run.path_recommendation_id)
+                candidate = db.get(PathRecommendation, run.path_recommendation_id)
+                if candidate and candidate.student_id == student_id and candidate.target_job_code == job_code:
+                    path_rec = candidate
             if not path_rec:
                 path_rec = db.scalar(
                     select(PathRecommendation)
@@ -689,6 +801,17 @@ class ReportService:
                 "mid_term_plan": {},
                 "evaluation_cycle": {},
                 "teacher_comments": {"status": "insufficient_data"},
+                "generation_meta": {
+                    "generated_at": _utc_now_iso(),
+                    "llm_provider": self.settings.llm_provider,
+                    "ocr_provider": self.settings.ocr_provider,
+                    "profile_version_id": profile_version_id,
+                    "match_result_id": actual_match_result_id,
+                    "analysis_run_id": analysis_run_id,
+                    "resume_file_id": refreshed_resume_file_id,
+                    "force_report_regeneration": self.settings.force_report_regeneration,
+                    "force_report_ocr_refresh": self.settings.force_report_ocr_refresh,
+                },
             }
             insufficient_md = (
                 "# CareerPilot 职业发展报告\n\n"
@@ -705,9 +828,16 @@ class ReportService:
                 report = CareerReport(student_id=student_id, target_job_code=job_code)
                 db.add(report)
                 db.flush()
+            report.profile_version_id = profile_version_id
+            report.match_result_id = actual_match_result_id
+            report.analysis_run_id = analysis_run_id
             report.content_json = insufficient_content
             report.markdown_content = insufficient_md
             report.status = "insufficient_data"
+            if run and profile_version_id and not run.profile_version_id:
+                run.profile_version_id = profile_version_id
+            if run:
+                run.report_id = report.id
             db.commit()
             job_brief = self._job_comparison_brief(report.content_json, job_code)
             return {
@@ -817,6 +947,8 @@ class ReportService:
         report.profile_version_id = profile_version_id
         report.match_result_id = actual_match_result_id
         report.analysis_run_id = analysis_run_id
+        if run and profile_version_id and not run.profile_version_id:
+            run.profile_version_id = profile_version_id
         normalized_content = self._normalize_report_content(llm_result["content"])
         normalized_content["job_comparison"] = job_comparison
         target_analysis = dict(normalized_content.get("target_job_analysis") or {})
@@ -845,15 +977,25 @@ class ReportService:
                 gap_suggestions.append(bridge_suggestion)
         gap_analysis["suggestions"] = gap_suggestions
         normalized_content["gap_analysis"] = gap_analysis
+        normalized_content["generation_meta"] = {
+            "generated_at": _utc_now_iso(),
+            "llm_provider": self.settings.llm_provider,
+            "ocr_provider": self.settings.ocr_provider,
+            "profile_version_id": profile_version_id,
+            "match_result_id": actual_match_result_id,
+            "path_recommendation_id": path_rec.id if path_rec else None,
+            "analysis_run_id": analysis_run_id,
+            "resume_file_id": refreshed_resume_file_id,
+            "force_report_regeneration": self.settings.force_report_regeneration,
+            "force_report_ocr_refresh": self.settings.force_report_ocr_refresh,
+        }
         report.content_json = normalized_content
         report.markdown_content = self._build_standard_markdown(normalized_content)
         report.status = "generated"
 
         # If analysis_run_id provided, update AnalysisRun.report_id
-        if analysis_run_id:
-            run = db.get(AnalysisRun, analysis_run_id)
-            if run:
-                run.report_id = report.id
+        if run:
+            run.report_id = report.id
 
         version_count = len(list(db.scalars(select(ReportVersion).where(ReportVersion.report_id == report.id)).all()))
         db.add(
@@ -1100,11 +1242,22 @@ class ReportService:
             suffix = "pdf" if export_format == "pdf" else "docx"
             file_name = f"career_report_{report_id}.{suffix}"
             output_path = self.settings.export_path / file_name
+            preview_file_name = None
             if export_format == "pdf":
                 export_markdown_to_pdf(report.markdown_content, output_path)
             else:
                 export_markdown_to_docx(report.markdown_content, output_path)
-            return {"format": export_format, "path": str(output_path), "file_name": file_name}
+                preview_file_name = f"career_report_{report_id}.preview.html"
+                export_markdown_to_html(
+                    report.markdown_content,
+                    self.settings.export_path / preview_file_name,
+                )
+            return {
+                "format": export_format,
+                "path": str(output_path),
+                "file_name": file_name,
+                "preview_file_name": preview_file_name,
+            }
         except ValueError as e:
             logger.error(f"ValueError while exporting report {report_id}: {str(e)}")
             raise

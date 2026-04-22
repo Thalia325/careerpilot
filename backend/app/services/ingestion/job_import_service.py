@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -27,7 +27,13 @@ from app.models import (
     PathRecommendation,
     ReportVersion,
 )
-from app.services.reference import find_best_template, get_job_dataset_metadata, load_job_profile_templates
+from app.services.reference import (
+    filter_student_facing_job_templates,
+    find_best_template,
+    get_job_dataset_metadata,
+    load_job_profile_templates,
+    normalize_posting_snapshot,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +55,7 @@ class JobImportService:
 
     @staticmethod
     def normalize_row(row: dict[str, Any]) -> dict[str, Any]:
-        return {
+        return normalize_posting_snapshot({
             "title": JobImportService._clean_text(row.get("title")),
             "location": JobImportService._clean_text(row.get("location")),
             "salary_range": JobImportService._clean_text(row.get("salary_range")),
@@ -60,7 +66,7 @@ class JobImportService:
             "job_code": JobImportService._clean_text(row.get("job_code")),
             "description": JobImportService._clean_text(row.get("description")),
             "company_intro": JobImportService._clean_text(row.get("company_intro")),
-        }
+        })
 
     def _upsert_company(self, db: Session, row: dict[str, Any]) -> Company:
         company_name = row["company_name"] or "未知企业"
@@ -206,6 +212,154 @@ class JobImportService:
             await self.generate_profiles(db, [item.job_code for item in imported])
         return imported
 
+    def sync_postings_snapshot(self, db: Session, rows: list[dict[str, Any]]) -> dict[str, int]:
+        normalized_rows = [self.normalize_row(row) for row in rows]
+        normalized_rows = [row for row in normalized_rows if row["title"] and row["job_code"]]
+        existing_postings = {
+            item.job_code: item
+            for item in db.scalars(select(JobPosting)).all()
+        }
+        created = 0
+        updated = 0
+
+        for row in normalized_rows:
+            company = self._upsert_company(db, row)
+            posting = existing_postings.get(row["job_code"])
+            if not posting:
+                posting = JobPosting(job_code=row["job_code"])
+                db.add(posting)
+                existing_postings[row["job_code"]] = posting
+                created += 1
+            else:
+                updated += 1
+
+            posting.title = row["title"]
+            posting.location = row["location"]
+            posting.salary_range = row["salary_range"]
+            posting.company_id = company.id
+            posting.company_name = company.name
+            posting.industry = row["industry"]
+            posting.company_size = row["company_size"]
+            posting.ownership_type = row["ownership_type"]
+            posting.description = row["description"]
+            posting.company_intro = row["company_intro"]
+            posting.normalized_json = row
+
+        db.commit()
+        return {
+            "row_count": len(normalized_rows),
+            "created_count": created,
+            "updated_count": updated,
+            "posting_count": len(existing_postings),
+        }
+
+    def ensure_profile_integrity(self, db: Session) -> dict[str, int]:
+        profiles = list(db.scalars(select(JobProfile).order_by(JobProfile.job_code, JobProfile.id)).all())
+        if not profiles:
+            return {
+                "profile_count": 0,
+                "removed_profiles": 0,
+                "relinked_matches": 0,
+                "relinked_certificates": 0,
+                "deleted_duplicate_certificates": 0,
+                "removed_unlinked_profiles": 0,
+            }
+
+        match_counts = dict(
+            db.execute(
+                select(MatchResult.job_profile_id, func.count(MatchResult.id))
+                .group_by(MatchResult.job_profile_id)
+            ).all()
+        )
+        posting_codes = set(db.scalars(select(JobPosting.job_code)).all())
+
+        grouped_by_code: dict[str, list[JobProfile]] = {}
+        for profile in profiles:
+            grouped_by_code.setdefault(profile.job_code, []).append(profile)
+
+        removed_profiles = 0
+        relinked_matches = 0
+        relinked_certificates = 0
+        deleted_duplicate_certificates = 0
+        removed_unlinked_profiles = 0
+
+        def profile_sort_key(profile: JobProfile) -> tuple[int, int, int, int]:
+            return (
+                match_counts.get(profile.id, 0),
+                len(profile.skill_requirements or []),
+                len(profile.summary or ""),
+                -profile.id,
+            )
+
+        for _, group in grouped_by_code.items():
+            if len(group) <= 1:
+                continue
+
+            canonical = max(group, key=profile_sort_key)
+            existing_cert_pairs = {
+                (item.certificate_name, item.reason)
+                for item in db.scalars(
+                    select(CertificateRequired).where(CertificateRequired.job_profile_id == canonical.id)
+                ).all()
+            }
+
+            for duplicate in group:
+                if duplicate.id == canonical.id:
+                    continue
+
+                relinked_matches += db.query(MatchResult).filter(
+                    MatchResult.job_profile_id == duplicate.id
+                ).update(
+                    {MatchResult.job_profile_id: canonical.id},
+                    synchronize_session=False,
+                )
+
+                duplicate_certs = list(
+                    db.scalars(
+                        select(CertificateRequired).where(CertificateRequired.job_profile_id == duplicate.id)
+                    ).all()
+                )
+                for certificate in duplicate_certs:
+                    pair = (certificate.certificate_name, certificate.reason)
+                    if pair in existing_cert_pairs:
+                        db.delete(certificate)
+                        deleted_duplicate_certificates += 1
+                    else:
+                        certificate.job_profile_id = canonical.id
+                        existing_cert_pairs.add(pair)
+                        relinked_certificates += 1
+
+                db.delete(duplicate)
+                removed_profiles += 1
+
+        remaining_profiles = list(db.scalars(select(JobProfile).order_by(JobProfile.id)).all())
+        for profile in remaining_profiles:
+            if profile.job_code in posting_codes:
+                continue
+            if match_counts.get(profile.id, 0):
+                continue
+            db.query(CertificateRequired).filter(CertificateRequired.job_profile_id == profile.id).delete()
+            db.delete(profile)
+            removed_unlinked_profiles += 1
+
+        if (
+            removed_profiles
+            or relinked_matches
+            or relinked_certificates
+            or deleted_duplicate_certificates
+            or removed_unlinked_profiles
+        ):
+            db.commit()
+
+        return {
+            "profile_count": db.scalar(select(func.count()).select_from(JobProfile)) or 0,
+            "removed_profiles": removed_profiles,
+            "relinked_matches": relinked_matches,
+            "relinked_certificates": relinked_certificates,
+            "deleted_duplicate_certificates": deleted_duplicate_certificates,
+            "removed_unlinked_profiles": removed_unlinked_profiles,
+        }
+
     async def generate_profiles(self, db: Session, job_codes: Optional[list[str]] = None) -> list[JobProfile]:
         query = select(JobPosting)
         if job_codes:
@@ -341,7 +495,7 @@ class JobImportService:
         return list(db.scalars(select(JobProfile).order_by(JobProfile.title)).all())
 
     def search_templates(self, keyword: Optional[str] = None) -> list[dict]:
-        templates = load_job_profile_templates()
+        templates = filter_student_facing_job_templates(load_job_profile_templates())
         if not keyword:
             return templates
         return [item for item in templates if keyword.lower() in item["title"].lower()]
