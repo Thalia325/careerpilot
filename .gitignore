@@ -4,6 +4,8 @@
 .agents/
 .cursor/
 .playwright-mcp/
+careerpilot-main/
+tools/
 .venv
 venv/
 backend/venv/
@@ -17,6 +19,8 @@ build/
 coverage/
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/logs/
+backend/run-logs/
 exports/*
 !exports/.gitkeep
 backend/careerpilot.db
@@ -27,8 +31,13 @@ backend/*.db-shm
 backend/*.db-wal
 screenshots/
 run-logs/
+frontend/run-logs/
+frontend/screenshots/
+frontend/scripts/
+frontend/*.log
 *.log
 *.tsbuildinfo
+tmp-*.docx
 
 # Local planning / agent scratch files
 requirement.md

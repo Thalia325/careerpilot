@@ -528,7 +528,7 @@ class PaddleOCRProvider(BaseOCRProvider):
                     await asyncio.sleep(delay)
                     continue
                 raise
-        raise OCRServiceError("OCR 鏈嶅姟寮傚父锛岃绋嶅悗閲嶈瘯")
+        raise OCRServiceError("OCR 服务请求失败，请稍后重试。")
 
     async def _normalize_layout_parsing_result(
         self,

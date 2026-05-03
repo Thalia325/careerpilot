@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     graph_provider: Literal["mock", "neo4j"] = "mock"
     storage_provider: Literal["local", "minio"] = "local"
     job_profile_mock_fallback_enabled: bool = True
-    strict_ai_providers: bool = True
+    strict_ai_providers: bool = False
     force_profile_ocr_refresh: bool = True
     force_report_regeneration: bool = True
     force_report_ocr_refresh: bool = True
@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     ernie_aistudio_base_url: str = "https://aistudio.baidu.com/llm/lmapi/v3"
     ernie_model: str = "ernie-5.0-thinking-preview"
     paddle_ocr_service_url: str = "https://rdj6r9sbc98duaa1.aistudio-app.com/layout-parsing"
+    paddle_ocr_api_key: str = ""
     paddle_ocr_api_key_encrypted: str = ""
     paddle_ocr_timeout_seconds: float = 60.0
     paddle_ocr_max_retries: int = 5
@@ -83,7 +84,9 @@ class Settings(BaseSettings):
         return self.ernie_api_key
 
     @property
-    def paddle_ocr_api_key(self) -> str:
+    def resolved_paddle_ocr_api_key(self) -> str:
+        if self.paddle_ocr_api_key:
+            return self.paddle_ocr_api_key
         if self.paddle_ocr_api_key_encrypted:
             from app.core.crypto import decrypt_value
             return decrypt_value(self.paddle_ocr_api_key_encrypted)

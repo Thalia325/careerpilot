@@ -60,6 +60,8 @@ def _validate_ai_settings(settings) -> None:
         raise RuntimeError("STRICT_AI_PROVIDERS enabled: ERNIE credentials are missing")
     if not settings.paddle_ocr_service_url:
         raise RuntimeError("STRICT_AI_PROVIDERS enabled: PADDLE_OCR_SERVICE_URL is missing")
+    if not settings.resolved_paddle_ocr_api_key:
+        raise RuntimeError("STRICT_AI_PROVIDERS enabled: PADDLE_OCR_API_KEY is missing")
 
 
 def _create_llm_provider(settings):
@@ -80,7 +82,7 @@ def _create_ocr_provider(settings):
         return MockOCRProvider()
     return PaddleOCRProvider(
         settings.paddle_ocr_service_url,
-        settings.paddle_ocr_api_key,
+        settings.resolved_paddle_ocr_api_key,
         timeout_seconds=settings.paddle_ocr_timeout_seconds,
         max_retries=settings.paddle_ocr_max_retries,
         retry_base_delay_seconds=settings.paddle_ocr_retry_base_delay_seconds,

@@ -36,7 +36,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.project_name,
         version="0.1.0",
-        description="CareerPilot - 基于 AI 的大学生职业规划智能体",
+        description="CareerPilot - 基于 AI 的大学生职业规划智能助手",
         lifespan=lifespan,
         redirect_slashes=False,
     )
