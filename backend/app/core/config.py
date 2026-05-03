@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     job_dataset_path: str = ""
     job_dataset_filtering_enabled: bool = True
     job_dataset_prefer_curated_local: bool = True
+    job_dataset_scope: Literal["computer", "campus", "all"] = "campus"
 
     @property
     def ernie_access_token(self) -> str:

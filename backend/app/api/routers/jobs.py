@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_container, get_current_user, get_db_session
+from app.core.config import get_settings
 from app.core.errors import require_role
 from app.models import JobPosting, JobProfile, User
 from app.schemas.common import APIResponse, Pagination
@@ -121,6 +122,94 @@ EXPLORE_CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
         "售前工程师",
         (
             "售前", "解决方案工程师", "方案工程师",
+        ),
+    ),
+    (
+        "金融/财会/风控",
+        (
+            "金融", "财务", "会计", "审计", "投资", "风控", "风险控制", "银行", "保险",
+            "税务", "成本会计",
+        ),
+    ),
+    (
+        "法务/合规/知识产权",
+        (
+            "法务", "合规", "知识产权", "专利",
+        ),
+    ),
+    (
+        "教育/培训/科研",
+        (
+            "培训", "讲师", "教学", "教研", "教育研究", "留学顾问", "职业规划",
+        ),
+    ),
+    (
+        "市场/品牌/传媒",
+        (
+            "市场", "新媒体", "广告", "品牌", "公关", "活动策划", "内容运营",
+            "视频", "剪辑", "文案", "记者", "编辑",
+        ),
+    ),
+    (
+        "销售/商务/贸易",
+        (
+            "销售", "大客户", "商务拓展", "bd", "电话销售", "网络销售", "外贸",
+            "跨境电商",
+        ),
+    ),
+    (
+        "人力/行政/组织",
+        (
+            "人力资源", "招聘", "薪酬", "绩效", "行政", "前台", "文秘",
+        ),
+    ),
+    (
+        "智能制造/工程技术",
+        (
+            "机械", "电气", "土木", "建筑", "结构", "质量工程", "工业工程",
+            "航空维修", "仓储自动化", "工程项目",
+        ),
+    ),
+    (
+        "医药/健康/生命科学",
+        (
+            "医药", "临床", "生物", "医学", "营养", "心理", "康复",
+        ),
+    ),
+    (
+        "供应链/物流/采购",
+        (
+            "供应链", "物流", "采购", "仓储", "冷链",
+        ),
+    ),
+    (
+        "文旅/酒店/餐饮/体育",
+        (
+            "旅游", "导游", "酒店", "餐饮", "体育", "健身", "体能",
+        ),
+    ),
+    (
+        "农业/食品/环境",
+        (
+            "农业", "园艺", "畜牧", "食品", "环境", "化工",
+        ),
+    ),
+    (
+        "能源/绿色低碳",
+        (
+            "新能源", "储能", "能源", "石油",
+        ),
+    ),
+    (
+        "设计/创意/数字内容",
+        (
+            "设计", "插画", "动画", "游戏美术", "展览", "展示设计", "室内设计",
+        ),
+    ),
+    (
+        "公共服务/社区治理",
+        (
+            "社会工作", "社区管理", "网格员", "物业",
         ),
     ),
 ]
@@ -269,7 +358,8 @@ def list_jobs(
     require_role(current_user.role, "student", "admin", "teacher")
 
     query = select(JobProfile).order_by(JobProfile.title)
-    items = filter_student_facing_job_profiles(list(db.scalars(query).all()))
+    raw_items = list(db.scalars(query).all())
+    items = raw_items if get_settings().job_dataset_scope != "computer" else filter_student_facing_job_profiles(raw_items)
     total = len(items)
     items = items[skip: skip + limit]
     return APIResponse(
