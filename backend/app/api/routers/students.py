@@ -5,6 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.config import get_settings
 from app.core.errors import require_role, raise_resource_forbidden
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import or_, select
@@ -39,6 +40,7 @@ from app.services.matching.recommendation import (
 )
 from app.services.reference import (
     filter_student_facing_job_profiles,
+    is_campus_relevant_job,
     is_student_facing_computer_job,
     job_profile_snapshot,
     normalize_posting_snapshot,
@@ -49,9 +51,9 @@ router = APIRouter()
 
 
 def _student_facing_profiles(db: Session) -> list[JobProfile]:
-    profiles = filter_student_facing_job_profiles(
-        list(db.scalars(select(JobProfile).order_by(JobProfile.updated_at.desc(), JobProfile.id.desc())).all())
-    )
+    all_profiles = list(db.scalars(select(JobProfile).order_by(JobProfile.updated_at.desc(), JobProfile.id.desc())).all())
+    broad_scope_enabled = get_settings().job_dataset_scope != "computer"
+    profiles = all_profiles if broad_scope_enabled else filter_student_facing_job_profiles(all_profiles)
     posting_by_code = {
         item.job_code: normalize_posting_snapshot(
             {
@@ -77,10 +79,16 @@ def _student_facing_profiles(db: Session) -> list[JobProfile]:
             continue
         if profile.job_code in seen_job_codes:
             continue
-        if not is_student_facing_computer_job(job_profile_snapshot(profile)):
-            continue
-        if not is_student_facing_computer_job(posting):
-            continue
+        if broad_scope_enabled:
+            if not is_campus_relevant_job(job_profile_snapshot(profile)):
+                continue
+            if not is_campus_relevant_job(posting):
+                continue
+        else:
+            if not is_student_facing_computer_job(job_profile_snapshot(profile)):
+                continue
+            if not is_student_facing_computer_job(posting):
+                continue
         filtered.append(profile)
         seen_job_codes.add(profile.job_code)
     return filtered

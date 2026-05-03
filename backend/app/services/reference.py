@@ -13,6 +13,8 @@ from app.core.config import get_settings
 
 
 CURATED_DATASET_CANDIDATE_NAMES = (
+    "campus_jobs_augmented.csv",
+    "campus_jobs_curated.csv",
     "a13_jobs_augmented.csv",
     "a13_jobs_supplement.csv",
 )
@@ -288,6 +290,31 @@ TECH_EXCEPTION_KEYWORDS = (
     "算法",
     "开发",
     "测试",
+)
+
+CAMPUS_ROLE_KEYWORDS = (
+    "开发", "工程师", "分析师", "顾问", "专员", "助理", "管培生", "培训生", "实习",
+    "产品", "项目", "运营", "策划", "设计", "编辑", "文案", "销售", "商务", "客户",
+    "财务", "会计", "审计", "税务", "法务", "合规", "知识产权", "人力", "招聘",
+    "行政", "教师", "讲师", "教研", "咨询", "外贸", "采购", "供应链", "物流",
+    "机械", "电气", "土木", "建筑", "质量", "工业", "结构", "临床", "医药",
+    "生物", "医学", "营养", "心理", "康复", "食品", "农业", "园艺", "畜牧",
+    "环境", "化工", "新能源", "储能", "能源", "石油", "导游", "酒店", "餐饮",
+    "体育", "物业", "社区", "社会工作", "翻译", "同声传译",
+)
+
+CAMPUS_INDUSTRY_KEYWORDS = (
+    "互联网", "计算机", "软件", "信息技术", "人工智能", "大数据", "金融", "银行",
+    "证券", "保险", "会计", "法律", "知识产权", "教育", "科研", "传媒", "广告",
+    "品牌", "贸易", "人力资源", "企业服务", "制造", "机械", "建筑", "航空",
+    "医药", "医疗", "生命科学", "物流", "供应链", "文旅", "酒店", "餐饮",
+    "体育", "农业", "食品", "环保", "化工", "新能源", "电力", "设计", "文化",
+    "公共服务", "社区", "物业",
+)
+
+CAMPUS_EXCLUDE_TITLE_KEYWORDS = (
+    "普工", "操作工", "分拣员", "搬运工", "保安", "保洁", "服务员", "收银员",
+    "骑手", "司机", "主播", "演员", "模特", "美容师", "美甲", "洗碗工",
 )
 
 STUDENT_FACING_INCLUDE_KEYWORDS = (
@@ -666,6 +693,37 @@ def filter_computer_related_rows(rows: list[dict[str, Any]]) -> list[dict[str, A
     return [row for row in rows if is_computer_related_job(row)]
 
 
+def is_campus_relevant_job(row: dict[str, Any]) -> bool:
+    title = _collapse_text(normalize_job_title(row.get("title")))
+    if not title:
+        return False
+
+    job_code = _normalize_text(row.get("job_code")).upper()
+    source_url = _collapse_text(row.get("source_url"))
+    if job_code.startswith("CP-") or source_url.startswith("careerpilot://curated-campus/"):
+        return True
+
+    if any(keyword in title for keyword in CAMPUS_EXCLUDE_TITLE_KEYWORDS):
+        return False
+
+    industry = _collapse_text(row.get("industry"))
+    description = _collapse_text(row.get("description"))
+    company_intro = _collapse_text(row.get("company_intro"))
+    merged_text = " ".join(filter(None, (title, industry, description, company_intro)))
+
+    if is_computer_related_job(row):
+        return True
+    if any(keyword in title for keyword in CAMPUS_ROLE_KEYWORDS):
+        return True
+    industry_hits = sum(1 for keyword in CAMPUS_INDUSTRY_KEYWORDS if keyword in industry)
+    role_hits = sum(1 for keyword in CAMPUS_ROLE_KEYWORDS if keyword in merged_text)
+    return industry_hits >= 1 and role_hits >= 1
+
+
+def filter_campus_relevant_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [row for row in rows if is_campus_relevant_job(row)]
+
+
 def _template_skill_blob(row: dict[str, Any]) -> str:
     skills = row.get("skills")
     if isinstance(skills, list):
@@ -814,9 +872,17 @@ def load_job_postings_dataset(
     path = resolve_job_dataset_path(dataset_path)
     rows = _load_dataset_rows(path)
     settings = get_settings()
-    should_filter = settings.job_dataset_filtering_enabled if computer_related_only is None else computer_related_only
+    if computer_related_only is not None:
+        return filter_computer_related_rows(rows) if computer_related_only else rows
+
+    should_filter = settings.job_dataset_filtering_enabled
     if should_filter:
-        return filter_computer_related_rows(rows)
+        scope = settings.job_dataset_scope
+        if scope == "all":
+            return rows
+        if scope == "computer":
+            return filter_computer_related_rows(rows)
+        return filter_campus_relevant_rows(rows)
     return rows
 
 
@@ -831,7 +897,8 @@ def get_job_dataset_metadata(dataset_path: str | None = None) -> dict[str, Any]:
         "raw_row_count": len(raw_rows),
         "filtered_row_count": len(filtered_rows),
         "excluded_row_count": max(len(raw_rows) - len(filtered_rows), 0),
-        "computer_related_only": True,
+        "computer_related_only": get_settings().job_dataset_scope == "computer",
+        "scope": get_settings().job_dataset_scope,
         "source": "sample" if path.name == "sample_jobs.csv" else ("curated" if path.name in CURATED_DATASET_CANDIDATE_NAMES else "official"),
     }
 

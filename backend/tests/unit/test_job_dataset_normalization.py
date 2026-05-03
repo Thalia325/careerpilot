@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from app.services.reference import (
     derive_industry_group,
+    filter_campus_relevant_rows,
     filter_student_facing_job_profiles,
     normalize_industry_value,
     normalize_posting_snapshot,
@@ -59,3 +60,22 @@ def test_filter_student_facing_job_profiles_excludes_non_technical_roles():
     ]
     filtered = filter_student_facing_job_profiles(profiles)
     assert [profile.job_code for profile in filtered] == ["J-FE-001"]
+
+
+def test_filter_campus_relevant_rows_keeps_broader_graduate_roles():
+    rows = [
+        {
+            "title": "财务会计管培生",
+            "industry": "金融服务,会计/审计",
+            "description": "参与财务核算、预算分析和经营报表整理",
+            "job_code": "CP-J-ACC-001-03",
+        },
+        {
+            "title": "分拣员",
+            "industry": "物流运输",
+            "description": "仓库分拣搬运",
+            "job_code": "X-001",
+        },
+    ]
+    filtered = filter_campus_relevant_rows(rows)
+    assert [row["job_code"] for row in filtered] == ["CP-J-ACC-001-03"]
